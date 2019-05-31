@@ -1,0 +1,14 @@
+tuts/info:
+	https://github.com/rust-embedded
+	https://github.com/rust-embedded/awesome-embedded-rust
+	https://rahul-thakoor.github.io/physical-computing-rust/
+	https://github.com/rust-embedded/rust-raspi3-OS-tutorials
+	https://rust-embedded.github.io/book/intro/index.html
+
+libs:
+	gpio:
+		https://github.com/rahul-thakoor/rust_gpiozero
+		https://github.com/golemparts/rppal
+		https://github.com/rust-embedded/rust-sysfs-gpio
+
+
