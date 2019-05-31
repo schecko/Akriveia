@@ -1,0 +1,7 @@
+# The scripts in thise folder are designed to provide a deterministic way of reproducing the rasperry pi environment.
+
+# The scripts assume the rasperry pi has raspbian lite installed(full or recommended versions will also likely work just as well).
+# after installing the OS:
+# - Execute the install script as root
+# - Execute the setup script as the user that will execute the akriveia rust server in production and, on any other user that needs it.
+
