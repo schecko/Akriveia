@@ -4,4 +4,6 @@
 # after installing the OS:
 # - Execute the install script as root
 # - Execute the setup script as the user that will execute the akriveia rust server in production and, on any other user that needs it.
+# - execute the command:
+	source ~/.cargo/env
 
