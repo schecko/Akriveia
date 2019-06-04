@@ -12,3 +12,8 @@ libs:
 		https://github.com/rust-embedded/rust-sysfs-gpio
 
 
+cross compilation to raspberry:
+	https://github.com/japaric/rust-cross
+
+code blocks:
+	http://javacoalface.blogspot.com/2014/11/using-codeblocks-as-your-rust-ide-on.html
