@@ -3,16 +3,36 @@
 	<FileVersion major="1" minor="6" />
 	<Project>
 		<Option title="akriveia" />
+		<Option makefile="Cargo.toml" />
+		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="rust" />
+		<MakeCommands>
+			<Build command="$make build" />
+			<CompileFile command="$make build" />
+			<Clean command="$make clean" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="$make build" />
+			<SilentBuild command="$make build &gt; $(CMD_NULL)" />
+		</MakeCommands>
 		<Build>
 			<Target title="Debug">
-				<Option output="target/akriveia" prefix_auto="1" extension_auto="1" />
+				<Option output="target/debug/server" prefix_auto="1" extension_auto="1" />
 				<Option object_output="target/build/" />
 				<Option type="1" />
 				<Option compiler="rust" />
+				<MakeCommands>
+					<Build command="$make build" />
+					<CompileFile command="$make build" />
+					<Clean command="$make clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make build" />
+					<SilentBuild command="$make build &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="Cargo.toml" />
+		<Unit filename="src/main.rs" />
 		<Extensions>
 			<code_completion />
 			<debugger />
