@@ -1,4 +1,3 @@
-
 bool system_on = false;
 String input = "";
 
@@ -23,9 +22,6 @@ void loop() {
       system_on = false;
     }
   }
-
-
- 
 
   if (system_on==true){
     Serial.println("DATA");
