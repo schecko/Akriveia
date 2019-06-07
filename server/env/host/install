@@ -5,5 +5,5 @@
 bash ../pi/install
 
 # install dev packages
-apt install -qq gcc-acm-linux-gnueabihf codeblocks
+apt install -qq codeblocks
 
