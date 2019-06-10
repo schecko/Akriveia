@@ -1,3 +1,2 @@
-# PoC Prototype
+# Akriveia Beacon System
 
-Proof of concept prototype
