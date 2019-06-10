@@ -35,7 +35,11 @@
 		<Unit filename="src/main.rs" />
 		<Extensions>
 			<code_completion />
-			<debugger />
+			<debugger>
+				<remote_debugging target="Debug">
+					<options conn_type="0" serial_baud="115200" ip_address="192.168.0.200" ip_port="6969" extended_remote="1" />
+				</remote_debugging>
+			</debugger>
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>
