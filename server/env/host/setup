@@ -1,0 +1,16 @@
+#!/bin/bash
+# like the pi counterpart, this file is intended to be executed as your user (not root)
+
+# do the same setup as if on the pi
+bash ../pi/setup
+
+# configure cross compilation
+rustup target add armv7-unknown-linux-gnueabihf
+
+mkdir -p ~/.cargo
+if [[ ! -f rust_config ]]; then
+	cp rust_config ~/.config/
+else
+	echo "Please rerun this script in the same folder that it is located, ie in the same folder as rust_config"
+fi
+
