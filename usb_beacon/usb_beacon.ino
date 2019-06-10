@@ -7,17 +7,16 @@ void setup()
 char i = 0;
 void loop()
 {
-	/*char receiveByte = 0;
+	char receiveByte = 0;
 	if(Serial.available() > 0) {
 		receiveByte = Serial.read();
 
-		// say what you got:
-		Serial.print("I received: ");
-		Serial.println(receiveByte, DEC);
+    String msg = String("\nreceived ") + String(receiveByte, DEC);
+		Serial.print(msg);
+    i = 0;
+	} else {
+    String msg = String("\nwaiting ") + String(i++, DEC);
+	  Serial.print(msg);
 	}
-	*/
-
-
-	Serial.print((int)i++);
 	delay(1000);
 }
