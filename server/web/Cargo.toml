@@ -1,0 +1,13 @@
+[package]
+name = "web"
+version = "0.1.0"
+authors = ["Scott Checko <schecko@sfu.ca>"]
+publish = false
+
+[dependencies]
+yew = "0.6.0"
+server = { path = ".." }
+
+[build-dependencies]
+server = { path = ".." }
+

@@ -4,7 +4,9 @@ version = "0.1.0"
 authors = ["Scott Checko <schecko@sfu.ca>"]
 publish = false
 
-[dependencies]
-web = { path = "src/web" }
-backend = { path = "src/backend" }
+[workspace]
+members = [
+	"backend",
+	"web"
+]
 
