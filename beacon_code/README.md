@@ -8,6 +8,7 @@ https://github.com/espressif/arduino-esp32
 - https://github.com/jarkko-hautakorpi/iBeacon-indoor-positioning-demo
 - https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
 - https://randomnerdtutorials.com/esp32-deep-sleep-arduino-ide-wake-up-sources/
+- https://www.instructables.com/id/JARVAS-Indoor-Positioning-System/
 
 07/06/2019
 
