@@ -39,3 +39,4 @@ impl Renderable<Model> for Model {
 fn main() {
     yew::start_app::<Model>();
 }
+
