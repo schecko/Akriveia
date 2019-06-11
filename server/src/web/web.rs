@@ -1,19 +1,21 @@
-
 extern crate actix_web;
+extern crate actix_files;
+extern crate askama;
 
+use askama::Template;
+use actix_files as fs;
 use actix_web::{
-    get, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer,
+    get, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer
 };
 
-#[get("/index.html")]
-fn index(req: HttpRequest, name: web::Path<String>) -> String {
-    println!("REQ: {:?}", req);
-    format!("Hello: {}!\r\n", name)
-}
+#[derive(Template)]
+#[template(path = "index.html")]
+struct Index;
 
 #[get("/")]
-fn no_params() -> &'static str {
-    "Hello world!\r\n"
+fn index() -> Result<HttpResponse, Error> {
+    let body = Index.render().unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 pub fn init() -> std::io::Result<()> {
@@ -25,7 +27,6 @@ pub fn init() -> std::io::Result<()> {
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
             .service(index)
-            .service(no_params)
     })
     .bind("0.0.0.0:8080")?
     .workers(1)

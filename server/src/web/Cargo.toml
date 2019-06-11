@@ -14,3 +14,12 @@ path = "web.rs"
 
 [dependencies]
 actix-web = "1.0.0"
+actix-files = "0.1.1"
+askama = "0.8"
+
+[build-dependencies]
+askama = "0.8"
+
+[dev-dependencies]
+env_logger = "0.6"
+
