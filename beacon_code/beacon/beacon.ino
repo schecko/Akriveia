@@ -1,77 +1,101 @@
+/*
+    ENSC405W - TriWave Systems (Group 5)
+    Beacon Sketch
+ */
 
-#include <WiFi.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
-#include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
+#include <BLEScan.h>
 
-int beaconScanTime = 4;
-uint8_t bufferIndex = 0;
-BeaconData buffer[50];
+#define MAX_CLIENT 1
+
+RTC_DATA_ATTR int bootCount = 0;
 
 typedef struct {
-  char address[17]; 
+  char macAddr[17];
   int rssi;
-} BeaconData;
+} clientInfo;
 
+int clientIndex = 0;
+int scanTime = 1;
+clientInfo buffer[MAX_CLIENT];
 
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
-public:
-	void onResult(BLEAdvertisedDevice advertisedDevice) {
-	    extern uint8_t bufferIndex;
-	    extern BeaconData buffer[];
-	    if(bufferIndex >= 50) { return; }
-	    
-	    // RSSI
-	    if(advertisedDevice.haveRSSI()) {
-	      buffer[bufferIndex].rssi = advertisedDevice.getRSSI();
-	    } 
-	    else { 
-	    	buffer[bufferIndex].rssi =  0; 
-	    }
-	    
-	    // MAC is mandatory for BT to work
-	    strcpy (buffer[bufferIndex].address, advertisedDevice.getAddress().toString().c_str());
-	    bufferIndex++;
+  public:
 
-	    // Print
-	    Serial.printf("MAC: %s \n", advertisedDevice.getAddress().toString().c_str());
-	    Serial.printf("name: %s \n", advertisedDevice.getName().c_str());
-	    Serial.printf("RSSI: %d \n", advertisedDevice.getRSSI());
-	}
+  // Invoked per unique device found
+  void onResult(BLEAdvertisedDevice advertisedDevice) {
+    extern int clientIndex;
+    extern clientInfo buffer[];
+    if(clientIndex >= MAX_CLIENT) {
+      return;
+    }
+
+    if(advertisedDevice.haveRSSI()) {
+      buffer[clientIndex].rssi = advertisedDevice.getRSSI();
+    }
+    else {
+      buffer[clientIndex].rssi = 0;
+    }
+
+    strcpy(buffer[clientIndex].macAddr, advertisedDevice.getAddress().toString().c_str());
+    clientIndex++;
+
+    
+    Serial.print(advertisedDevice.getAddress().toString().c_str());
+    Serial.print("|");
+    Serial.print(advertisedDevice.getName().c_str());
+    Serial.print("|");
+    Serial.print(advertisedDevice.getRSSI());
+    Serial.println("");
+ 
+  }
 };
 
 
-void setup(){
+void setup() {
   Serial.begin(115200);
-  BLEDevice::init("");
+  BLEDevice::init("Beacon");
+
+/*
+  ++bootCount;
+  Serial.println("Boot number: " + String(bootCount));
+  print_wakeup_reason();
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 1);
+
+  Serial.println("Going to sleep now");
+  delay(1000);
+  esp_deep_sleep_start();
+  Serial.println("This will never be printed");
+*/
 }
 
-
-void ScanBeacons() {
-  delay(500);
-  BLEScan* pBLEScan = BLEDevice::getScan();
+void clientScan() {
+  BLEScan* beacon = BLEDevice::getScan();
   MyAdvertisedDeviceCallbacks cb;
-  pBLEScan->setAdvertisedDeviceCallbacks(&cb);
-  pBLEScan->setActiveScan(true);
-  BLEScanResults foundDevices = pBLEScan->start(beaconScanTime);
+  beacon->setAdvertisedDeviceCallbacks(&cb);
+  beacon->setActiveScan(true);
+  BLEScanResults foundClients = beacon->start(scanTime);
+  
+  /*Serial.println("Clients found: ");
 
-  Serial.print("Devices found: ");
-  for (uint8_t i = 0; i < bufferIndex; i++) {
-    Serial.print(buffer[i].address);
+  for(int i = 0; i < clientIndex; i++) {
+    Serial.print(buffer[i].macAddr);
     Serial.print(" : ");
     Serial.println(buffer[i].rssi);
   }
-  
-  pBLEScan->stop();
-  delay(500);
-  Serial.println("Scan done!");
+
+  beacon->stop();
+  Serial.println("Scan complete!");
+  */
 }
 
 
+
 void loop() {
+  clientScan();
 
-  ScanBeacons();
-
+  clientIndex = 0;
 
 }
