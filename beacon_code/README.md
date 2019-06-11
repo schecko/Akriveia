@@ -7,7 +7,7 @@ https://github.com/espressif/arduino-esp32
 - https://github.com/nkolban/ESP32_BLE_Arduino
 - https://github.com/jarkko-hautakorpi/iBeacon-indoor-positioning-demo
 - https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
-
+- https://randomnerdtutorials.com/esp32-deep-sleep-arduino-ide-wake-up-sources/
 
 07/06/2019
 
