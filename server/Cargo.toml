@@ -6,7 +6,8 @@ publish = false
 
 [workspace]
 members = [
+	"common",
 	"backend",
-	"web"
+	"frontend"
 ]
 
