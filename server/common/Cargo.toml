@@ -1,8 +1,9 @@
 [package]
-name = "common"
-version = "0.1.0"
 authors = ["Scott Checko <schecko@sfu.ca>"]
+edition = "2018"
+name = "common"
 publish = false
+version = "0.1.0"
 
 [lib]
 name = "common"
