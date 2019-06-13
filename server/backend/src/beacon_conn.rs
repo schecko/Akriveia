@@ -5,6 +5,8 @@ use serialport::SerialPortType;
 use std::io::{self, Write};
 use std::slice;
 use std::time::Duration;
+use std::thread;
+
 
 const BAUD_RATE: u32 = 9600;
 
@@ -14,8 +16,13 @@ struct AkSerialPort {
     pid: u16,
 }
 
-
 pub fn init() {
+    thread::spawn(move || {
+        connect_read();
+    });
+}
+
+fn connect_read() {
 
     let mut ports: Vec<AkSerialPort> = Vec::new();
     if let Ok(avail_ports) = serialport::available_ports() {
@@ -73,7 +80,3 @@ pub fn init() {
     }
 }
 
-#[allow(dead_code)]
-fn main() {
-    init();
-}

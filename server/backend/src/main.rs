@@ -3,6 +3,7 @@ extern crate actix_files;
 extern crate actix_session;
 extern crate env_logger;
 
+mod beacon_conn;
 use std::env;
 use actix_session::{CookieSession, Session};
 use actix_web::http::{header, Method, StatusCode};
@@ -35,6 +36,8 @@ fn default_route(req: HttpRequest) -> HttpResponse {
 fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_server=debug,actix_web=debug");
     env_logger::init();
+
+    beacon_conn::init();
 
     HttpServer::new(|| {
         App::new()
