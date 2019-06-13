@@ -16,11 +16,12 @@ build-front:
 deploy: build-front build-back
 	cargo web deploy -p frontend
 
+# it looks like there is a bug with wasm right now, only frontend release works with yew fetch? https://github.com/DenisKolodin/yew/issues/455
 run-back:
-	cargo web deploy $(FRONTEND_ARGS)
+	cargo web deploy $(FRONTEND_ARGS) $(RELEASE_ARGS)
 	cargo run $(BACKEND_ARGS)
 
 # start the debug server, independant of the backend.
 run-front:
-	cargo web start $(FRONTEND_ARGS) --auto-reload --host 0.0.0.0
+	cargo web start $(FRONTEND_ARGS) $(RELEASE_ARGS) --auto-reload --host 0.0.0.0
 
