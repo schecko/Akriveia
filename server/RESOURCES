@@ -17,3 +17,10 @@ cross compilation to raspberry:
 
 code blocks:
 	http://javacoalface.blogspot.com/2014/11/using-codeblocks-as-your-rust-ide-on.html
+
+
+actix:
+	- using sqlite:
+		- https://github.com/actix/examples/blob/master/r2d2/src/main.rs
+	- bigger example:
+		- https://github.com/TechEmpower/FrameworkBenchmarks/tree/master/frameworks/Rust/actix
