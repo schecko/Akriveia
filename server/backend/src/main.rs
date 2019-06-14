@@ -1,15 +1,16 @@
-extern crate actix_web;
+extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
+extern crate actix_web;
 extern crate env_logger;
 
 mod beacon_conn;
+
+use actix::prelude::*;
 use std::env;
-use actix_session::{CookieSession, Session};
-use actix_web::http::{header, Method, StatusCode};
 use actix_files as fs;
 use actix_web::{
-    get, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer, Result,
+    get, middleware, web, App, HttpRequest, HttpResponse, HttpServer,
 };
 use serde_derive::{Deserialize, Serialize};
 
@@ -34,7 +35,8 @@ fn default_route(req: HttpRequest) -> HttpResponse {
 }
 
 fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_server=debug,actix_web=debug");
+    let system = System::new("Akriviea");
+    env::set_var("RUST_LOG", "actix_server=debug,actix_web=debug");
     env_logger::init();
 
     beacon_conn::init();
@@ -50,6 +52,8 @@ fn main() -> std::io::Result<()> {
             .default_service(web::resource("").to(default_route))
     })
     .bind("0.0.0.0:8080")?
-    .run()
+    .start();
+
+    system.run()
 }
 
