@@ -4,7 +4,8 @@ extern crate actix_session;
 extern crate actix_web;
 extern crate env_logger;
 
-mod beacon_conn;
+mod beacon_manager;
+mod beacon_serial;
 
 use actix::prelude::*;
 use std::env;
@@ -39,7 +40,8 @@ fn main() -> std::io::Result<()> {
     env::set_var("RUST_LOG", "actix_server=debug,actix_web=debug");
     env_logger::init();
 
-    beacon_conn::init();
+
+    let beacon_manager = beacon_manager::BeaconManager{}.start();
 
     HttpServer::new(|| {
         App::new()

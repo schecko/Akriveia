@@ -1,6 +1,7 @@
 extern crate serialport;
 
 use serialport::prelude::*;
+use actix::prelude::*;
 use serialport::SerialPortType;
 use std::io::{self, Write};
 use std::time::Duration;
@@ -16,11 +17,12 @@ struct AkSerialPort {
     pid: u16,
 }
 
-pub fn init() {
-    thread::spawn(move || {
-        connect_read();
-    });
+pub struct BeaconSerialActor;
+
+impl Actor for BeaconSerialActor {
+    type Context = SyncContext<Self>;
 }
+
 
 fn connect_read() {
 
