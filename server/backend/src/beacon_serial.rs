@@ -1,72 +1,74 @@
 extern crate serialport;
 
+use std::sync::{Arc, Mutex};
 use serialport::prelude::*;
 use actix::prelude::*;
-use serialport::SerialPortType;
+use serialport::*;
 use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
 
 
-const BAUD_RATE: u32 = 9600;
-
 #[allow(dead_code)] // remove this once vid/pid are actually used.
-struct AkSerialPort {
-    port_name: String,
-    vid: u16,
-    pid: u16,
+
+pub struct BeaconSerialConn {
+    pub port_name: String,
+    pub vid: u16,
+    pub pid: u16,
 }
 
-pub struct BeaconSerialActor;
-
-impl Actor for BeaconSerialActor {
+impl Actor for BeaconSerialConn {
     type Context = SyncContext<Self>;
 }
 
+pub struct StartDataCollection;
+impl Message for StartDataCollection {
+    type Result = Result<u64>;
+}
 
-fn connect_read() {
+pub struct GetBeaconData;
+impl Message for GetBeaconData {
+    type Result = Result<u64>;
+}
 
-    let mut ports: Vec<AkSerialPort> = Vec::new();
-    if let Ok(avail_ports) = serialport::available_ports() {
-        for port in avail_ports {
-            println!("\t{}", port.port_name);
-            match port.port_type {
-                SerialPortType::UsbPort(info) => {
-                    // only print out, and keep track of, arduino usbs
-                    if info.vid == 0x2341 {
-                        println!("\t\tType: USB");
-                        println!("\t\tVID:{:04x}", info.vid);
-                        println!("\t\tPID:{:04x}", info.pid);
-                        println!("\t\tSerial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
-                        println!("\t\tManufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
-                        println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
+impl Handler<StartDataCollection> for BeaconSerialConn {
+    type Result = Result<u64>;
 
-                        ports.push(AkSerialPort {
-                            port_name: port.port_name,
-                            vid: info.vid,
-                            pid: info.pid
-                        });
-                    }
-                }
-                _ => {}
+    fn handle(&mut self, msg: StartDataCollection, context: &mut SyncContext<Self>) -> Self::Result {
+
+        let mut settings: SerialPortSettings = Default::default();
+        settings.timeout = Duration::from_millis(10);
+        settings.baud_rate = 9600;
+        match serialport::open_with_settings(&self.port_name, &settings) {
+            Ok(mut opened_port) => {
+                if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
+
+                thread::sleep(Duration::from_millis(100));
+                println!("writing");
+                if let Ok(_) = opened_port.write(b"start") {};
+            }
+            Err(e) => {
+                eprintln!("Failed to open arduino port \"{}\". Error: {}", self.port_name, e);
             }
         }
-    } else {
-        print!("Error listing serial ports");
+
+        Ok(1)
+
     }
+}
 
-    // make ports immutable now.
-    let ports = ports;
+impl Handler<GetBeaconData> for BeaconSerialConn {
+    type Result = Result<u64>;
 
-    let mut settings: SerialPortSettings = Default::default();
-    settings.timeout = Duration::from_millis(10);
-    settings.baud_rate = BAUD_RATE;
+    fn handle(&mut self, msg: GetBeaconData, context: &mut SyncContext<Self>) -> Self::Result {
 
-    for port in ports {
-        match serialport::open_with_settings(&port.port_name, &settings) {
+        let mut settings: SerialPortSettings = Default::default();
+        settings.timeout = Duration::from_millis(10);
+        settings.baud_rate = 9600;
+        match serialport::open_with_settings(&self.port_name, &settings) {
             Ok(mut opened_port) => {
                 let mut serial_buf: Vec<u8> = vec![0; 1000];
-                println!("Receiving data on {} at {} baud:", &port.port_name, &settings.baud_rate);
+                println!("Receiving data on {} :", &self.port_name);
                 loop {
                     println!("clearing port");
                     if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
@@ -87,9 +89,10 @@ fn connect_read() {
                 }
             }
             Err(e) => {
-                eprintln!("Failed to open \"{}\". Error: {}", port.port_name, e);
+                eprintln!("Failed to open arduino port \"{}\". Error: {}", self.port_name, e);
             }
         }
+
+        Ok(1)
     }
 }
-
