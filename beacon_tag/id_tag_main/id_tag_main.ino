@@ -15,11 +15,11 @@
 
 void setup() {
   Serial.begin(115200);
-  BLEDevice::init("ID_Tag_B");
+  BLEDevice::init("ID_Tag_A");
   BLEServer *pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  pCharacteristic->setValue("BBB");
+  pCharacteristic->setValue("AAA");
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
