@@ -30,6 +30,7 @@ pub struct BeaconManager {
 }
 
 const BAUD_RATE: u32 = 9600;
+const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 impl BeaconManager {
     pub fn new() -> BeaconManager {
 
@@ -48,7 +49,7 @@ impl BeaconManager {
                 match port.port_type {
                     SerialPortType::UsbPort(info) => {
                         // only print out, and keep track of, arduino usbs
-                        if info.vid == 0x2341 {
+                        if VENDOR_WHITELIST.iter().any( |vid| vid == &info.vid ) {
                             println!("\t\tType: USB");
                             println!("\t\tVID:{:04x}", info.vid);
                             println!("\t\tPID:{:04x}", info.pid);
@@ -116,7 +117,6 @@ impl Handler<StartEmergency> for BeaconManager {
 
         context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
 
-            println!("hello get beacon data");
             for connection in &a.serial_connections {
                 connection.do_send(GetBeaconData);
             }

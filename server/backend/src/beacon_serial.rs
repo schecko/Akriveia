@@ -46,6 +46,22 @@ impl Handler<StartDataCollection> for BeaconSerialConn {
                 thread::sleep(Duration::from_millis(100));
                 println!("writing");
                 if let Ok(_) = opened_port.write(b"start") {};
+
+                let mut serial_buffer: Vec<u8> = vec![0; 1000];
+                match opened_port.read(serial_buffer.as_mut_slice()) {
+                    Ok(_) => {
+                        let result = String::from_utf8_lossy(&serial_buffer);
+                        if result == "ack" {
+                            println!("successfully received ack from beacon");
+                        } else {
+                            println!("failed to start beacon");
+                        }
+
+                    },
+                    Err(_) => {
+                        println!("serial communication failed on open");
+                    }
+                }
             }
             Err(e) => {
                 eprintln!("Failed to open arduino port \"{}\". Error: {}", self.port_name, e);
@@ -67,7 +83,7 @@ impl Handler<GetBeaconData> for BeaconSerialConn {
         settings.baud_rate = 9600;
         match serialport::open_with_settings(&self.port_name, &settings) {
             Ok(mut opened_port) => {
-                let mut serial_buf: Vec<u8> = vec![0; 1000];
+                let mut serial_buffer: Vec<u8> = vec![0; 1000];
                 println!("Receiving data on {} :", &self.port_name);
                 loop {
                     println!("clearing port");
@@ -77,8 +93,8 @@ impl Handler<GetBeaconData> for BeaconSerialConn {
                     println!("writing");
                     if let Ok(_) = opened_port.write(b"start") {};
                     for _ in 1..300 {
-                        match opened_port.read(serial_buf.as_mut_slice()) {
-                            Ok(t) => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                        match opened_port.read(serial_buffer.as_mut_slice()) {
+                            Ok(t) => io::stdout().write_all(&serial_buffer[..t]).unwrap(),
                             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                             Err(e) => eprintln!("{:?}", e),
                         }
