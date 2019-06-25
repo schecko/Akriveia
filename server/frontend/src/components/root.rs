@@ -111,10 +111,18 @@ impl Component for RootComponent {
 impl Renderable<RootComponent> for RootComponent {
     fn view(&self) -> Html<Self> {
         match self.current_page {
+            Page::Diagnostics => {
+                html! {
+                    <div>
+                        <h>{ "Diagnostics" }</h>
+                        { self.view_data() }
+                    </div>
+                }
+            }
             Page::Login => {
                 html! {
                     <div>
-                        <p>{ "Hello Login Page!" }</p>
+                        <h>{ "Hello Login Page!" }</h>
                         <button onclick=|_| Msg::ChangePage(Page::FrontPage),>{ "Click" }</button>
                         <button onclick=|_| Msg::FetchHello,>{ "Get Hello" }</button>
                         <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
@@ -125,7 +133,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::FrontPage => {
                 html! {
                     <div>
-                        <p>{ "Hello FrontPage Page!" }</p>
+                        <h>{ "Hello FrontPage Page!" }</h>
                         <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Click" }</button>
                     </div>
                 }
