@@ -1,10 +1,10 @@
 
 use failure::Error;
-use serde_derive::{Deserialize, Serialize};
 use yew::format::{Nothing, Json};
 use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+use common;
 
 pub enum Page {
     Login,
@@ -18,14 +18,10 @@ macro_rules! Log {
     )
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct HelloFrontEnd {
-    data: u32,
-}
 
 pub struct RootComponent {
     current_page: Page,
-    data: Option<HelloFrontEnd>,
+    data: Option<common::HelloFrontEnd>,
     fetch_service: FetchService,
     fetch_in_flight: bool,
     fetch_task: Option<FetchTask>,
@@ -36,7 +32,8 @@ pub enum Msg {
     Ignore,
     ChangePage(Page),
     FetchHello,
-    FetchReady(Result<HelloFrontEnd, Error>),
+    FetchEmergency,
+    FetchReady(Result<common::HelloFrontEnd, Error>),
 }
 
 impl Component for RootComponent {
@@ -61,7 +58,7 @@ impl Component for RootComponent {
             },
             Msg::FetchHello => {
                 self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<HelloFrontEnd, Error>>>| {
+                let callback = self.link.send_back(move |response: Response<Json<Result<common::HelloFrontEnd, Error>>>| {
                     let (meta, Json(data)) = response.into_parts();
                     println!("META: {:?}", meta);
                     Log!("META: {:?}", meta);
@@ -71,7 +68,27 @@ impl Component for RootComponent {
                         Msg::Ignore
                     }
                 });
-                let request = Request::get("/hello")
+                let request = Request::get(common::PING)
+                    .header("Content-Type", "text/html")
+                    .header("Accept", "text/html")
+                    .body(Nothing)
+                    .unwrap();
+                let task = self.fetch_service.fetch(request, callback);
+                self.fetch_task = Some(task);
+            },
+            Msg::FetchEmergency => {
+                self.fetch_in_flight = true;
+                let callback = self.link.send_back(move |response: Response<Json<Result<_, Error>>>| {
+                    let (meta, Json(data)) = response.into_parts();
+                    println!("META: {:?}", meta);
+                    Log!("META: {:?}", meta);
+                    if meta.status.is_success() {
+                        Msg::FetchReady(data)
+                    } else {
+                        Msg::Ignore
+                    }
+                });
+                let request = Request::post(common::EMERGENCY)
                     .header("Content-Type", "text/html")
                     .header("Accept", "text/html")
                     .body(Nothing)
@@ -100,6 +117,7 @@ impl Renderable<RootComponent> for RootComponent {
                         <p>{ "Hello Login Page!" }</p>
                         <button onclick=|_| Msg::ChangePage(Page::FrontPage),>{ "Click" }</button>
                         <button onclick=|_| Msg::FetchHello,>{ "Get Hello" }</button>
+                        <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
                         { self.view_data() }
                     </div>
                 }
