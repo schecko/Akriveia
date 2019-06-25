@@ -3,12 +3,15 @@ use failure::Error;
 use yew::format::{Nothing, Json};
 use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
+use yew::services::interval::*;
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 use common;
+use std::time::Duration;
 
 pub enum Page {
-    Login,
+    Diagnostics,
     FrontPage,
+    Login,
 }
 
 macro_rules! Log {
@@ -18,12 +21,14 @@ macro_rules! Log {
     )
 }
 
-
 pub struct RootComponent {
     current_page: Page,
     data: Option<common::HelloFrontEnd>,
-    fetch_service: FetchService,
+    diagnostic_data: Vec<common::TagData>,
+    diagnostic_service: Option<IntervalService>,
+    diagnostic_service_task: Option<IntervalTask>,
     fetch_in_flight: bool,
+    fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
 }
@@ -31,6 +36,8 @@ pub struct RootComponent {
 pub enum Msg {
     Ignore,
     ChangePage(Page),
+    FetchDiagnostics,
+    FetchDiagnosticsReady(Result<common::DiagnosticsData, Error>),
     FetchHello,
     FetchEmergency,
     FetchReady(Result<common::HelloFrontEnd, Error>),
@@ -44,6 +51,8 @@ impl Component for RootComponent {
         RootComponent {
             current_page: Page::Login,
             data: None,
+            diagnostic_service: None,
+            diagnostic_data: Vec::new(),
             fetch_service: FetchService::new(),
             fetch_in_flight: false,
             fetch_task: None,
@@ -55,6 +64,16 @@ impl Component for RootComponent {
         match msg {
             Msg::ChangePage(page) => {
                 self.current_page = page;
+                match self.current_page {
+                    Page::Diagnostics => {
+                        let mut interval_service = IntervalService::new();
+                        self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::FetchDiagnostics)));
+                        self.diagnostic_service = Some(interval_service);
+                    }
+                    _ => {
+                        // do nothing
+                    }
+                }
             },
             Msg::FetchHello => {
                 self.fetch_in_flight = true;
@@ -96,6 +115,32 @@ impl Component for RootComponent {
                 let task = self.fetch_service.fetch(request, callback);
                 self.fetch_task = Some(task);
             },
+            Msg::FetchDiagnostics => {
+                self.fetch_in_flight = true;
+                let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticsData, Error>>>| {
+                    let (meta, Json(data)) = response.into_parts();
+                    println!("META: {:?}", meta);
+                    Log!("META: {:?}", meta);
+                    if meta.status.is_success() {
+                        Msg::FetchDiagnosticsReady(data)
+                    } else {
+                        Msg::Ignore
+                    }
+                });
+                let request = Request::get(common::DIAGNOSTICS)
+                    .header("Content-Type", "text/html")
+                    .header("Accept", "text/html")
+                    .body(Nothing)
+                    .unwrap();
+                let task = self.fetch_service.fetch(request, callback);
+                self.fetch_task = Some(task);
+            },
+            Msg::FetchDiagnosticsReady(response) => {
+                self.fetch_in_flight = false;
+                if let Ok(mut data) = response {
+                    self.diagnostic_data.append(&mut data.tag_data);
+                }
+            },
             Msg::FetchReady(response) => {
                 self.fetch_in_flight = false;
                 self.data = response.ok();
@@ -115,7 +160,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "Diagnostics" }</h>
-                        { self.view_data() }
+                        { self.render_diagnostics() }
                     </div>
                 }
             }
@@ -123,7 +168,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "Hello Login Page!" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::FrontPage),>{ "Click" }</button>
+                        <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Click" }</button>
                         <button onclick=|_| Msg::FetchHello,>{ "Get Hello" }</button>
                         <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
                         { self.view_data() }
@@ -151,6 +196,24 @@ impl RootComponent {
         } else {
             html! {
                 <p>{ "Data hasn't fetched yet." }</p>
+            }
+        }
+    }
+
+    fn render_diagnostics(&self) -> Html<RootComponent> {
+        if self.diagnostic_data.len() > 0 {
+            html! {
+                <table> {
+                    for self.diagnostic_data.iter().map(|row| {
+                        html! {
+                            <tr>{ format!("{}{}", &row.name, &row.mac_address) } </tr>
+                        }
+                    })
+                } </table>
+            }
+        } else {
+            html! {
+                <p>{ "No diagnostics yet..." }</p>
             }
         }
     }
