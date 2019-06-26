@@ -46,6 +46,21 @@ fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpRe
     HttpResponse::Ok().finish()
 }
 
+fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+
+    let diag_data = common::DiagnosticsData {
+        tag_data: vec![
+            common::TagData {
+                name: "hello".to_string(),
+                mac_address: "mac_0111".to_string(),
+                distance: common::DataType::RSSI(33),
+            }
+        ]
+    };
+
+    HttpResponse::Ok().json(diag_data)
+}
+
 fn default_route(req: HttpRequest) -> HttpResponse {
     println!("default route called");
     println!("request was: {:?}", req);
@@ -73,6 +88,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource(common::PING).to(hello))
             .service(scan_beacons)
             .service(web::resource(common::EMERGENCY).to(emergency))
+            .service(web::resource(common::DIAGNOSTICS).to(diagnostics))
             // these two last !!
             .service(fs::Files::new("/", "static/").index_file("index.html"))
             .default_service(web::resource("").to(default_route))

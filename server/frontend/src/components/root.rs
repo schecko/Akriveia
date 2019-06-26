@@ -52,6 +52,7 @@ impl Component for RootComponent {
             current_page: Page::Login,
             data: None,
             diagnostic_service: None,
+            diagnostic_service_task: None,
             diagnostic_data: Vec::new(),
             fetch_service: FetchService::new(),
             fetch_in_flight: false,
@@ -124,6 +125,7 @@ impl Component for RootComponent {
                     if meta.status.is_success() {
                         Msg::FetchDiagnosticsReady(data)
                     } else {
+                        Log!("failed request");
                         Msg::Ignore
                     }
                 });
@@ -205,8 +207,17 @@ impl RootComponent {
             html! {
                 <table> {
                     for self.diagnostic_data.iter().map(|row| {
-                        html! {
-                            <tr>{ format!("{}{}", &row.name, &row.mac_address) } </tr>
+                        match row.distance {
+                            common::DataType::RSSI(strength) => {
+                                html! {
+                                    <tr>{ format!("name: {}\tmac: {}\trssi: {}", &row.name, &row.mac_address, strength ) } </tr>
+                                }
+                            },
+                            common::DataType::TOF(distance) => {
+                                html! {
+                                    <tr>{ format!("name: {}\tmac: {}\ttof: {}", &row.name, &row.mac_address, distance ) } </tr>
+                                }
+                            },
                         }
                     })
                 } </table>
