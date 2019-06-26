@@ -15,6 +15,7 @@ pub struct BeaconSerialConn {
     pub port_name: String,
     pub vid: u16,
     pub pid: u16,
+    pub manager: Addr<BeaconManger>,
 }
 
 impl Actor for BeaconSerialConn {
@@ -102,6 +103,15 @@ impl Handler<GetBeaconData> for BeaconSerialConn {
                     if let Ok(_) = opened_port.write(b"end") {};
 
                     thread::sleep(Duration::from_millis(1000));
+
+
+                    self.manager.do_send(BeaconDataResponse {
+                        tag_data: common::TagData {
+                            name: "hello".to_string(),
+                            mac_address: "bleh bleh".to_string(),
+                            data: common::DataType::RSSI(55)
+                        },
+                    });
                 }
             }
             Err(e) => {

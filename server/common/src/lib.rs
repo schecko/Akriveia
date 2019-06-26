@@ -28,3 +28,11 @@ pub struct TagData {
 pub struct DiagnosticsData {
     pub tag_data: Vec<TagData>,
 }
+
+impl DiagnosticsData {
+    pub fn new() {
+        DiagnosticsData {
+            tag_data: Vec::new(),
+        }
+    }
+}

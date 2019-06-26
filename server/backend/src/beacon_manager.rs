@@ -14,19 +14,9 @@ use std::time::Duration;
 use crate::beacon_serial::*;
 use futures::future::*;
 
-#[derive(Message)]
-pub struct MyMessage(pub String);
-
-/// Message for chat server communications
-
-/// New chat session is created
-#[derive(Message)]
-pub struct Connect {
-    pub addr: Recipient<MyMessage>,
-}
-
 pub struct BeaconManager {
     pub serial_connections: Vec<Addr<BeaconSerialConn>>,
+    pub diagnostic_data: DiagnosticsData,
 }
 
 const BAUD_RATE: u32 = 9600;
@@ -36,6 +26,8 @@ impl BeaconManager {
 
         let mut res = BeaconManager {
             serial_connections: Vec::new(),
+            diagnostics_data: common::DiagnosticsData::new(),
+
         };
         res.find_beacons();
         res
@@ -59,7 +51,7 @@ impl BeaconManager {
 
                             self.serial_connections.push(SyncArbiter::start(1, move || {
                                 BeaconSerialConn {
-                                    port_name: (*name).clone(), //(&port.port_name).clone(),
+                                    port_name: (*name).clone(),
                                     vid: info.vid,
                                     pid: info.pid,
                                 }
@@ -85,6 +77,13 @@ impl Message for StartEmergency {
     type Result = Result<u64>;
 }
 
+pub struct BeaconDataResponse {
+    pub tag_data: common::TagData,
+};
+impl Message for BeaconDataResponse {
+    type Result = Result<u64>;
+}
+
 /*
 struct EndEmergency;
 impl Message for EndEmergency {
@@ -103,6 +102,24 @@ impl Handler<ScanForBeacons> for BeaconManager {
         // find the beacons
         println!("find beacons called!");
         self.find_beacons();
+        Ok(1)
+    }
+}
+
+impl Handler<StartEmergency> for BeaconManager {
+    type Result = Result<u64>;
+
+    fn handle(&mut self, msg: StartEmergency, context: &mut Context<Self>) -> Self::Result {
+        for connection in &self.serial_connections {
+            connection.do_send(StartDataCollection);
+        }
+
+        context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
+
+            for connection in &a.serial_connections {
+                connection.do_send(GetBeaconData);
+            }
+        });
         Ok(1)
     }
 }
