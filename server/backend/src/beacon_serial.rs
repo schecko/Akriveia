@@ -7,15 +7,14 @@ use serialport::*;
 use std::io::{self, Write};
 use std::time::Duration;
 use std::thread;
+use crate::beacon_manager::*;
 
 
 #[allow(dead_code)] // remove this once vid/pid are actually used.
-
 pub struct BeaconSerialConn {
     pub port_name: String,
     pub vid: u16,
     pub pid: u16,
-    pub manager: Addr<BeaconManger>,
 }
 
 impl Actor for BeaconSerialConn {
@@ -29,7 +28,7 @@ impl Message for StartDataCollection {
 
 pub struct GetBeaconData;
 impl Message for GetBeaconData {
-    type Result = Result<u64>;
+    type Result = Result<Vec<common::TagData>>;
 }
 
 impl Handler<StartDataCollection> for BeaconSerialConn {
@@ -70,18 +69,19 @@ impl Handler<StartDataCollection> for BeaconSerialConn {
         }
 
         Ok(1)
-
     }
 }
 
 impl Handler<GetBeaconData> for BeaconSerialConn {
-    type Result = Result<u64>;
+    type Result = Result<Vec<common::TagData>>;
 
     fn handle(&mut self, msg: GetBeaconData, context: &mut SyncContext<Self>) -> Self::Result {
 
         let mut settings: SerialPortSettings = Default::default();
         settings.timeout = Duration::from_millis(10);
         settings.baud_rate = 9600;
+
+        let mut tag_data: Vec<common::TagData> = Vec::new();
         match serialport::open_with_settings(&self.port_name, &settings) {
             Ok(mut opened_port) => {
                 let mut serial_buffer: Vec<u8> = vec![0; 1000];
@@ -104,13 +104,10 @@ impl Handler<GetBeaconData> for BeaconSerialConn {
 
                     thread::sleep(Duration::from_millis(1000));
 
-
-                    self.manager.do_send(BeaconDataResponse {
-                        tag_data: common::TagData {
-                            name: "hello".to_string(),
-                            mac_address: "bleh bleh".to_string(),
-                            data: common::DataType::RSSI(55)
-                        },
+                    tag_data.push(common::TagData {
+                        name: "hello".to_string(),
+                        mac_address: "bleh bleh".to_string(),
+                        distance: common::DataType::RSSI(55),
                     });
                 }
             }
@@ -119,6 +116,7 @@ impl Handler<GetBeaconData> for BeaconSerialConn {
             }
         }
 
-        Ok(1)
+        println!("returning from get beacondata");
+        Ok(tag_data)
     }
 }

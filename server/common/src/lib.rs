@@ -30,7 +30,7 @@ pub struct DiagnosticsData {
 }
 
 impl DiagnosticsData {
-    pub fn new() {
+    pub fn new() -> DiagnosticsData {
         DiagnosticsData {
             tag_data: Vec::new(),
         }

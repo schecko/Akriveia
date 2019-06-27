@@ -12,11 +12,12 @@ use serialport::prelude::*;
 use serialport::*;
 use std::time::Duration;
 use crate::beacon_serial::*;
-use futures::future::*;
+use futures::{future::ok, Future};
+//use actix::fut;
 
 pub struct BeaconManager {
     pub serial_connections: Vec<Addr<BeaconSerialConn>>,
-    pub diagnostic_data: DiagnosticsData,
+    pub diagnostic_data: common::DiagnosticsData,
 }
 
 const BAUD_RATE: u32 = 9600;
@@ -26,14 +27,13 @@ impl BeaconManager {
 
         let mut res = BeaconManager {
             serial_connections: Vec::new(),
-            diagnostics_data: common::DiagnosticsData::new(),
+            diagnostic_data: common::DiagnosticsData::new(),
 
         };
-        res.find_beacons();
         res
     }
 
-    fn find_beacons(&mut self) {
+    fn find_beacons(&mut self, context: &mut Context<Self>) {
         if let Ok(avail_ports) = serialport::available_ports() {
             for port in avail_ports {
                 println!("\t{}", port.port_name);
@@ -48,6 +48,7 @@ impl BeaconManager {
                             println!("\t\tSerial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
                             println!("\t\tManufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
                             println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
+
 
                             self.serial_connections.push(SyncArbiter::start(1, move || {
                                 BeaconSerialConn {
@@ -77,13 +78,6 @@ impl Message for StartEmergency {
     type Result = Result<u64>;
 }
 
-pub struct BeaconDataResponse {
-    pub tag_data: common::TagData,
-};
-impl Message for BeaconDataResponse {
-    type Result = Result<u64>;
-}
-
 /*
 struct EndEmergency;
 impl Message for EndEmergency {
@@ -98,10 +92,10 @@ impl Actor for BeaconManager {
 impl Handler<ScanForBeacons> for BeaconManager {
     type Result = Result<u64>;
 
-    fn handle(&mut self, msg: ScanForBeacons, _: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: ScanForBeacons, context: &mut Context<Self>) -> Self::Result {
         // find the beacons
         println!("find beacons called!");
-        self.find_beacons();
+        self.find_beacons(context);
         Ok(1)
     }
 }
@@ -110,35 +104,46 @@ impl Handler<StartEmergency> for BeaconManager {
     type Result = Result<u64>;
 
     fn handle(&mut self, msg: StartEmergency, context: &mut Context<Self>) -> Self::Result {
+        self.diagnostic_data = common::DiagnosticsData::new();
         for connection in &self.serial_connections {
             connection.do_send(StartDataCollection);
         }
 
+        self.serial_connections[0]
+            .do_send(GetBeaconData);
+
+        Ok(1)
+
+
+        //for connection in &a.serial_connections {
+            //println!("hello dfadfafd");
+            //connection.send(GetBeaconData);
+        //}
+
+        //Ok(1)
+
+
+/*
+        // kinda hacky...
         context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
 
             for connection in &a.serial_connections {
-                connection.do_send(GetBeaconData);
+                println!("hello dfadfafd");
+                let res = connection.send(GetBeaconData);
+
+                /*let bleh = res.wait();
+                match bleh {
+                    Ok(Ok(mut data)) => {
+                        println!("fuck fuck fuck");
+                        a.diagnostic_data.tag_data.append(&mut data);
+                    },
+                    _ => {
+                        println!("gah ");
+                    },
+                }*/
             }
         });
-        Ok(1)
-    }
-}
-
-impl Handler<StartEmergency> for BeaconManager {
-    type Result = Result<u64>;
-
-    fn handle(&mut self, msg: StartEmergency, context: &mut Context<Self>) -> Self::Result {
-        for connection in &self.serial_connections {
-            connection.do_send(StartDataCollection);
-        }
-
-        context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
-
-            for connection in &a.serial_connections {
-                connection.do_send(GetBeaconData);
-            }
-        });
-        Ok(1)
+        Ok(1)*/
     }
 }
 
