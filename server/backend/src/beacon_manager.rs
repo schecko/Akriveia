@@ -25,11 +25,7 @@ pub struct BeaconManager {
     pub diagnostic_data: common::DiagnosticData,
 }
 
-const BAUD_RATE: u32 = 9600;
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
-
-impl SystemService for BeaconManager {}
-impl Supervised for BeaconManager {}
 
 impl BeaconManager {
     pub fn new() -> BeaconManager {
@@ -61,11 +57,14 @@ impl BeaconManager {
 
 
                             let (serial_send, serial_receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
+                            let address = context.address().recipient();
                             let beacon_info = BeaconSerialConn {
                                 port_name: (*name).clone(),
                                 vid: info.vid,
                                 pid: info.pid,
                                 receive: serial_receive,
+                                manager: address.clone(),
+
                             };
                             thread::spawn(move || {
                                 serial_beacon_thread(beacon_info);
