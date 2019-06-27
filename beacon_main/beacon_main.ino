@@ -17,10 +17,9 @@ char *mac_list[] = {"cc:50:e3:9c:4c:c2",
 
 
 
-
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   public:
-  
+
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     for (int i = 0; i < sizeof(mac_list)/sizeof(mac_list[0]); i++){
       if (advertisedDevice.getAddress().toString()==mac_list[i]){
@@ -44,7 +43,7 @@ void setup() {
 
 
 void loop() {
- 
+
   if (Serial.available() > 0) {
     input = Serial.readString();
     if (input.indexOf("start") >= 0) { Serial.println("Starting..."); system_on = true; }

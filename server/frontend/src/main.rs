@@ -1,4 +1,5 @@
 extern crate yew;
+extern crate common;
 
 mod components;
 
