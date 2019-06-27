@@ -55,6 +55,7 @@ impl BeaconManager {
                                     port_name: (*name).clone(),
                                     vid: info.vid,
                                     pid: info.pid,
+                                    port: None,
                                 }
                             }));
                         }
@@ -109,41 +110,15 @@ impl Handler<StartEmergency> for BeaconManager {
             connection.do_send(StartDataCollection);
         }
 
-        self.serial_connections[0]
-            .do_send(GetBeaconData);
-
-        Ok(1)
-
-
-        //for connection in &a.serial_connections {
-            //println!("hello dfadfafd");
-            //connection.send(GetBeaconData);
-        //}
-
-        //Ok(1)
-
-
-/*
         // kinda hacky...
         context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
 
             for connection in &a.serial_connections {
-                println!("hello dfadfafd");
-                let res = connection.send(GetBeaconData);
-
-                /*let bleh = res.wait();
-                match bleh {
-                    Ok(Ok(mut data)) => {
-                        println!("fuck fuck fuck");
-                        a.diagnostic_data.tag_data.append(&mut data);
-                    },
-                    _ => {
-                        println!("gah ");
-                    },
-                }*/
+                connection.do_send(GetBeaconData);
             }
         });
-        Ok(1)*/
+
+        Ok(1)
     }
 }
 
