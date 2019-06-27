@@ -6,28 +6,37 @@
 // in this case) its own communcation thread. The second reason is to hopefully abstract this
 // functionality a little bit, so that it will be a little bit easier to move to the wireless
 // implementation.
-use std::sync::{Arc, Mutex};
 use actix::prelude::*;
-use serialport::prelude::*;
-use serialport::*;
-use std::time::Duration;
+use actix_web::{ Error, Result };
+use crate::beacon_serial::*;
 use crate::beacon_serial::*;
 use futures::{future::ok, Future};
-//use actix::fut;
+use serialport::prelude::*;
+use serialport;
+use std::sync::mpsc;
+use std::sync::{ Arc, Mutex, };
+use std::thread;
+use std::time::Duration;
+use std::io;
 
+#[derive(Default)]
 pub struct BeaconManager {
-    pub serial_connections: Vec<Addr<BeaconSerialConn>>,
-    pub diagnostic_data: common::DiagnosticsData,
+    pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
+    pub diagnostic_data: common::DiagnosticData,
 }
 
 const BAUD_RATE: u32 = 9600;
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
+
+impl SystemService for BeaconManager {}
+impl Supervised for BeaconManager {}
+
 impl BeaconManager {
     pub fn new() -> BeaconManager {
 
         let mut res = BeaconManager {
             serial_connections: Vec::new(),
-            diagnostic_data: common::DiagnosticsData::new(),
+            diagnostic_data: common::DiagnosticData::new(),
 
         };
         res
@@ -39,7 +48,7 @@ impl BeaconManager {
                 println!("\t{}", port.port_name);
                 let name = Box::new(port.port_name);
                 match port.port_type {
-                    SerialPortType::UsbPort(info) => {
+                    serialport::SerialPortType::UsbPort(info) => {
                         // only print out, and keep track of, arduino usbs
                         if VENDOR_WHITELIST.iter().any( |vid| vid == &info.vid ) {
                             println!("\t\tType: USB");
@@ -50,14 +59,18 @@ impl BeaconManager {
                             println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
 
 
-                            self.serial_connections.push(SyncArbiter::start(1, move || {
-                                BeaconSerialConn {
-                                    port_name: (*name).clone(),
-                                    vid: info.vid,
-                                    pid: info.pid,
-                                    port: None,
-                                }
-                            }));
+
+                            let (serial_send, serial_receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
+                            let beacon_info = BeaconSerialConn {
+                                port_name: (*name).clone(),
+                                vid: info.vid,
+                                pid: info.pid,
+                                receive: serial_receive,
+                            };
+                            thread::spawn(move || {
+                                serial_beacon_thread(beacon_info);
+                            });
+                            self.serial_connections.push(serial_send);
                         }
                     }
                     _ => {}
@@ -71,14 +84,18 @@ impl BeaconManager {
 
 pub struct ScanForBeacons;
 impl Message for ScanForBeacons {
-    type Result = Result<u64>;
+    type Result = Result<u64, io::Error>;
 }
 
 pub struct StartEmergency;
 impl Message for StartEmergency {
-    type Result = Result<u64>;
+    type Result = Result<u64, io::Error>;
 }
 
+pub struct GetDiagnosticData;
+impl Message for GetDiagnosticData {
+    type Result = Result<common::DiagnosticData, io::Error>;
+}
 /*
 struct EndEmergency;
 impl Message for EndEmergency {
@@ -91,7 +108,7 @@ impl Actor for BeaconManager {
 }
 
 impl Handler<ScanForBeacons> for BeaconManager {
-    type Result = Result<u64>;
+    type Result = Result<u64, io::Error>;
 
     fn handle(&mut self, msg: ScanForBeacons, context: &mut Context<Self>) -> Self::Result {
         // find the beacons
@@ -101,22 +118,48 @@ impl Handler<ScanForBeacons> for BeaconManager {
     }
 }
 
+impl Handler<GetDiagnosticData> for BeaconManager {
+    type Result = Result<common::DiagnosticData, io::Error>;
+
+    fn handle(&mut self, msg: GetDiagnosticData, context: &mut Context<Self>) -> Self::Result {
+        // find the beacons
+        println!("get diagnostic data called");
+        Ok(self.diagnostic_data.clone())
+    }
+}
+
+// unfortunately, the common library cant import actix, so just make another struct here...
+pub struct InternalTagData {
+    pub name: String,
+    pub mac_address: String,
+    pub distance: common::DataType,
+}
+impl Message for InternalTagData {
+    type Result = Result<u64, io::Error>;
+}
+impl Handler<InternalTagData> for BeaconManager {
+    type Result = Result<u64, io::Error>;
+
+    fn handle(&mut self, msg: InternalTagData, context: &mut Context<Self>) -> Self::Result {
+        // find the beacons
+        println!("tag data message sent to beacon manager");
+        self.diagnostic_data.tag_data.push(common::TagData {
+            name: msg.name,
+            mac_address: msg.mac_address,
+            distance: msg.distance,
+        });
+        Ok(1)
+    }
+}
+
 impl Handler<StartEmergency> for BeaconManager {
-    type Result = Result<u64>;
+    type Result = Result<u64, io::Error>;
 
     fn handle(&mut self, msg: StartEmergency, context: &mut Context<Self>) -> Self::Result {
-        self.diagnostic_data = common::DiagnosticsData::new();
+        self.diagnostic_data = common::DiagnosticData::new();
         for connection in &self.serial_connections {
-            connection.do_send(StartDataCollection);
+            connection.send(BeaconCommand::StartEmergency);
         }
-
-        // kinda hacky...
-        context.run_interval(Duration::from_millis(1000), |a: &mut BeaconManager, context: &mut Context<BeaconManager>| {
-
-            for connection in &a.serial_connections {
-                connection.do_send(GetBeaconData);
-            }
-        });
 
         Ok(1)
     }

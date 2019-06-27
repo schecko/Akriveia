@@ -37,7 +37,7 @@ pub enum Msg {
     Ignore,
     ChangePage(Page),
     FetchDiagnostics,
-    FetchDiagnosticsReady(Result<common::DiagnosticsData, Error>),
+    FetchDiagnosticsReady(Result<common::DiagnosticData, Error>),
     FetchHello,
     FetchEmergency,
     FetchReady(Result<common::HelloFrontEnd, Error>),
@@ -118,7 +118,7 @@ impl Component for RootComponent {
             },
             Msg::FetchDiagnostics => {
                 self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticsData, Error>>>| {
+                let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticData, Error>>>| {
                     let (meta, Json(data)) = response.into_parts();
                     println!("META: {:?}", meta);
                     Log!("META: {:?}", meta);
@@ -129,7 +129,7 @@ impl Component for RootComponent {
                         Msg::Ignore
                     }
                 });
-                let request = Request::get(common::DIAGNOSTICS)
+                let request = Request::get("/ad") //(common::DIAGNOSTICS)
                     .header("Content-Type", "text/html")
                     .header("Accept", "text/html")
                     .body(Nothing)

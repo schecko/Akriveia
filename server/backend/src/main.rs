@@ -47,8 +47,7 @@ fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpRe
 }
 
 fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
-
-    let diag_data = common::DiagnosticsData {
+    let diag_data = common::DiagnosticData {
         tag_data: vec![
             common::TagData {
                 name: "hello".to_string(),
@@ -57,32 +56,23 @@ fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> Http
             }
         ]
     };
-
     HttpResponse::Ok().json(diag_data)
 }
 
 fn async_diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let diag_data = common::DiagnosticsData {
-        tag_data: vec![
-            common::TagData {
-                name: "hello".to_string(),
-                mac_address: "mac_0111".to_string(),
-                distance: common::DataType::RSSI(33),
-            }
-        ]
-    };
-
-    //fut::ok(Ok(HttpResponse::Ok().json(diag_data)))
-    ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .json(diag_data))
+    let s = state.lock().unwrap();
+    s.beacon_manager
+        .send(GetDiagnosticData)
+        .then(|res| {
+            match res {
+                Ok(Ok(data)) => {
+                    ok(HttpResponse::Ok().json(data))
+                },
+                _ => {
+                    ok(HttpResponse::BadRequest().finish())
+                }
+        }})
 }
-
-/*fn async_test(req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-
-    //fut::ok(Ok(HttpResponse::Ok().json(diag_data)))
-    fut::ok(HttpResponse::Ok().finish())
-}*/
 
 fn index_async(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Error> {
     println!("{:?}", req);
@@ -122,8 +112,8 @@ fn main() -> std::io::Result<()> {
             .service(scan_beacons)
             .service(web::resource(common::EMERGENCY).to(emergency))
             .service(web::resource(common::DIAGNOSTICS).to(diagnostics))
+            .service(web::resource("/ad").to_async(async_diagnostics))
             //.service(web::resource("/ad").to_async(async_diagnostics))
-            .service(web::resource("/ad").to_async(index_async))
             // these two last !!
             .service(fs::Files::new("/", "static/").index_file("index.html"))
             .default_service(web::resource("").to(default_route))

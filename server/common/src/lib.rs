@@ -11,27 +11,27 @@ pub struct HelloFrontEnd {
     pub data: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DataType {
     RSSI(i64),
     TOF(i64)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
     pub name: String,
     pub mac_address: String,
     pub distance: DataType,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DiagnosticsData {
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct DiagnosticData {
     pub tag_data: Vec<TagData>,
 }
 
-impl DiagnosticsData {
-    pub fn new() -> DiagnosticsData {
-        DiagnosticsData {
+impl DiagnosticData {
+    pub fn new() -> DiagnosticData {
+        DiagnosticData {
             tag_data: Vec::new(),
         }
     }

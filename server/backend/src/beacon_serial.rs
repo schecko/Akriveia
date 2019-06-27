@@ -1,13 +1,14 @@
 extern crate serialport;
 
-use std::sync::{Arc, Mutex};
-use serialport::prelude::*;
 use actix::prelude::*;
-use serialport::*;
-use std::io::{self, Write};
-use std::time::Duration;
-use std::thread;
 use crate::beacon_manager::*;
+use serialport::*;
+use serialport::prelude::*;
+use std::io::{ self, Write };
+use std::sync::mpsc;
+use std::sync::{ Arc, Mutex, };
+use std::thread;
+use std::time::Duration;
 
 
 #[allow(dead_code)] // remove this once vid/pid are actually used.
@@ -15,111 +16,98 @@ pub struct BeaconSerialConn {
     pub port_name: String,
     pub vid: u16,
     pub pid: u16,
-    pub port: Option<Box<SerialPort>>,
+    pub receive: mpsc::Receiver<BeaconCommand>,
 }
 
-impl Actor for BeaconSerialConn {
-    type Context = SyncContext<Self>;
+pub enum BeaconCommand {
+    StartEmergency,
+    EndEmergency
 }
 
-pub struct StartDataCollection;
-impl Message for StartDataCollection {
-    type Result = Result<u64>;
-}
+fn serial_comms(beacon_info: BeaconSerialConn, mut opened_port: Box<SerialPort>) {
 
-pub struct GetBeaconData;
-impl Message for GetBeaconData {
-    type Result = Result<Vec<common::TagData>>;
-}
+    println!("initiating communication");
+    for i in 1.. {
+        println!("initiating, attempt {}", i);
+        if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
 
-impl Handler<StartDataCollection> for BeaconSerialConn {
-    type Result = Result<u64>;
+        thread::sleep(Duration::from_millis(300));
+        if let Ok(_) = opened_port.write(b"start") {};
 
-    fn handle(&mut self, msg: StartDataCollection, context: &mut SyncContext<Self>) -> Self::Result {
-
-        let mut settings: SerialPortSettings = Default::default();
-        settings.timeout = Duration::from_millis(10);
-        settings.baud_rate = 9600;
-        match serialport::open_with_settings(&self.port_name, &settings) {
-            Ok(mut opened_port) => {
-                println!("clearing port");
-
-                for i in 1.. {
-                    thread::sleep(Duration::from_millis(300));
-                    if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
-
-                    thread::sleep(Duration::from_millis(300));
-                    println!("initiating communication, attempt {}", i);
-                    if let Ok(_) = opened_port.write(b"start") {};
-
-                    let mut serial_buffer: Vec<u8> = vec![0; 1000];
-                    match opened_port.read(serial_buffer.as_mut_slice()) {
-                        Ok(_) => {
-                            let result = String::from_utf8_lossy(&serial_buffer);
-                            if result == "ack" {
-                                println!("successfully received ack from beacon");
-                                break;
-                            } else {
-                                println!("failed to start beacon");
-                            }
-
-                        },
-                        Err(_) => {
-                            println!("serial communication failed on reading ack");
-                        }
-                    }
+        let mut serial_buffer: Vec<u8> = vec![0; 1000];
+        match opened_port.read(serial_buffer.as_mut_slice()) {
+            Ok(_) => {
+                let result = String::from_utf8_lossy(&serial_buffer);
+                if result == "ack" {
+                    println!("successfully received ack from beacon");
+                    break;
+                } else {
+                    println!("failed to start beacon");
                 }
-                self.port = Some(opened_port);
+
+            },
+            Err(_) => {
+                println!("serial communication failed on reading ack");
             }
-            Err(e) => {
-                eprintln!("Failed to open arduino port \"{}\". Error: {}", self.port_name, e);
+        }
+    }
+
+    // loop infinitely until told to start polling
+    loop {
+        match beacon_info.receive.recv() {
+            Ok(BeaconCommand::StartEmergency) => {
+                break;
+            },
+            _ => {
+                println!("ignoring command");
+            },
+        }
+    }
+
+    // start polling data
+    println!("Receiving data on {} :", &beacon_info.port_name);
+    let mut serial_buffer: Vec<u8> = vec![0; 1000];
+    loop {
+        match beacon_info.receive.try_recv() {
+            Ok(BeaconCommand::EndEmergency) => {
+                break;
+            },
+            _ => {
+                println!("ignoring command");
+            },
+        }
+        println!("reading...");
+        thread::sleep(Duration::from_millis(100));
+        for _ in 1..3 {
+            match opened_port.read(serial_buffer.as_mut_slice()) {
+                Ok(t) => io::stdout().write_all(&serial_buffer[..t]).unwrap(),
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(e) => eprintln!("{:?}", e),
             }
         }
 
-        Ok(1)
+        thread::sleep(Duration::from_millis(1000));
+
+        BeaconManager::from_registry()
+            .do_send( InternalTagData {
+                name: "hello".to_string(),
+                mac_address: "bleh bleh".to_string(),
+                distance: common::DataType::RSSI(55),
+            });
+
     }
 }
 
-impl Handler<GetBeaconData> for BeaconSerialConn {
-    type Result = Result<Vec<common::TagData>>;
-
-    fn handle(&mut self, msg: GetBeaconData, context: &mut SyncContext<Self>) -> Self::Result {
-
-        let mut settings: SerialPortSettings = Default::default();
-        settings.timeout = Duration::from_millis(10);
-        settings.baud_rate = 9600;
-
-        let mut tag_data: Vec<common::TagData> = Vec::new();
-        match &self.port as Option<Box<SerialPort>> {
-            Some(&mut opened_port) => {
-                let mut serial_buffer: Vec<u8> = vec![0; 1000];
-                println!("Receiving data on {} :", &self.port_name);
-                loop {
-                    println!("reading...");
-                    thread::sleep(Duration::from_millis(100));
-                    for _ in 1..3 {
-                        match opened_port.read(serial_buffer.as_mut_slice()) {
-                            Ok(t) => io::stdout().write_all(&serial_buffer[..t]).unwrap(),
-                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                            Err(e) => eprintln!("{:?}", e),
-                        }
-                    }
-
-                    thread::sleep(Duration::from_millis(1000));
-
-                    tag_data.push(common::TagData {
-                        name: "hello".to_string(),
-                        mac_address: "bleh bleh".to_string(),
-                        distance: common::DataType::RSSI(55),
-                    });
-                }
-            }
-            None => {
-                eprintln!("Failed to open arduino port \"{}\". ", self.port_name);
-            }
+pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
+    let mut settings: SerialPortSettings = Default::default();
+    settings.timeout = Duration::from_millis(10);
+    settings.baud_rate = 9600;
+    match serialport::open_with_settings(&beacon_info.port_name, &settings) {
+        Ok(mut opened_port) => {
+            serial_comms(beacon_info, opened_port);
         }
-
-        println!("returning from get beacondata");
-        Ok(tag_data)
+        Err(e) => {
+            eprintln!("Failed to open arduino port \"{}\". Error: {}", beacon_info.port_name, e);
+        }
     }
 }
