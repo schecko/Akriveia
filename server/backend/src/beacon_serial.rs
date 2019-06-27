@@ -10,6 +10,7 @@ use std::sync::{ Arc, Mutex, };
 use std::thread;
 use std::time::Duration;
 use std::io::*;
+use std::str;
 
 
 #[allow(dead_code)] // remove this once vid/pid are actually used.
@@ -93,35 +94,71 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
 
                 // start polling data
                 println!("Receiving data on {} :", &beacon_info.port_name);
-                let mut serial_buffer: Vec<u8> = vec![0; 1000];
+                let mut serial_buffer: Vec<u8> = Vec::new();
                 loop {
                     match beacon_info.receive.try_recv() {
                         Ok(BeaconCommand::EndEmergency) => {
+                            // break the loop, go to the next stage
                             break;
                         },
+                        Err(mpsc::TryRecvError::Empty) => {
+                            // do nothing, dont care
+                        }
+                        Err(mpsc::TryRecvError::Disconnected) => {
+                            println!("disconnected from manager");
+                        },
                         _ => {
+                            // some other type of command, just ignore it for now
                             println!("ignoring command");
                         },
                     }
                     println!("reading...");
                     thread::sleep(Duration::from_millis(100));
-                    for _ in 1..3 {
-                        match opened_port.read(serial_buffer.as_mut_slice()) {
-                            Ok(t) => io::stdout().write_all(&serial_buffer[..t]).unwrap(),
-                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                            Err(e) => eprintln!("{:?}", e),
-                        }
+
+                    let mut char_count = 0;
+                    let mut temp_buffer: Vec<u8> = vec![0; 1000];
+                    match opened_port.read(temp_buffer.as_mut_slice()) {
+                        Ok(num) => {
+                            if num > 0 {
+                                println!("temp string is: {}", String::from_utf8_lossy(&temp_buffer[..num]));
+                            } else {
+                                println!("temp empty");
+                            }
+                            serial_buffer.extend_from_slice(&mut temp_buffer[..num]);
+                            char_count = num;
+                        },
+                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                        Err(e) => eprintln!("{:?}", e),
                     }
 
-                    thread::sleep(Duration::from_millis(1000));
-
-                    beacon_info.manager
-                        .do_send( InternalTagData {
-                            name: "hello".to_string(),
-                            mac_address: "bleh bleh".to_string(),
-                            distance: common::DataType::RSSI(55),
-                        });
-
+                    let data: String = String::from_utf8_lossy(&serial_buffer[..char_count]).to_string();
+                    if data.starts_with("<") && data.ends_with("\n") {
+                        let no_padding: String = String::from_utf8_lossy(&serial_buffer[1..char_count-2]).to_string();
+                        let mut split: Vec<&str> = no_padding.split("|").collect();
+                        if split.len() == 3 {
+                            let name = split[0];
+                            let mac = split[1];
+                            let rssi = split[2];
+                            match i64::from_str_radix(rssi, 10) {
+                                Ok(rssi_numeric) => {
+                                    beacon_info.manager
+                                        .do_send( InternalTagData {
+                                            name: name.to_string(),
+                                            mac_address: mac.to_string(),
+                                            distance: common::DataType::RSSI(rssi_numeric),
+                                        });
+                                    serial_buffer = vec![0; 1000];
+                                },
+                                Err(_) => {
+                                    println!("parsed a bad number: {}", rssi);
+                                }
+                            }
+                        } else {
+                            println!("failed to parse no padding: {}", no_padding);
+                        }
+                    } else {
+                        println!("failed to parse full data: {}", data);
+                    }
                 }
             }
             Err(e) => {

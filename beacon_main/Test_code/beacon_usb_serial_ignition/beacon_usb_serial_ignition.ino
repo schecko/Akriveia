@@ -9,7 +9,7 @@ const String nak = "nak";
 const String command_start = "start";
 const String command_end = "end";
 
-int data = 0;
+int counter = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -34,8 +34,9 @@ void loop() {
   }
 
   if (system_on==true){
+  	String data = String("<hello_world|mac123|") + String(counter);
     Serial.println(data);
-	data++;
+	counter++;
   }
 
   delay(500);
