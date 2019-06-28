@@ -27,58 +27,56 @@ pub enum BeaconCommand {
     EndEmergency
 }
 
-fn serial_comms(beacon_info: BeaconSerialConn, mut opened_port: Box<SerialPort>) {
+fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> bool {
+    for i in 0.. {
+        if i % 2 == 0 {
+            //if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
+        }
 
+        println!(", attempt {}", i);
+
+        if let Ok(_) = port.write(command.as_bytes()) {};
+
+        let mut serial_buffer: Vec<u8> = vec![0; 1000];
+        match port.read(serial_buffer.as_mut_slice()) {
+            Ok(_) => {
+                let result = String::from_utf8_lossy(&serial_buffer);
+                println!("buffer is: {}", result);
+                if result.contains("ack") {
+                    println!("successfully received ack from beacon for command {}", command);
+                    break;
+                } else {
+                    println!("failed to send command {} to beacon", command);
+                    if i > attempts {
+                        println!("reached maximum retries");
+                        return false;
+                    }
+                }
+
+            },
+            Err(e) => {
+                if i > attempts {
+                    println!("error {}", e);
+                    return false;
+                }
+
+                println!("serial communication failed on reading ack {}", e);
+            }
+        }
+        thread::sleep(Duration::from_millis(300));
+    }
+
+    true
 }
 
 pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(1000);
     settings.baud_rate = 9600;
-    println!("opening port");
-    let mut b = false;
     loop {
+        println!("opening port");
         match serialport::open_with_settings(&beacon_info.port_name, &settings) {
             Ok(mut opened_port) => {
-                println!("initiating communication");
-                b = false;
-                for i in 0.. {
-                    if i % 2 == 0 {
-                        //if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
-                    }
-                    if i > 4 {
-                        b = true;
-                        break;
-                    }
-
-                    println!("initiating, attempt {}", i);
-
-                    if let Ok(_) = opened_port.write(b"start") {};
-
-                    let mut serial_buffer: Vec<u8> = vec![0; 1000];
-
-                    match opened_port.read(serial_buffer.as_mut_slice()) {
-                        Ok(_) => {
-                            let result = String::from_utf8_lossy(&serial_buffer);
-                            println!("buffer is: {}", result);
-                            if result.contains("ack") {
-                                println!("successfully received ack from beacon");
-                                break;
-                            } else {
-                                println!("failed to start beacon");
-                            }
-
-                        },
-                        Err(e) => {
-                            println!("serial communication failed on reading ack {}", e);
-                        }
-                    }
-
-                    thread::sleep(Duration::from_millis(300));
-                }
-                if(b) {
-                    break;
-                }
 
                 // loop infinitely until told to start polling
                 loop {
@@ -90,6 +88,13 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                             println!("ignoring command");
                         },
                     }
+                }
+                match send_command("start".to_string(), &mut opened_port, 4) {
+                    true => {},
+                    false => {
+                        println!("failed to send start command, reopenining port");
+                        continue;
+                    },
                 }
 
                 // start polling data
@@ -159,6 +164,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     } else {
                         println!("failed to parse full data: {}", data);
                     }
+                }
+
+                match send_command("end".to_string(), &mut opened_port, 4) {
+                    true => {},
+                    false => {
+                        println!("failed to send end command to beacon");
+                        continue;
+                    },
                 }
             }
             Err(e) => {
