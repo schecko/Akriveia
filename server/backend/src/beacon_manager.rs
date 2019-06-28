@@ -95,12 +95,11 @@ pub struct GetDiagnosticData;
 impl Message for GetDiagnosticData {
     type Result = Result<common::DiagnosticData, io::Error>;
 }
-/*
-struct EndEmergency;
+
+pub struct EndEmergency;
 impl Message for EndEmergency {
-    type Result = Result<u64>;
+    type Result = Result<u64, io::Error>;
 }
-*/
 
 impl Actor for BeaconManager {
     type Context = Context<Self>;
@@ -164,15 +163,15 @@ impl Handler<StartEmergency> for BeaconManager {
     }
 }
 
-/*
 impl Handler<EndEmergency> for BeaconManager {
-    type Result = Vec<Future<Item = (), Error = ()>;
+    type Result = Result<u64, io::Error>;
 
-    fn handle(&mut self, msg: EndEmergency, _: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: EndEmergency, context: &mut Context<Self>) -> Self::Result {
         for connection in &self.serial_connections {
-            connection.do_send(StartDataCollection);
+            connection.send(BeaconCommand::EndEmergency);
         }
 
         Ok(1)
     }
-} */
+}
+

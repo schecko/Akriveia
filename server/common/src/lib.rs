@@ -3,6 +3,7 @@ extern crate serde_derive;
 use serde_derive::{Deserialize, Serialize};
 
 pub const EMERGENCY: &str = "/emergency";
+pub const END_EMERGENCY: &str = "/endemergency";
 pub const PING: &str = "/hello";
 pub const DIAGNOSTICS: &str = "/diagnostics";
 

@@ -40,6 +40,7 @@ pub enum Msg {
     FetchDiagnosticsReady(Result<common::DiagnosticData, Error>),
     FetchHello,
     FetchEmergency,
+    FetchEndEmergency,
     FetchReady(Result<common::HelloFrontEnd, Error>),
 }
 
@@ -49,7 +50,7 @@ impl Component for RootComponent {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         RootComponent {
-            current_page: Page::Login,
+            current_page: Page::Diagnostics,
             data: None,
             diagnostic_service: None,
             diagnostic_service_task: None,
@@ -116,6 +117,26 @@ impl Component for RootComponent {
                 let task = self.fetch_service.fetch(request, callback);
                 self.fetch_task = Some(task);
             },
+            Msg::FetchEndEmergency => {
+                self.fetch_in_flight = true;
+                let callback = self.link.send_back(move |response: Response<Json<Result<_, Error>>>| {
+                    let (meta, Json(data)) = response.into_parts();
+                    println!("META: {:?}", meta);
+                    Log!("META: {:?}", meta);
+                    if meta.status.is_success() {
+                        Msg::FetchReady(data)
+                    } else {
+                        Msg::Ignore
+                    }
+                });
+                let request = Request::post(common::END_EMERGENCY)
+                    .header("Content-Type", "text/html")
+                    .header("Accept", "text/html")
+                    .body(Nothing)
+                    .unwrap();
+                let task = self.fetch_service.fetch(request, callback);
+                self.fetch_task = Some(task);
+            },
             Msg::FetchDiagnostics => {
                 self.fetch_in_flight = true;
                 let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticData, Error>>>| {
@@ -162,6 +183,8 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "Diagnostics" }</h>
+                        <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
+                        <button onclick=|_| Msg::FetchEndEmergency,>{ "End Emergency" }</button>
                         { self.render_diagnostics() }
                     </div>
                 }
@@ -170,9 +193,9 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "Hello Login Page!" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Click" }</button>
-                        <button onclick=|_| Msg::FetchHello,>{ "Get Hello" }</button>
+                        <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
                         <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
+                        <button onclick=|_| Msg::FetchEmergency,>{ "End Emergency" }</button>
                         { self.view_data() }
                     </div>
                 }

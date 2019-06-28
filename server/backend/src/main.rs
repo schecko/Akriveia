@@ -46,6 +46,13 @@ fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpRe
     HttpResponse::Ok().finish()
 }
 
+fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+    println!("emergency stopped!");
+    let s = state.lock().unwrap();
+    s.beacon_manager.do_send(EndEmergency);
+    HttpResponse::Ok().finish()
+}
+
 fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     let diag_data = common::DiagnosticData {
         tag_data: vec![
@@ -111,6 +118,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource(common::PING).to(hello))
             .service(scan_beacons)
             .service(web::resource(common::EMERGENCY).to(emergency))
+            .service(web::resource(common::END_EMERGENCY).to(end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to(diagnostics))
             .service(web::resource("/ad").to_async(async_diagnostics))
             //.service(web::resource("/ad").to_async(async_diagnostics))
