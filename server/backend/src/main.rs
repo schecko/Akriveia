@@ -67,12 +67,14 @@ fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> Http
 }
 
 fn async_diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    println!("async diagnostics called");
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)
         .then(|res| {
             match res {
                 Ok(Ok(data)) => {
+                    println!("data is {:?}", data);
                     ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
@@ -119,8 +121,7 @@ fn main() -> std::io::Result<()> {
             .service(scan_beacons)
             .service(web::resource(common::EMERGENCY).to(emergency))
             .service(web::resource(common::END_EMERGENCY).to(end_emergency))
-            .service(web::resource(common::DIAGNOSTICS).to(diagnostics))
-            .service(web::resource("/ad").to_async(async_diagnostics))
+            .service(web::resource(common::DIAGNOSTICS).to_async(async_diagnostics))
             //.service(web::resource("/ad").to_async(async_diagnostics))
             // these two last !!
             .service(fs::Files::new("/", "static/").index_file("index.html"))

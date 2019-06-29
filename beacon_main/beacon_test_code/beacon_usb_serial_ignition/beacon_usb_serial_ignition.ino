@@ -34,7 +34,7 @@ void loop() {
   }
 
   if (system_on==true){
-  	String data = String("<hello_world|mac123|") + String(counter);
+  	String data = String("hello_world|mac123|") + String(counter);
     Serial.println(data);
 	counter++;
   }

@@ -121,8 +121,10 @@ impl Handler<GetDiagnosticData> for BeaconManager {
 
     fn handle(&mut self, msg: GetDiagnosticData, context: &mut Context<Self>) -> Self::Result {
         // find the beacons
-        println!("get diagnostic data called");
-        Ok(self.diagnostic_data.clone())
+        println!("get diagnostic data called {:?}", &self.diagnostic_data);
+        let res = self.diagnostic_data.clone();
+        self.diagnostic_data.tag_data = Vec::new();
+        Ok(res)
     }
 }
 

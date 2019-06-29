@@ -50,7 +50,7 @@ impl Component for RootComponent {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         RootComponent {
-            current_page: Page::Diagnostics,
+            current_page: Page::Login,
             data: None,
             diagnostic_service: None,
             diagnostic_service_task: None,
@@ -150,7 +150,7 @@ impl Component for RootComponent {
                         Msg::Ignore
                     }
                 });
-                let request = Request::get("/ad") //(common::DIAGNOSTICS)
+                let request = Request::get(common::DIAGNOSTICS)
                     .header("Content-Type", "text/html")
                     .header("Accept", "text/html")
                     .body(Nothing)

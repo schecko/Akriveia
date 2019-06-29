@@ -1,4 +1,5 @@
 extern crate serialport;
+extern crate regex;
 
 use actix::prelude::*;
 use crate::beacon_manager::*;
@@ -11,6 +12,7 @@ use std::thread;
 use std::time::Duration;
 use std::io::*;
 use std::str;
+use regex::Regex;
 
 
 #[allow(dead_code)] // remove this once vid/pid are actually used.
@@ -121,7 +123,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     thread::sleep(Duration::from_millis(100));
 
                     let mut char_count = 0;
-                    let mut temp_buffer: Vec<u8> = vec![0; 1000];
+                    let mut temp_buffer: Vec<u8> = vec![0; 4000];
                     match opened_port.read(temp_buffer.as_mut_slice()) {
                         Ok(num) => {
                             if num > 0 {
@@ -130,21 +132,33 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                 println!("temp empty");
                             }
                             serial_buffer.extend_from_slice(&mut temp_buffer[..num]);
-                            char_count = num;
+                            char_count += num;
                         },
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => eprintln!("{:?}", e),
                     }
 
-                    let data: String = String::from_utf8_lossy(&serial_buffer[..char_count]).to_string();
-                    if data.starts_with("<") && data.ends_with("\n") {
-                        let no_padding: String = String::from_utf8_lossy(&serial_buffer[1..char_count-2]).to_string();
-                        let mut split: Vec<&str> = no_padding.split("|").collect();
+                    let data = String::from_utf8_lossy(&serial_buffer[..char_count]).to_string();
+                    let serial_string = String::from_utf8_lossy(&serial_buffer[..]).to_string();
+                    //println!("serial buffer is: {}", String::from_utf8_lossy(&serial_buffer[..]).to_string());
+
+
+                    for line in serial_string.split("\n") {
+                        //println!("line is: {}", line);
+
+                        let mut split: Vec<&str> = line.split("|").collect();
                         if split.len() == 3 {
                             let name = split[0];
                             let mac = split[1];
-                            let rssi = split[2];
-                            match i64::from_str_radix(rssi, 10) {
+                            let mut rssi = split[2];
+                            //println!(" name, mac, rssi: {} {} {} ", name, mac, rssi);
+                            let reg = Regex::new(r"/[^$0-9]+/").unwrap();
+                            let rssi_stripped = reg.replace_all(&rssi, "");
+
+                            // remove the last character every time, idk why but there is always
+                            // a newline at the end of rssi_stripped. from_str_radix REQUIRES
+                            // all numeric characters.
+                            match i64::from_str_radix(&rssi_stripped[..rssi_stripped.len() - 1], 10) {
                                 Ok(rssi_numeric) => {
                                     beacon_info.manager
                                         .do_send( InternalTagData {
@@ -152,18 +166,15 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                             mac_address: mac.to_string(),
                                             distance: common::DataType::RSSI(rssi_numeric),
                                         });
-                                    serial_buffer = vec![0; 1000];
                                 },
-                                Err(_) => {
-                                    println!("parsed a bad number: {}", rssi);
+                                Err(e) => {
+                                    println!("parsed a bad number: {}, error {}", e, rssi_stripped);
                                 }
                             }
-                        } else {
-                            println!("failed to parse no padding: {}", no_padding);
                         }
-                    } else {
-                        println!("failed to parse full data: {}", data);
                     }
+                    serial_buffer = Vec::new();
+                    char_count = 0;
                 }
 
                 match send_command("end".to_string(), &mut opened_port, 4) {
