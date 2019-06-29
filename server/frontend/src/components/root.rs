@@ -40,6 +40,7 @@ pub enum Msg {
     FetchDiagnosticsReady(Result<common::DiagnosticData, Error>),
     FetchHello,
     FetchEmergency,
+    FetchEndEmergency,
     FetchReady(Result<common::HelloFrontEnd, Error>),
 }
 
@@ -116,6 +117,27 @@ impl Component for RootComponent {
                 let task = self.fetch_service.fetch(request, callback);
                 self.fetch_task = Some(task);
             },
+            Msg::FetchEndEmergency => {
+                self.fetch_in_flight = true;
+                let callback = self.link.send_back(move |response: Response<Json<Result<_, Error>>>| {
+                    let (meta, Json(data)) = response.into_parts();
+                    println!("META: {:?}", meta);
+                    Log!("META: {:?}", meta);
+                    if meta.status.is_success() {
+                        Msg::FetchReady(data)
+                    } else {
+                        Msg::Ignore
+                    }
+                });
+                let request = Request::post(common::END_EMERGENCY)
+                    .header("Content-Type", "text/html")
+                    .header("Accept", "text/html")
+                    .body(Nothing)
+                    .unwrap();
+                let task = self.fetch_service.fetch(request, callback);
+                self.fetch_task = Some(task);
+                self.diagnostic_data = Vec::new();
+            },
             Msg::FetchDiagnostics => {
                 self.fetch_in_flight = true;
                 let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticData, Error>>>| {
@@ -129,7 +151,7 @@ impl Component for RootComponent {
                         Msg::Ignore
                     }
                 });
-                let request = Request::get("/ad") //(common::DIAGNOSTICS)
+                let request = Request::get(common::DIAGNOSTICS)
                     .header("Content-Type", "text/html")
                     .header("Accept", "text/html")
                     .body(Nothing)
@@ -161,6 +183,13 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Diagnostics => {
                 html! {
                     <div>
+                        <div>
+                            <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Login Page" }</button>
+                        </div>
+                        <div>
+                            <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
+                            <button onclick=|_| Msg::FetchEndEmergency,>{ "End Emergency" }</button>
+                        </div>
                         <h>{ "Diagnostics" }</h>
                         { self.render_diagnostics() }
                     </div>
@@ -169,10 +198,10 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Login => {
                 html! {
                     <div>
-                        <h>{ "Hello Login Page!" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Click" }</button>
-                        <button onclick=|_| Msg::FetchHello,>{ "Get Hello" }</button>
-                        <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
+                        <div>
+                            <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
+                        </div>
+                        <h>{ "Login" }</h>
                         { self.view_data() }
                     </div>
                 }
@@ -180,7 +209,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::FrontPage => {
                 html! {
                     <div>
-                        <h>{ "Hello FrontPage Page!" }</h>
+                        <h>{ "FrontPage" }</h>
                         <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Click" }</button>
                     </div>
                 }
@@ -191,14 +220,8 @@ impl Renderable<RootComponent> for RootComponent {
 
 impl RootComponent {
     fn view_data(&self) -> Html<RootComponent> {
-        if let Some(value) = &self.data {
-            html! {
-                <p>{ value.data }</p>
-            }
-        } else {
-            html! {
-                <p>{ "Data hasn't fetched yet." }</p>
-            }
+        html! {
+            <p>{ "Its empty in here." }</p>
         }
     }
 

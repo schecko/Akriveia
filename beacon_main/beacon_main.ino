@@ -15,8 +15,6 @@ int scanTime = 1;
 char *mac_list[] = {"cc:50:e3:9c:4c:c2",
                     "cc:50:e3:9c:48:86"};
 
-
-
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   public:
 
@@ -36,18 +34,15 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Enter 'start' to start sending data");
-  Serial.println("Enter 'stop' to stop sending data");
   BLEDevice::init("Beacon");
 }
-
 
 void loop() {
 
   if (Serial.available() > 0) {
     input = Serial.readString();
-    if (input.indexOf("start") >= 0) { Serial.println("Starting..."); system_on = true; }
-    else if (input.indexOf("end") >= 0) { Serial.println("Ending..."); system_on = false; }
+    if (input.indexOf("start") >= 0) { Serial.println("ack"); system_on = true; }
+    else if (input.indexOf("end") >= 0) { Serial.println("ack"); system_on = false; }
   }
 
   if (system_on) {
