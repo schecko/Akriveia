@@ -136,6 +136,7 @@ impl Component for RootComponent {
                     .unwrap();
                 let task = self.fetch_service.fetch(request, callback);
                 self.fetch_task = Some(task);
+                self.diagnostic_data = Vec::new();
             },
             Msg::FetchDiagnostics => {
                 self.fetch_in_flight = true;
@@ -182,9 +183,14 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Diagnostics => {
                 html! {
                     <div>
+                        <div>
+                            <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Login Page" }</button>
+                        </div>
+                        <div>
+                            <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
+                            <button onclick=|_| Msg::FetchEndEmergency,>{ "End Emergency" }</button>
+                        </div>
                         <h>{ "Diagnostics" }</h>
-                        <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
-                        <button onclick=|_| Msg::FetchEndEmergency,>{ "End Emergency" }</button>
                         { self.render_diagnostics() }
                     </div>
                 }
@@ -192,10 +198,10 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Login => {
                 html! {
                     <div>
-                        <h>{ "Hello Login Page!" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
-                        <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
-                        <button onclick=|_| Msg::FetchEmergency,>{ "End Emergency" }</button>
+                        <div>
+                            <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
+                        </div>
+                        <h>{ "Login" }</h>
                         { self.view_data() }
                     </div>
                 }
@@ -203,7 +209,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::FrontPage => {
                 html! {
                     <div>
-                        <h>{ "Hello FrontPage Page!" }</h>
+                        <h>{ "FrontPage" }</h>
                         <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Click" }</button>
                     </div>
                 }
@@ -214,14 +220,8 @@ impl Renderable<RootComponent> for RootComponent {
 
 impl RootComponent {
     fn view_data(&self) -> Html<RootComponent> {
-        if let Some(value) = &self.data {
-            html! {
-                <p>{ value.data }</p>
-            }
-        } else {
-            html! {
-                <p>{ "Data hasn't fetched yet." }</p>
-            }
+        html! {
+            <p>{ "Its empty in here." }</p>
         }
     }
 

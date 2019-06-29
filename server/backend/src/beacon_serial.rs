@@ -143,6 +143,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     //println!("serial buffer is: {}", String::from_utf8_lossy(&serial_buffer[..]).to_string());
 
 
+                    let mut last_line = "";
                     for line in serial_string.split("\n") {
                         //println!("line is: {}", line);
 
@@ -171,9 +172,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                     println!("parsed a bad number: {}, error {}", e, rssi_stripped);
                                 }
                             }
+                        } else {
+                            // incomplete transmission, keep the data and append to the
+                            // serial_buffer after its reset
+                            last_line = line;
                         }
                     }
                     serial_buffer = Vec::new();
+                    serial_buffer.extend_from_slice(last_line.as_bytes());
                     char_count = 0;
                 }
 
