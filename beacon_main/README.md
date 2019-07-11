@@ -18,11 +18,18 @@ https://github.com/espressif/arduino-esp32
 
 Note: The boot button on the ESP32 module must be pressed during the code uploading process from Arduino IDE.
 
-
-
 # ID TAG
 
 ## Examples:
 - https://lastminuteengineers.com/esp32-sleep-modes-power-consumption/
 - https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
 - https://randomnerdtutorials.com/esp32-deep-sleep-arduino-ide-wake-up-sources/
+
+
+
+
+# Install instructions:
+- follow the instructions from https://github.com/espressif/arduino-esp32/blob/master/docs/arduino-ide/boards_manager.md
+	- This is to install the ESP32 arduino package, which is not there by default.
+- install the pyserial module (needed by the ESP module, though they dont seem to mention it in the install instructions..)
+	$ pip install pyserial

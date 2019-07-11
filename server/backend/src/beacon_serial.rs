@@ -74,7 +74,7 @@ fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> b
 pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(1000);
-    settings.baud_rate = 9600;
+    settings.baud_rate = 115200;
     loop {
         println!("opening port");
         match serialport::open_with_settings(&beacon_info.port_name, &settings) {
