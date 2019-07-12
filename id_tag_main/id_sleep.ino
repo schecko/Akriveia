@@ -91,6 +91,7 @@ void setup() {
   }
   else {
     Serial.println("Going to sleep now");
+    timer_on = false;
     esp_deep_sleep_start();
     Serial.println("This will never be printed"); // debugging
   }
