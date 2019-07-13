@@ -230,7 +230,7 @@ impl RootComponent {
             html! {
                 <table> {
                     for self.diagnostic_data.iter().map(|row| {
-                        match row.distance {
+                        match row.tag_distance {
                             common::DataType::RSSI(strength) => {
                                 html! {
                                     <tr>{ format!("name: {}\tmac: {}\trssi: {}", &row.name, &row.mac_address, strength ) } </tr>
@@ -238,7 +238,7 @@ impl RootComponent {
                             },
                             common::DataType::TOF(distance) => {
                                 html! {
-                                    <tr>{ format!("name: {}\tmac: {}\ttof: {}", &row.name, &row.mac_address, distance ) } </tr>
+                                    <tr>{ format!("name: {}\tmac: {}\ttof: {}", &row.tag_name, &row.tag_mac_address, distance ) } </tr>
                                 }
                             },
                         }

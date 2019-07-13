@@ -128,26 +128,20 @@ impl Handler<GetDiagnosticData> for BeaconManager {
     }
 }
 
-// unfortunately, the common library cant import actix, so just make another struct here...
-pub struct InternalTagData {
-    pub name: String,
-    pub mac_address: String,
-    pub distance: common::DataType,
+pub struct TagDataMessage {
+    pub data: common::TagData,
 }
-impl Message for InternalTagData {
+
+impl Message for TagDataMessage {
     type Result = Result<u64, io::Error>;
 }
-impl Handler<InternalTagData> for BeaconManager {
+impl Handler<TagDataMessage> for BeaconManager {
     type Result = Result<u64, io::Error>;
 
-    fn handle(&mut self, msg: InternalTagData, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TagDataMessage, context: &mut Context<Self>) -> Self::Result {
         // find the beacons
         println!("tag data message sent to beacon manager");
-        self.diagnostic_data.tag_data.push(common::TagData {
-            name: msg.name,
-            mac_address: msg.mac_address,
-            distance: msg.distance,
-        });
+        self.diagnostic_data.tag_data.push(msg.data.clone());
         Ok(1)
     }
 }

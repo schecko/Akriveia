@@ -20,9 +20,10 @@ pub enum DataType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
-    pub name: String,
-    pub mac_address: String,
-    pub distance: DataType,
+    pub tag_name: String,
+    pub tag_mac: String,
+    pub tag_distance: DataType,
+    pub beacon_mac: String,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
