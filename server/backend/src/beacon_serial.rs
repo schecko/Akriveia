@@ -26,21 +26,13 @@ pub struct BeaconSerialConn {
 
 fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> bool {
     for i in 0.. {
-        if i % 2 == 0 {
-            //if let Ok(_) = opened_port.clear(ClearBuffer::All) {}
-        }
-
-        println!(", attempt {}", i);
-
         if let Ok(_) = port.write(command.as_bytes()) {};
 
         let mut serial_buffer: Vec<u8> = vec![0; 1000];
         match port.read(serial_buffer.as_mut_slice()) {
             Ok(_) => {
                 let result = String::from_utf8_lossy(&serial_buffer);
-                println!("buffer is: {}", result);
                 if result.contains("ack") {
-                    println!("successfully received ack from beacon for command {}", command);
                     break;
                 } else {
                     println!("failed to send command {} to beacon", command);
@@ -95,7 +87,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                 }
 
                 // start polling data
-                println!("Receiving data on {} :", &beacon_info.port_name);
+                //println!("Receiving data on {} :", &beacon_info.port_name);
                 let mut serial_buffer: Vec<u8> = Vec::new();
                 loop {
                     match beacon_info.receive.try_recv() {
@@ -111,21 +103,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                         },
                         _ => {
                             // some other type of command, just ignore it for now
-                            println!("ignoring command");
                         },
                     }
-                    println!("reading...");
                     thread::sleep(Duration::from_millis(100));
 
                     let mut char_count = 0;
                     let mut temp_buffer: Vec<u8> = vec![0; 4000];
                     match opened_port.read(temp_buffer.as_mut_slice()) {
                         Ok(num) => {
-                            if num > 0 {
-                                println!("temp string is: {}", String::from_utf8_lossy(&temp_buffer[..num]));
-                            } else {
-                                println!("temp empty");
-                            }
                             serial_buffer.extend_from_slice(&mut temp_buffer[..num]);
                             char_count += num;
                         },
@@ -135,25 +120,24 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
 
                     let data = String::from_utf8_lossy(&serial_buffer[..char_count]).to_string();
                     let serial_string = String::from_utf8_lossy(&serial_buffer[..]).to_string();
-                    //println!("serial buffer is: {}", String::from_utf8_lossy(&serial_buffer[..]).to_string());
-
 
                     let mut last_line = "";
                     for line in serial_string.split("\n") {
-                        //println!("line is: {}", line);
 
                         let mut split: Vec<&str> = line.split("|").collect();
                         if split.len() == 3 {
                             let name = split[0];
                             let mac = split[1];
                             let mut rssi = split[2];
-                            //println!(" name, mac, rssi: {} {} {} ", name, mac, rssi);
                             let reg = Regex::new(r"/[^$0-9]+/").unwrap();
                             let rssi_stripped = reg.replace_all(&rssi, "");
 
                             // remove the last character every time, idk why but there is always
                             // a newline at the end of rssi_stripped. from_str_radix REQUIRES
                             // all numeric characters.
+                            if rssi_stripped.len() <= 0 {
+                                continue;
+                            }
                             match i64::from_str_radix(&rssi_stripped[..rssi_stripped.len() - 1], 10) {
                                 Ok(rssi_numeric) => {
                                     beacon_info.manager
