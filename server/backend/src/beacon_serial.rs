@@ -24,11 +24,6 @@ pub struct BeaconSerialConn {
     pub manager: Recipient<TagDataMessage>,
 }
 
-pub enum BeaconCommand {
-    StartEmergency,
-    EndEmergency
-}
-
 fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> bool {
     for i in 0.. {
         if i % 2 == 0 {

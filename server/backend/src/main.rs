@@ -8,6 +8,7 @@ extern crate futures;
 
 mod beacon_manager;
 mod beacon_serial;
+mod data_processor;
 
 use actix::prelude::*;
 use actix_files as fs;
@@ -42,14 +43,14 @@ fn scan_beacons(req: HttpRequest) -> HttpResponse {
 fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     println!("emergency initiated!");
     let s = state.lock().unwrap();
-    s.beacon_manager.do_send(StartEmergency);
+    s.beacon_manager.do_send(BeaconCommand::StartEmergency);
     HttpResponse::Ok().finish()
 }
 
 fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     println!("emergency stopped!");
     let s = state.lock().unwrap();
-    s.beacon_manager.do_send(EndEmergency);
+    s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
 }
 
@@ -100,12 +101,12 @@ fn default_route(req: HttpRequest) -> HttpResponse {
 
 fn main() -> std::io::Result<()> {
     let system = System::new("Akriviea");
-    env::set_var("RUST_LOG", "actix_server=debug,actix_web=debug");
+    env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
-    let beacon_manager = beacon_manager::BeaconManager::new().start();
+    let beacon_manager = BeaconManager::new().start();
 
-    beacon_manager.do_send(beacon_manager::ScanForBeacons);
+    beacon_manager.do_send(BeaconCommand::ScanBeacons);
 
     let state = web::Data::new(Mutex::new(AkriveiaState {
         beacon_manager: beacon_manager,
