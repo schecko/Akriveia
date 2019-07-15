@@ -26,7 +26,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
         Serial.print(advertisedDevice.getAddress().toString().c_str());
         Serial.print("|");
         Serial.print(advertisedDevice.getRSSI());
-        Serial.println(".00");
+        Serial.println("");
       }
     }
   }
