@@ -57,9 +57,10 @@ fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> Http
     let diag_data = common::DiagnosticData {
         tag_data: vec![
             common::TagData {
-                name: "hello".to_string(),
-                mac_address: "mac_0111".to_string(),
-                distance: common::DataType::RSSI(33),
+                tag_name: "hello".to_string(),
+                tag_mac: "mac_0111".to_string(),
+                tag_distance: common::DataType::RSSI(33),
+                beacon_mac: "test".to_string(),
             }
         ]
     };

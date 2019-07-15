@@ -21,7 +21,7 @@ pub struct BeaconSerialConn {
     pub vid: u16,
     pub pid: u16,
     pub receive: mpsc::Receiver<BeaconCommand>,
-    pub manager: Recipient<InternalTagData>,
+    pub manager: Recipient<TagDataMessage>,
 }
 
 pub enum BeaconCommand {
@@ -74,7 +74,7 @@ fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> b
 pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
     let mut settings: SerialPortSettings = Default::default();
     settings.timeout = Duration::from_millis(1000);
-    settings.baud_rate = 9600;
+    settings.baud_rate = 115200;
     loop {
         println!("opening port");
         match serialport::open_with_settings(&beacon_info.port_name, &settings) {
@@ -162,10 +162,13 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                             match i64::from_str_radix(&rssi_stripped[..rssi_stripped.len() - 1], 10) {
                                 Ok(rssi_numeric) => {
                                     beacon_info.manager
-                                        .do_send( InternalTagData {
-                                            name: name.to_string(),
-                                            mac_address: mac.to_string(),
-                                            distance: common::DataType::RSSI(rssi_numeric),
+                                        .do_send( TagDataMessage {
+                                            data: common::TagData {
+                                                tag_name: name.to_string(),
+                                                tag_mac: mac.to_string(),
+                                                tag_distance: common::DataType::RSSI(rssi_numeric),
+                                                beacon_mac: "hello".to_string(),
+                                            }
                                         });
                                 },
                                 Err(e) => {
