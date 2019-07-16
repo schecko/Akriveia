@@ -5,6 +5,7 @@ extern crate actix_web;
 extern crate common;
 extern crate env_logger;
 extern crate futures;
+extern crate nalgebra as na;
 
 mod beacon_manager;
 mod beacon_serial;
