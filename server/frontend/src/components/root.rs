@@ -9,10 +9,12 @@ use common;
 use std::time::Duration;
 use crate::util;
 
+#[derive(PartialEq)]
 pub enum Page {
     Diagnostics,
     FrontPage,
     Login,
+    Map,
 }
 
 #[warn(unused_macros)]
@@ -82,7 +84,8 @@ impl Component for RootComponent {
                         self.diagnostic_service = Some(interval_service);
                     },
                     _ => {
-                        // do nothing
+                        self.diagnostic_service = None;
+                        self.diagnostic_service_task = None;
                     }
                 }
             },
@@ -168,14 +171,13 @@ impl Component for RootComponent {
 }
 
 impl Renderable<RootComponent> for RootComponent {
+
     fn view(&self) -> Html<Self> {
         match self.current_page {
             Page::Diagnostics => {
                 html! {
                     <div>
-                        <div>
-                            <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Login Page" }</button>
-                        </div>
+                        { self.navigation() }
                         <div>
                             <button onclick=|_| Msg::RequestEmergency,>{ "Start Emergency" }</button>
                             <button onclick=|_| Msg::RequestEndEmergency,>{ "End Emergency" }</button>
@@ -188,10 +190,17 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Login => {
                 html! {
                     <div>
-                        <div>
-                            <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
-                        </div>
+                        { self.navigation() }
                         <h>{ "Login" }</h>
+                        { self.view_data() }
+                    </div>
+                }
+            }
+            Page::Map => {
+                html! {
+                    <div>
+                        { self.navigation() }
+                        <h>{ "Map" }</h>
                         { self.view_data() }
                     </div>
                 }
@@ -209,6 +218,18 @@ impl Renderable<RootComponent> for RootComponent {
 }
 
 impl RootComponent {
+
+    fn navigation(&self) -> Html<Self> {
+        html! {
+            <div>
+                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
+            </div>
+        }
+
+    }
+
     fn view_data(&self) -> Html<RootComponent> {
         html! {
             <p>{ "Its empty in here." }</p>
