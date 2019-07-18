@@ -93,25 +93,16 @@ impl Component for RootComponent {
                     self,
                     common::PING,
                     self.link,
-                    Msg::ResponsePing,
-                    || { },
-                    |_| { }
+                    Msg::ResponsePing
                 );
             },
             Msg::RequestEmergency => {
-                Log!("hello world djfa;lkdfja;lkfd");
                 self.fetch_task = post_request!(
                     self,
                     common::EMERGENCY,
                     (),
                     self.link,
-                    Msg::ResponseEmergency,
-                    || {
-                        Log!("hello world response");
-                    },
-                    |error| {
-                        Log!("hello world adfadsfafkjresponse {}", error);
-                    }
+                    Msg::ResponseEmergency
                 );
             },
             Msg::RequestEndEmergency => {
@@ -120,9 +111,7 @@ impl Component for RootComponent {
                     common::END_EMERGENCY,
                     (),
                     self.link,
-                    Msg::ResponseEndEmergency,
-                    || { },
-                    |_| { }
+                    Msg::ResponseEndEmergency
                 );
             },
             Msg::RequestDiagnostics => {
@@ -130,46 +119,37 @@ impl Component for RootComponent {
                     self,
                     common::DIAGNOSTICS,
                     self.link,
-                    Msg::ResponseDiagnostics,
-                    || { },
-                    |_| { }
+                    Msg::ResponseDiagnostics
                 );
             },
 
 
             // responses
             Msg::ResponsePing(response) => {
-                println!("ping response");
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(common::HelloFrontEnd { data }) => {
                             println!("success {:?}", data);
                         }
-                        _ => {
-                            println!("huh");
-                        }
+                        _ => { }
                     }
 
                 } else {
-                    panic!("but why tho");
+                    Log!("response - failed to ping");
                 }
             },
             Msg::ResponseDiagnostics(response) => {
-                println!("diagnostics response");
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(common::DiagnosticData { mut tag_data }) => {
                             self.diagnostic_data.append(&mut tag_data);
                         }
-                        _ => {
-                            println!("huh");
-                        }
+                        _ => { }
                     }
-
                 } else {
-                    panic!("but why tho");
+                    Log!("response - failed to request diagnostics");
                 }
             },
             Msg::ResponseEmergency(_response) => {
