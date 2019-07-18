@@ -35,7 +35,7 @@ const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const NUM_DUMMY_BEACONS: u32 = 5;
 
 const USE_DUMMY_BEACONS: bool = true;
-const USE_SERIAL_BEACONS: bool = true;
+const USE_SERIAL_BEACONS: bool = false;
 const USE_UDP_BEACONS: bool = false;
 
 impl BeaconManager {
@@ -58,7 +58,7 @@ impl BeaconManager {
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
-        for i in 1..NUM_DUMMY_BEACONS {
+        for i in 0..NUM_DUMMY_BEACONS {
             let (send, receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
             let beacon_manager = context.address().clone();
             thread::spawn(move || {

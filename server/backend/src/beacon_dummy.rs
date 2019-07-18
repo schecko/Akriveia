@@ -8,15 +8,16 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-const message_interval: Duration = Duration::from_millis(100);
-const num_users: u32 = 5;
-const min_rssi_distance: i64 = 30;
-const max_rssi_distance: i64 = 90;
+const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
+const NUM_USERS: u32 = 5;
+const MIN_RSSI_DISTANCE: i64 = 30;
+const MAX_RSSI_DISTANCE: i64 = 90;
 
 pub fn dummy_beacon_thread(dummy_id: u32,
                            receive: mpsc::Receiver<BeaconCommand>,
                            beacon_manager: Addr<BeaconManager>)
 {
+    println!("starting dummy beacon {}", dummy_id);
 
     let mut rng = rand::thread_rng();
     loop {
@@ -45,8 +46,8 @@ pub fn dummy_beacon_thread(dummy_id: u32,
             }
 
             // start generating data
-            let user_number = rng.gen_range(0, num_users);
-            let user_distance = rng.gen_range(min_rssi_distance, max_rssi_distance);
+            let user_number = rng.gen_range(0, NUM_USERS);
+            let user_distance = rng.gen_range(MIN_RSSI_DISTANCE, MAX_RSSI_DISTANCE);
             beacon_manager
                 .do_send( TagDataMessage {
                     data: common::TagData {
@@ -56,7 +57,7 @@ pub fn dummy_beacon_thread(dummy_id: u32,
                         beacon_mac: format!("mac_dummy_{}", dummy_id),
                     }
                 });
-            thread::sleep(message_interval);
+            thread::sleep(MESSAGE_INTERVAL);
         }
 
     }
