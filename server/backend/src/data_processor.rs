@@ -101,7 +101,6 @@ impl Handler<DPMessage> for DataProcessor {
         match msg {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
-                    // append the data
                     if let Some(hash_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
                         // replace any existing element, otherwise just add the new element to
                         // prevent duplicates
@@ -110,18 +109,18 @@ impl Handler<DPMessage> for DataProcessor {
 
                         if(hash_entry.tag_data_points.len() >= 3) {
                             let tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
-                            // reset the data
+                            // reset the point data
                             hash_entry.tag_data_points = Vec::new();
                             println!("data point: {:?}", tag_location);
 
+                            // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
                                     user_ref.location = tag_location;
                                 },
                                 None => {
-                                    // TODO this should probably eventually be an error
-                                    // to not find the user, but for now just make the
-                                    // user instead
+                                    // TODO this should probably eventually be an error if the user
+                                    // is missing, but for now just make the user instead
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
                                     user.location = tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
@@ -145,6 +144,19 @@ impl Handler<DPMessage> for DataProcessor {
         }
 
         Ok(1)
+    }
+}
 
+pub struct OutUserData { }
+
+impl Message for OutUserData {
+    type Result = Result<Vec<common::User>, io::Error>;
+}
+
+impl Handler<OutUserData> for DataProcessor {
+    type Result = Result<Vec<common::User>, io::Error>;
+
+    fn handle (&mut self, msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
+        Ok(self.users.values().cloned().collect())
     }
 }
