@@ -7,7 +7,7 @@ pub const END_EMERGENCY: &str = "/endemergency";
 pub const PING: &str = "/hello";
 pub const DIAGNOSTICS: &str = "/diagnostics";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HelloFrontEnd {
     pub data: u32,
 }

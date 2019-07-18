@@ -5,7 +5,7 @@ RELEASE_ARGS = --release
 FRONTEND_ARGS =  -p frontend --target wasm32-unknown-unknown
 BACKEND_ARGS =  -p backend
 
-all: build-back build-front
+all: run-back
 
 SOURCE_CARGO=source ~/.cargo/env
 
