@@ -73,9 +73,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                         Ok(BeaconCommand::StartEmergency) => {
                             break;
                         },
-                        _ => {
-                            println!("ignoring command");
-                        },
+                        _ => { },
                     }
                 }
                 match send_command("start".to_string(), &mut opened_port, 4) {

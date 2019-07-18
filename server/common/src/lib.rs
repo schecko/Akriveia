@@ -8,6 +8,7 @@ pub const EMERGENCY: &str = "/emergency";
 pub const END_EMERGENCY: &str = "/endemergency";
 pub const PING: &str = "/hello";
 pub const DIAGNOSTICS: &str = "/diagnostics";
+pub const REALTIME_USERS: &str = "/realtime_users";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HelloFrontEnd {

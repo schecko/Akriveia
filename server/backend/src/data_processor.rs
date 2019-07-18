@@ -98,10 +98,12 @@ impl Handler<DPMessage> for DataProcessor {
     type Result = Result<u64, io::Error>;
 
     fn handle (&mut self, msg: DPMessage, _: &mut Context<Self>) -> Self::Result {
+        println!("data processor recieved data");
         match msg {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
                     if let Some(hash_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
+                        println!("tag entry exists");
                         // replace any existing element, otherwise just add the new element to
                         // prevent duplicates
                         hash_entry.tag_data_points = hash_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
@@ -116,11 +118,13 @@ impl Handler<DPMessage> for DataProcessor {
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
+                                    println!("updating user");
                                     user_ref.location = tag_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
+                                    println!("creating new user");
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
                                     user.location = tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
@@ -129,6 +133,7 @@ impl Handler<DPMessage> for DataProcessor {
                         }
                     }
                 } else {
+                    println!("creating new tag entry");
                     // create new entry
                     let mut hash_entry = TagHashEntry {
                         tag_data_points: Vec::new(),

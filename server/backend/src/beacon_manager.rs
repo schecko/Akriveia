@@ -7,9 +7,11 @@
 // functionality a little bit, so that it will be a little bit easier to move to the wireless
 // implementation.
 
+
 use actix::prelude::*;
 use actix_web::{ Error, Result };
 use crate::beacon_serial::*;
+use crate::beacon_dummy::*;
 use crate::data_processor::*;
 use futures::{ future::ok, Future };
 use serialport::prelude::*;
@@ -30,18 +32,43 @@ impl Actor for BeaconManager {
 }
 
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
+const NUM_DUMMY_BEACONS: u32 = 5;
+
+const USE_DUMMY_BEACONS: bool = true;
+const USE_SERIAL_BEACONS: bool = true;
+const USE_UDP_BEACONS: bool = false;
 
 impl BeaconManager {
-    pub fn new() -> BeaconManager {
-        let mut res = BeaconManager {
-            data_processor: DataProcessor::new().start(),
+    pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
+        BeaconManager {
+            data_processor: dp,
             diagnostic_data: common::DiagnosticData::new(),
             serial_connections: Vec::new(),
-        };
-        res
+        }
     }
 
     fn find_beacons(&mut self, context: &mut Context<Self>) {
+        if USE_DUMMY_BEACONS { self.find_beacons_dummy(context); }
+        if USE_SERIAL_BEACONS { self.find_beacons_serial(context); }
+        if USE_UDP_BEACONS { self.find_beacons_udp(context); }
+    }
+
+    fn find_beacons_udp(&mut self, context: &mut Context<Self>) {
+        unimplemented!();
+    }
+
+    fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
+        for i in 1..NUM_DUMMY_BEACONS {
+            let (send, receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
+            let beacon_manager = context.address().clone();
+            thread::spawn(move || {
+                dummy_beacon_thread(i, receive, beacon_manager);
+            });
+            self.serial_connections.push(send);
+        }
+    }
+
+    fn find_beacons_serial(&mut self, context: &mut Context<Self>) {
         if let Ok(avail_ports) = serialport::available_ports() {
             for port in avail_ports {
                 println!("\t{}", port.port_name);
