@@ -9,7 +9,7 @@ use std::sync::{ Arc, Mutex, };
 use std::thread;
 use std::time::Duration;
 use std::io;
-use std::collections::HashMap;
+use std::collections::{ HashMap, BTreeMap };
 use na;
 
 // contains a vector of tag data from multiple beacons
@@ -21,12 +21,19 @@ struct TagHashEntry {
 pub struct DataProcessor {
     // this hash maps the id_tag mac address to data points for that id tag.
     tag_hash: HashMap<String, Box<TagHashEntry>>,
+    // TODO support floors
+    // TODO init with db data?
+    // this tree maps tag mac addresses to users
+    // scanning the entire tree for all entries will likely be a very common,
+    // so hash is likely not a good choice.
+    users: BTreeMap<String, common::User>
 }
 
 impl DataProcessor {
     pub fn new() -> DataProcessor {
         DataProcessor {
             tag_hash: HashMap::new(),
+            users: BTreeMap::new(),
         }
     }
 
@@ -106,6 +113,20 @@ impl Handler<DPMessage> for DataProcessor {
                             // reset the data
                             hash_entry.tag_data_points = Vec::new();
                             println!("data point: {:?}", tag_location);
+
+                            match self.users.get_mut(&tag_data.tag_mac) {
+                                Some(user_ref) => {
+                                    user_ref.location = tag_location;
+                                },
+                                None => {
+                                    // TODO this should probably eventually be an error
+                                    // to not find the user, but for now just make the
+                                    // user instead
+                                    let mut user = common::User::new(tag_data.tag_mac.clone());
+                                    user.location = tag_location;
+                                    self.users.insert(tag_data.tag_mac.clone(), user);
+                                }
+                            }
                         }
                     }
                 } else {
