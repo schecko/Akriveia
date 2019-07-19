@@ -1,4 +1,6 @@
 
+extern crate stdweb;
+
 use failure::Error;
 use yew::format::{Nothing, Json};
 use yew::services::console::ConsoleService;
@@ -7,7 +9,11 @@ use yew::services::interval::*;
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 use common;
 use std::time::Duration;
+use stdweb::web;
 use crate::util;
+use yew::virtual_dom::vnode::VNode;
+use stdweb::web::Element;
+use stdweb::web::Node;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -35,6 +41,7 @@ pub struct RootComponent {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
+    map_canvas: Option<Node>,
 }
 
 pub enum Msg {
@@ -70,6 +77,7 @@ impl Component for RootComponent {
             fetch_in_flight: false,
             fetch_task: None,
             link: link,
+            map_canvas: None,
         }
     }
 
@@ -82,6 +90,9 @@ impl Component for RootComponent {
                         let mut interval_service = IntervalService::new();
                         self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
                         self.diagnostic_service = Some(interval_service);
+                    },
+                    Page::Map => {
+                        self.map_canvas = Some(Node::from_html("<canvas/>").unwrap());
                     },
                     _ => {
                         self.diagnostic_service = None;
@@ -201,7 +212,14 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         { self.navigation() }
                         <h>{ "Map" }</h>
-                        { self.view_data() }
+                        <div>
+                            {
+                                match &self.map_canvas {
+                                    Some(canvas) => VNode::VRef(canvas.to_owned()),
+                                    None => html!{}
+                                }
+                            }
+                        </div>
                     </div>
                 }
             }
