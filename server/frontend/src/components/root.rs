@@ -41,6 +41,14 @@ fn get_canvas() -> CanvasElement {
     }
 }
 
+fn get_canvas_by_id(id: &str) -> CanvasElement {
+    unsafe {
+       js! (
+            return document.getElementById(id);
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
 fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
     unsafe {
         js! (
@@ -66,7 +74,7 @@ pub struct RootComponent {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
-    map_canvas: Option<Node>,
+    map_canvas: Option<CanvasElement>,
 }
 
 pub enum Msg {
@@ -125,6 +133,20 @@ impl Component for RootComponent {
 
                         context.fill_rect(0.0, 0.0, 400.0, 400.0);
                         set_canvas_visibility(&canvas, true);
+
+                        let test_canvas: CanvasElement = unsafe {
+                            js! (
+                                let c = document.createElement("canvas");
+                                c.setAttribute("id", "test_canvas");
+                                return c;
+                            ).into_reference_unchecked().unwrap()
+                        };
+                        test_canvas.set_width(800);
+                        test_canvas.set_height(800);
+                        let test_context = get_context(&test_canvas);
+                        self.map_canvas = Some(test_canvas);
+                        test_context.fill_rect(0.0, 0.0, 40.0, 40.0);
+                        test_context.fill_rect(350.0, 350.0, 40.0, 40.0);
                     },
                     _ => {
                         self.diagnostic_service = None;
@@ -247,7 +269,7 @@ impl Renderable<RootComponent> for RootComponent {
                         <div>
                             {
                                 match &self.map_canvas {
-                                    Some(canvas) => VNode::VRef(canvas.to_owned()),
+                                    Some(canvas) => VNode::VRef(Node::from(canvas.to_owned()).to_owned()),
                                     None => html!{<div/>}
                                 }
                             }
