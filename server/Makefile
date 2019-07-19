@@ -3,7 +3,7 @@ SHELL := /bin/bash
 DEBUG_ARGS = --debug
 RELEASE_ARGS = --release
 FRONTEND_ARGS =  -p frontend --target wasm32-unknown-unknown
-BACKEND_ARGS =  -p backend
+BACKEND_ARGS = -p backend
 
 all: run-back
 

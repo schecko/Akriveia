@@ -1,6 +1,4 @@
 
-extern crate stdweb;
-
 use failure::Error;
 use yew::format::{Nothing, Json};
 use yew::services::console::ConsoleService;
@@ -14,6 +12,10 @@ use crate::util;
 use yew::virtual_dom::vnode::VNode;
 use stdweb::web::Element;
 use stdweb::web::Node;
+use stdweb::web::HtmlElement;
+use stdweb::web::html_element::CanvasElement;
+use std::convert::TryFrom;
+use stdweb::web::CanvasRenderingContext2d;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -29,6 +31,29 @@ macro_rules! Log {
         let mut console = ConsoleService::new();
         console.log(format!($($arg)*).as_str());
     )
+}
+
+fn get_canvas() -> CanvasElement {
+    unsafe {
+       js! (
+            return document.querySelector("canvas");
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
+fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
+    unsafe {
+        js! (
+            return @{canvas}.getContext("2d");
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
+fn set_canvas_visibility(canvas: &CanvasElement, visible: bool) {
+    let visibility = if visible { "block" } else { "none" };
+    js! {
+        @{canvas}.style.display = @{visibility};
+    }
 }
 
 pub struct RootComponent {
@@ -92,7 +117,14 @@ impl Component for RootComponent {
                         self.diagnostic_service = Some(interval_service);
                     },
                     Page::Map => {
-                        self.map_canvas = Some(Node::from_html("<canvas/>").unwrap());
+                        let canvas = get_canvas();
+                        canvas.set_width(800);
+                        canvas.set_height(800);
+                        let context = get_context(&canvas);
+                        context.set_fill_style_color("#000");
+
+                        context.fill_rect(0.0, 0.0, 400.0, 400.0);
+                        set_canvas_visibility(&canvas, true);
                     },
                     _ => {
                         self.diagnostic_service = None;
@@ -216,7 +248,7 @@ impl Renderable<RootComponent> for RootComponent {
                             {
                                 match &self.map_canvas {
                                     Some(canvas) => VNode::VRef(canvas.to_owned()),
-                                    None => html!{}
+                                    None => html!{<div/>}
                                 }
                             }
                         </div>
@@ -236,7 +268,6 @@ impl Renderable<RootComponent> for RootComponent {
 }
 
 impl RootComponent {
-
     fn navigation(&self) -> Html<Self> {
         html! {
             <div>
