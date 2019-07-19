@@ -4,7 +4,7 @@ use yew::format::{Nothing, Json};
 use yew::services::console::ConsoleService;
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::services::interval::*;
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
+use yew::{html, Callback, Component, ComponentLink, Html, Renderable, ShouldRender};
 use common;
 use std::time::Duration;
 use stdweb::web;
@@ -16,6 +16,8 @@ use stdweb::web::HtmlElement;
 use stdweb::web::html_element::CanvasElement;
 use std::convert::TryFrom;
 use stdweb::web::CanvasRenderingContext2d;
+
+use super::map_view::MapViewComponent;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -125,16 +127,7 @@ impl Component for RootComponent {
                         self.diagnostic_service = Some(interval_service);
                     },
                     Page::Map => {
-                        let canvas = get_canvas();
-                        canvas.set_width(800);
-                        canvas.set_height(800);
-                        let context = get_context(&canvas);
-                        context.set_fill_style_color("#000");
-
-                        context.fill_rect(0.0, 0.0, 400.0, 400.0);
-                        set_canvas_visibility(&canvas, true);
-
-                        let test_canvas: CanvasElement = unsafe {
+                        /*let test_canvas: CanvasElement = unsafe {
                             js! (
                                 let c = document.createElement("canvas");
                                 c.setAttribute("id", "test_canvas");
@@ -146,7 +139,7 @@ impl Component for RootComponent {
                         let test_context = get_context(&test_canvas);
                         self.map_canvas = Some(test_canvas);
                         test_context.fill_rect(0.0, 0.0, 40.0, 40.0);
-                        test_context.fill_rect(350.0, 350.0, 40.0, 40.0);
+                        test_context.fill_rect(350.0, 350.0, 40.0, 40.0);*/
                     },
                     _ => {
                         self.diagnostic_service = None;
@@ -266,14 +259,7 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         { self.navigation() }
                         <h>{ "Map" }</h>
-                        <div>
-                            {
-                                match &self.map_canvas {
-                                    Some(canvas) => VNode::VRef(Node::from(canvas.to_owned()).to_owned()),
-                                    None => html!{<div/>}
-                                }
-                            }
-                        </div>
+                        <MapViewComponent/>
                     </div>
                 }
             }
