@@ -68,7 +68,6 @@ impl DataProcessor {
         let d1 = 10f64.powf((measure_power - tag_distance0) / denom);
         let d2 = 10f64.powf((measure_power - tag_distance1) / denom);
         let d3 = 10f64.powf((measure_power - tag_distance2) / denom);
-        println!("distances {} {} {}", d1, d2, d3);
 
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
@@ -80,7 +79,6 @@ impl DataProcessor {
 
         let x = (c * e - f * b) / (e * a - b * d);
         let y = (c * d - a * f) / (b * d - a * e);
-        println!("calc {} {} {} {} {}", tag_distance0, tag_distance1, tag_distance2, x, y);
         na::Vector2::new(x as f32, y as f32)
     }
 }
@@ -104,7 +102,6 @@ impl Handler<DPMessage> for DataProcessor {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
                     if let Some(hash_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
-                        println!("tag entry exists {}", &tag_data.tag_mac);
                         // replace any existing element, otherwise just add the new element to
                         // prevent duplicates
                         hash_entry.tag_data_points = hash_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
@@ -118,13 +115,11 @@ impl Handler<DPMessage> for DataProcessor {
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
-                                    println!("updating user");
                                     user_ref.location = tag_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
-                                    println!("creating new user");
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
                                     user.location = tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
@@ -133,7 +128,6 @@ impl Handler<DPMessage> for DataProcessor {
                         }
                     }
                 } else {
-                    println!("creating new tag entry");
                     // create new entry
                     let mut hash_entry = TagHashEntry {
                         tag_data_points: Vec::new(),

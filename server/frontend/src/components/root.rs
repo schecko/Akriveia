@@ -115,21 +115,6 @@ impl Component for RootComponent {
                         self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
                         self.diagnostic_service = Some(interval_service);
                     },
-                    Page::Map => {
-                        /*let test_canvas: CanvasElement = unsafe {
-                            js! (
-                                let c = document.createElement("canvas");
-                                c.setAttribute("id", "test_canvas");
-                                return c;
-                            ).into_reference_unchecked().unwrap()
-                        };
-                        test_canvas.set_width(800);
-                        test_canvas.set_height(800);
-                        let test_context = get_context(&test_canvas);
-                        self.map_canvas = Some(test_canvas);
-                        test_context.fill_rect(0.0, 0.0, 40.0, 40.0);
-                        test_context.fill_rect(350.0, 350.0, 40.0, 40.0);*/
-                    },
                     _ => {
                         self.diagnostic_service = None;
                         self.diagnostic_service_task = None;

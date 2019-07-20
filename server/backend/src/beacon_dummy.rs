@@ -48,7 +48,6 @@ pub fn dummy_beacon_thread(dummy_id: u32,
             // start generating data
             let user_number = rng.gen_range(0, NUM_USERS);
             let user_distance = rng.gen_range(MIN_RSSI_DISTANCE, MAX_RSSI_DISTANCE);
-            println!("user distance: {}", user_distance);
             beacon_manager
                 .do_send( TagDataMessage {
                     data: common::TagData {
