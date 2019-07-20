@@ -1,19 +1,29 @@
 
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 use stdweb::web::html_element::CanvasElement;
-use stdweb::web::CanvasRenderingContext2d;
+use stdweb::web::{ CanvasRenderingContext2d, Element, Node, };
+use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
+use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::virtual_dom::vnode::VNode;
-use stdweb::web::Element;
-use stdweb::web::Node;
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use crate::util;
+use std::time::Duration;
+use yew::format::{ Nothing, Json };
+
+const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
-    HelloView,
+    RequestRealtimeUser,
+
+    ResponseRealtimeUser(util::Response<Vec<common::User>>),
 }
 
 pub struct MapViewComponent {
+    context: CanvasRenderingContext2d,
+    interval_service: IntervalService,
+    interval_service_task: IntervalTask,
+    fetch_service: FetchService,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
-    context: CanvasRenderingContext2d,
 }
 
 fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
@@ -28,7 +38,7 @@ impl Component for MapViewComponent {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         let canvas: CanvasElement = unsafe {
             js! (
                 let c = document.createElement("canvas");
@@ -41,22 +51,40 @@ impl Component for MapViewComponent {
         let context = get_context(&canvas);
         context.fill_rect(0.0, 0.0, 70.0, 40.0);
         context.fill_rect(350.0, 350.0, 70.0, 40.0);
+
+        let mut interval_service = IntervalService::new();
+        let task = interval_service.spawn(REALTIME_USER_POLL_RATE, link.send_back(|_| Msg::RequestRealtimeUser));
+
         MapViewComponent {
+            context: context,
+            fetch_service: FetchService::new(),
+            interval_service: interval_service,
+            interval_service_task: task,
             map_canvas: canvas,
             self_link: link,
-            context: context,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::HelloView => { },
+            Msg::RequestRealtimeUser => {
+                get_request!(
+                    self.fetch_service,
+                    common::REALTIME_USERS,
+                    self.self_link,
+                    Msg::ResponseRealtimeUser
+                );
+            },
+            Msg::ResponseRealtimeUser(data) => {
+                self.context.clear_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
+            }
         }
 
         true
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+        // do not overwrite the canvas or context.
         true
     }
 }

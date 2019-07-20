@@ -1,21 +1,18 @@
 
-use failure::Error;
-use yew::format::{Nothing, Json};
-use yew::services::console::ConsoleService;
-use yew::services::fetch::{FetchService, FetchTask, Request, Response};
-use yew::services::interval::*;
-use yew::{html, Callback, Component, ComponentLink, Html, Renderable, ShouldRender};
 use common;
-use std::time::Duration;
-use stdweb::web;
 use crate::util;
-use yew::virtual_dom::vnode::VNode;
-use stdweb::web::Element;
-use stdweb::web::Node;
-use stdweb::web::HtmlElement;
-use stdweb::web::html_element::CanvasElement;
+use failure::Error;
 use std::convert::TryFrom;
-use stdweb::web::CanvasRenderingContext2d;
+use std::time::Duration;
+use stdweb::web::{ CanvasRenderingContext2d, Element, HtmlElement, Node, };
+use stdweb::web::html_element::CanvasElement;
+use stdweb::web;
+use yew::format::{ Nothing, Json };
+use yew::services::console::ConsoleService;
+use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
+use yew::services::interval::*;
+use yew::virtual_dom::vnode::VNode;
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 use super::map_view::MapViewComponent;
 
@@ -151,7 +148,7 @@ impl Component for RootComponent {
             // requests
             Msg::RequestPing => {
                 self.fetch_task = get_request!(
-                    self,
+                    self.fetch_service,
                     common::PING,
                     self.link,
                     Msg::ResponsePing
@@ -159,7 +156,7 @@ impl Component for RootComponent {
             },
             Msg::RequestEmergency => {
                 self.fetch_task = post_request!(
-                    self,
+                    self.fetch_service,
                     common::EMERGENCY,
                     (),
                     self.link,
@@ -168,7 +165,7 @@ impl Component for RootComponent {
             },
             Msg::RequestEndEmergency => {
                 self.fetch_task = post_request!(
-                    self,
+                    self.fetch_service,
                     common::END_EMERGENCY,
                     (),
                     self.link,
@@ -177,7 +174,7 @@ impl Component for RootComponent {
             },
             Msg::RequestDiagnostics => {
                 self.fetch_task = get_request!(
-                    self,
+                    self.fetch_service,
                     common::DIAGNOSTICS,
                     self.link,
                     Msg::ResponseDiagnostics
