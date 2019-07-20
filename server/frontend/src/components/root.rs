@@ -24,14 +24,6 @@ pub enum Page {
     Map,
 }
 
-#[warn(unused_macros)]
-macro_rules! Log {
-    ($($arg:tt)*) => (
-        let mut console = ConsoleService::new();
-        console.log(format!($($arg)*).as_str());
-    )
-}
-
 fn get_canvas() -> CanvasElement {
     unsafe {
        js! (

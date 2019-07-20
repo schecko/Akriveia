@@ -30,7 +30,6 @@ struct AkriveiaState {
 }
 
 fn hello(req: HttpRequest) -> HttpResponse {
-    println!("hello called");
     let hello_data = common::HelloFrontEnd {
         data: 0xDEADBEEF,
     };
@@ -39,34 +38,29 @@ fn hello(req: HttpRequest) -> HttpResponse {
 
 #[get("/scan_beacons")]
 fn scan_beacons(req: HttpRequest) -> HttpResponse {
-    println!("scanning for beacons");
 
     HttpResponse::Ok().finish()
 }
 
 fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
-    println!("emergency initiated!");
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::StartEmergency);
     HttpResponse::Ok().finish()
 }
 
 fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
-    println!("emergency stopped!");
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
 }
 
 fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    println!("get user data");
     let s = state.lock().unwrap();
     s.data_processor
         .send(OutUserData{})
         .then(|res| {
             match res {
                 Ok(Ok(data)) => {
-                    println!("user data is {:?}", data);
                     ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
@@ -90,14 +84,12 @@ fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> Http
 }
 
 fn async_diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    println!("async diagnostics called");
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)
         .then(|res| {
             match res {
                 Ok(Ok(data)) => {
-                    println!("data is {:?}", data);
                     ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
@@ -107,8 +99,6 @@ fn async_diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -
 }
 
 fn index_async(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Error> {
-    println!("{:?}", req);
-
     ok(HttpResponse::Ok()
         .content_type("text/html")
         .body(format!("Hello {}!", req.match_info().get("name").unwrap())))

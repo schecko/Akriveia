@@ -19,9 +19,10 @@ pub enum Msg {
 
 pub struct MapViewComponent {
     context: CanvasRenderingContext2d,
+    fetch_service: FetchService,
+    fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: IntervalTask,
-    fetch_service: FetchService,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
 }
@@ -58,6 +59,7 @@ impl Component for MapViewComponent {
         MapViewComponent {
             context: context,
             fetch_service: FetchService::new(),
+            fetch_task: None,
             interval_service: interval_service,
             interval_service_task: task,
             map_canvas: canvas,
@@ -68,15 +70,33 @@ impl Component for MapViewComponent {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::RequestRealtimeUser => {
-                get_request!(
+                self.fetch_task = get_request!(
                     self.fetch_service,
                     common::REALTIME_USERS,
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );
             },
-            Msg::ResponseRealtimeUser(data) => {
+            Msg::ResponseRealtimeUser(response) => {
                 self.context.clear_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
+                self.context.rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
+                self.context.stroke();
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(data) => {
+                            for user in data.iter() {
+                                let x: f64 = user.location.x as f64 * 400f64;
+                                let y: f64 = user.location.y as f64 * 400f64;
+                                self.context.fill_rect(x, y, 10.0, 10.0);
+                            }
+                        },
+                        _ => { }
+                    }
+
+                } else {
+                    Log!("response - failed to get realtime user data");
+                }
             }
         }
 

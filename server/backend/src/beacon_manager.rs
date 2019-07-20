@@ -153,8 +153,6 @@ impl Handler<GetDiagnosticData> for BeaconManager {
     type Result = Result<common::DiagnosticData, io::Error>;
 
     fn handle(&mut self, msg: GetDiagnosticData, context: &mut Context<Self>) -> Self::Result {
-        // find the beacons
-        println!("get diagnostic data called {:?}", &self.diagnostic_data);
         let res = self.diagnostic_data.clone();
         self.diagnostic_data.tag_data = Vec::new();
         Ok(res)
@@ -172,7 +170,6 @@ impl Handler<TagDataMessage> for BeaconManager {
 
     fn handle(&mut self, msg: TagDataMessage, context: &mut Context<Self>) -> Self::Result {
         // find the beacons
-        println!("tag data message sent to beacon manager");
         self.diagnostic_data.tag_data.push(msg.data.clone());
         self.data_processor.do_send(DPMessage::LocationData(msg.data.clone()));
         Ok(1)

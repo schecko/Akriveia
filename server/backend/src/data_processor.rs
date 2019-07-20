@@ -98,7 +98,6 @@ impl Handler<DPMessage> for DataProcessor {
     type Result = Result<u64, io::Error>;
 
     fn handle (&mut self, msg: DPMessage, _: &mut Context<Self>) -> Self::Result {
-        println!("data processor recieved data");
         match msg {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
@@ -141,10 +140,9 @@ impl Handler<DPMessage> for DataProcessor {
                     hash_entry.tag_data_points.push(tag_data.clone());
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 }
-                println!("tag hash {:?}", self.tag_hash);
             },
             _ => {
-                println!("eek");
+                panic!("unknown message sent to data processor");
             },
         }
 

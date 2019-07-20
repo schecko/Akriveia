@@ -6,6 +6,15 @@ use yew::format::{Nothing, Json};
 
 pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
 
+macro_rules! Log {
+    ($($arg:tt)*) => (
+        use yew::services::console::ConsoleService;
+        let mut console = ConsoleService::new();
+        console.log(format!($($arg)*).as_str());
+    )
+}
+
+
 macro_rules! post_request {
     ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
         match Request::post($url)
