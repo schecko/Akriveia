@@ -42,9 +42,9 @@ impl DataProcessor {
             panic!("not enough data points to trilaterate");
         }
         // TODO move to db
-        let bloc0 = na::Vector2::new(0.0, 3.0);
-        let bloc1 = na::Vector2::new(3.0, 3.0);
-        let bloc2 = na::Vector2::new(3.0, 0.0);
+        let bloc0 = na::Vector2::new(0.0, 0.0);
+        let bloc1 = na::Vector2::new(3.0, 0.0);
+        let bloc2 = na::Vector2::new(0.0, 3.0);
 
         let env_factor = 2.0;
         let measure_power = -76.0;
@@ -64,10 +64,10 @@ impl DataProcessor {
         } as f32;
 
 
-        let div = f32::powf(10.0, env_factor);
-        let d1 = f32::powf(10.0, (measure_power - tag_distance0) / div);
-        let d2 = f32::powf(10.0, (measure_power - tag_distance1) / div);
-        let d3 = f32::powf(10.0, (measure_power - tag_distance2) / div);
+        let denom = 10.0 * env_factor;
+        let d1 = 10f32.powf((measure_power - tag_distance0) / denom);
+        let d2 = 10f32.powf((measure_power - tag_distance1) / denom);
+        let d3 = 10f32.powf((measure_power - tag_distance2) / denom);
 
         // Trilateration solver
         let a = -2.0 * bloc0.x + 2.0 * bloc1.x;
@@ -79,6 +79,7 @@ impl DataProcessor {
 
         let x = (c * e - f * b) / (e * a - b * d);
         let y = (c * d - a * f) / (b * d - a * e);
+        println!("calc {} {} {} {} {}", tag_distance0, tag_distance1, tag_distance2, x, y);
         na::Vector2::new(x, y)
     }
 }
@@ -102,7 +103,7 @@ impl Handler<DPMessage> for DataProcessor {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
                     if let Some(hash_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
-                        println!("tag entry exists");
+                        println!("tag entry exists {}", &tag_data.tag_mac);
                         // replace any existing element, otherwise just add the new element to
                         // prevent duplicates
                         hash_entry.tag_data_points = hash_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
@@ -111,8 +112,10 @@ impl Handler<DPMessage> for DataProcessor {
                         if(hash_entry.tag_data_points.len() >= 3) {
                             let tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
                             // reset the point data
+                            println!("hash entry before: {:?}", hash_entry);
                             hash_entry.tag_data_points = Vec::new();
                             println!("data point: {:?}", tag_location);
+                            println!("hash entry: {:?}", hash_entry);
 
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
