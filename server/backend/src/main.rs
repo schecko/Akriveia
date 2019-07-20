@@ -12,6 +12,10 @@ mod beacon_manager;
 mod beacon_serial;
 mod data_processor;
 
+mod controllers;
+
+use controllers::user;
+
 use actix::prelude::*;
 use actix_files as fs;
 use actix_web::{ get, middleware, Error, web, App, HttpRequest, HttpResponse, HttpServer, };
@@ -24,7 +28,7 @@ use std::sync::*;
 use std::thread::*;
 
 #[derive(Clone)]
-struct AkriveiaState {
+pub struct AkriveiaState {
     pub beacon_manager: Addr<BeaconManager>,
     pub data_processor: Addr<DataProcessor>,
 }
@@ -52,21 +56,6 @@ fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> Ht
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
-}
-
-fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let s = state.lock().unwrap();
-    s.data_processor
-        .send(OutUserData{})
-        .then(|res| {
-            match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
-                },
-                _ => {
-                    ok(HttpResponse::BadRequest().finish())
-                }
-        }})
 }
 
 fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
@@ -137,7 +126,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource(common::EMERGENCY).to(emergency))
             .service(web::resource(common::END_EMERGENCY).to(end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(async_diagnostics))
-            .service(web::resource(common::REALTIME_USERS).to_async(realtime_users))
+            .service(web::resource(common::REALTIME_USERS).to_async(user::realtime_users))
             //.service(web::resource("/ad").to_async(async_diagnostics))
             // these two last !!
             .service(fs::Files::new("/", "static/").index_file("index.html"))
