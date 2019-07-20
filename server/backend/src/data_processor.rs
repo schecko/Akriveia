@@ -42,9 +42,9 @@ impl DataProcessor {
             panic!("not enough data points to trilaterate");
         }
         // TODO move to db
-        let bloc0 = na::Vector2::new(0.0, 0.0);
-        let bloc1 = na::Vector2::new(3.0, 0.0);
-        let bloc2 = na::Vector2::new(0.0, 3.0);
+        let bloc1 = na::Vector2::new(0.0, 0.0);
+        let bloc2 = na::Vector2::new(3.0, 0.0);
+        let bloc3 = na::Vector2::new(0.0, 3.0);
 
         let env_factor = 2.0;
         let measure_power = -76.0;
@@ -70,12 +70,12 @@ impl DataProcessor {
         let d3 = 10f32.powf((measure_power - tag_distance2) / denom);
 
         // Trilateration solver
-        let a = -2.0 * bloc0.x + 2.0 * bloc1.x;
-        let b = -2.0 * bloc0.y + 2.0 * bloc1.y;
-        let c = d1 * d1 - d2 * d2 - bloc0.x * bloc0.x + bloc1.x * bloc1.x - bloc0.y * bloc0.y + bloc1.y * bloc1.y;
-        let d = -2.0 * bloc1.x + 2.0 * bloc2.x;
-        let e = -2.0 * bloc1.y + 2.0 * bloc2.y;
-        let f = d2 * d2 - d3 * d3 - bloc1.x * bloc1.x + bloc2.x * bloc2.x - bloc1.y * bloc1.y + bloc2.y * bloc2.y;
+        let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
+        let b = -2.0 * bloc1.y + 2.0 * bloc2.y;
+        let c = d1 * d1 - d2 * d2 - bloc1.x * bloc1.x + bloc2.x * bloc2.x - bloc1.y * bloc1.y + bloc2.y * bloc2.y;
+        let d = -2.0 * bloc2.x + 2.0 * bloc3.x;
+        let e = -2.0 * bloc2.y + 2.0 * bloc3.y;
+        let f = d2 * d2 - d3 * d3 - bloc2.x * bloc2.x + bloc3.x * bloc3.x - bloc2.y * bloc2.y + bloc3.y * bloc3.y;
 
         let x = (c * e - f * b) / (e * a - b * d);
         let y = (c * d - a * f) / (b * d - a * e);
