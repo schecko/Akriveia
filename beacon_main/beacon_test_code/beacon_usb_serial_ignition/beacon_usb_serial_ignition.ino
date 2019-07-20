@@ -12,7 +12,7 @@ const String command_end = "end";
 int counter = 0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {

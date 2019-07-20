@@ -17,6 +17,8 @@ actix-web = "1.0.0"
 common = { path = "../common" }
 env_logger = "0.6.1"
 futures = "0.1.25"
+nalgebra = "0.18.0"
+rand = "0.7.0"
 regex = "1.1.7"
 rppal = "0.11.2"
 serde = "1.0"

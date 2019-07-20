@@ -1,24 +1,58 @@
 
-use failure::Error;
-use yew::format::{Nothing, Json};
-use yew::services::console::ConsoleService;
-use yew::services::fetch::{FetchService, FetchTask, Request, Response};
-use yew::services::interval::*;
-use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 use common;
+use crate::util;
+use failure::Error;
+use std::convert::TryFrom;
 use std::time::Duration;
+use stdweb::web::{ CanvasRenderingContext2d, Element, HtmlElement, Node, };
+use stdweb::web::html_element::CanvasElement;
+use stdweb::web;
+use yew::format::{ Nothing, Json };
+use yew::services::console::ConsoleService;
+use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
+use yew::services::interval::*;
+use yew::virtual_dom::vnode::VNode;
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
+use super::map_view::MapViewComponent;
+
+#[derive(PartialEq)]
 pub enum Page {
     Diagnostics,
     FrontPage,
     Login,
+    Map,
 }
 
-macro_rules! Log {
-    ($($arg:tt)*) => (
-        let mut console = ConsoleService::new();
-        console.log(format!($($arg)*).as_str());
-    )
+fn get_canvas() -> CanvasElement {
+    unsafe {
+       js! (
+            return document.querySelector("canvas");
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
+fn get_canvas_by_id(id: &str) -> CanvasElement {
+    unsafe {
+       js! (
+            return document.getElementById(id);
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
+fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
+    unsafe {
+        js! (
+            return @{canvas}.getContext("2d");
+        ).into_reference_unchecked().unwrap()
+    }
+}
+
+fn set_canvas_visibility(canvas: &CanvasElement, visible: bool) {
+    let visibility = if visible { "block" } else { "none" };
+    js! {
+        @{canvas}.style.display = @{visibility};
+    }
 }
 
 pub struct RootComponent {
@@ -31,17 +65,25 @@ pub struct RootComponent {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
+    map_canvas: Option<CanvasElement>,
 }
 
 pub enum Msg {
     Ignore,
+    // page changes
     ChangePage(Page),
-    FetchDiagnostics,
-    FetchDiagnosticsReady(Result<common::DiagnosticData, Error>),
-    FetchHello,
-    FetchEmergency,
-    FetchEndEmergency,
-    FetchReady(Result<common::HelloFrontEnd, Error>),
+
+    // requests
+    RequestPing,
+    RequestDiagnostics,
+    RequestEmergency,
+    RequestEndEmergency,
+
+    // responses
+    ResponsePing(util::Response<common::HelloFrontEnd>),
+    ResponseDiagnostics(util::Response<common::DiagnosticData>),
+    ResponseEmergency(util::Response<()>),
+    ResponseEndEmergency(util::Response<()>),
 }
 
 impl Component for RootComponent {
@@ -59,6 +101,7 @@ impl Component for RootComponent {
             fetch_in_flight: false,
             fetch_task: None,
             link: link,
+            map_canvas: None,
         }
     }
 
@@ -69,106 +112,88 @@ impl Component for RootComponent {
                 match self.current_page {
                     Page::Diagnostics => {
                         let mut interval_service = IntervalService::new();
-                        self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::FetchDiagnostics)));
+                        self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
                         self.diagnostic_service = Some(interval_service);
-                    }
+                    },
                     _ => {
-                        // do nothing
+                        self.diagnostic_service = None;
+                        self.diagnostic_service_task = None;
                     }
                 }
             },
-            Msg::FetchHello => {
-                self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<common::HelloFrontEnd, Error>>>| {
-                    let (meta, Json(data)) = response.into_parts();
-                    println!("META: {:?}", meta);
-                    Log!("META: {:?}", meta);
-                    if meta.status.is_success() {
-                        Msg::FetchReady(data)
-                    } else {
-                        Msg::Ignore
-                    }
-                });
-                let request = Request::get(common::PING)
-                    .header("Content-Type", "text/html")
-                    .header("Accept", "text/html")
-                    .body(Nothing)
-                    .unwrap();
-                let task = self.fetch_service.fetch(request, callback);
-                self.fetch_task = Some(task);
+
+            // requests
+            Msg::RequestPing => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    common::PING,
+                    self.link,
+                    Msg::ResponsePing
+                );
             },
-            Msg::FetchEmergency => {
-                self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<_, Error>>>| {
-                    let (meta, Json(data)) = response.into_parts();
-                    println!("META: {:?}", meta);
-                    Log!("META: {:?}", meta);
-                    if meta.status.is_success() {
-                        Msg::FetchReady(data)
-                    } else {
-                        Msg::Ignore
-                    }
-                });
-                let request = Request::post(common::EMERGENCY)
-                    .header("Content-Type", "text/html")
-                    .header("Accept", "text/html")
-                    .body(Nothing)
-                    .unwrap();
-                let task = self.fetch_service.fetch(request, callback);
-                self.fetch_task = Some(task);
+            Msg::RequestEmergency => {
+                self.fetch_task = post_request!(
+                    self.fetch_service,
+                    common::EMERGENCY,
+                    (),
+                    self.link,
+                    Msg::ResponseEmergency
+                );
             },
-            Msg::FetchEndEmergency => {
-                self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<_, Error>>>| {
-                    let (meta, Json(data)) = response.into_parts();
-                    println!("META: {:?}", meta);
-                    Log!("META: {:?}", meta);
-                    if meta.status.is_success() {
-                        Msg::FetchReady(data)
-                    } else {
-                        Msg::Ignore
-                    }
-                });
-                let request = Request::post(common::END_EMERGENCY)
-                    .header("Content-Type", "text/html")
-                    .header("Accept", "text/html")
-                    .body(Nothing)
-                    .unwrap();
-                let task = self.fetch_service.fetch(request, callback);
-                self.fetch_task = Some(task);
-                self.diagnostic_data = Vec::new();
+            Msg::RequestEndEmergency => {
+                self.fetch_task = post_request!(
+                    self.fetch_service,
+                    common::END_EMERGENCY,
+                    (),
+                    self.link,
+                    Msg::ResponseEndEmergency
+                );
             },
-            Msg::FetchDiagnostics => {
-                self.fetch_in_flight = true;
-                let callback = self.link.send_back(move |response: Response<Json<Result<common::DiagnosticData, Error>>>| {
-                    let (meta, Json(data)) = response.into_parts();
-                    println!("META: {:?}", meta);
-                    Log!("META: {:?}", meta);
-                    if meta.status.is_success() {
-                        Msg::FetchDiagnosticsReady(data)
-                    } else {
-                        Log!("failed request");
-                        Msg::Ignore
-                    }
-                });
-                let request = Request::get(common::DIAGNOSTICS)
-                    .header("Content-Type", "text/html")
-                    .header("Accept", "text/html")
-                    .body(Nothing)
-                    .unwrap();
-                let task = self.fetch_service.fetch(request, callback);
-                self.fetch_task = Some(task);
+            Msg::RequestDiagnostics => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    common::DIAGNOSTICS,
+                    self.link,
+                    Msg::ResponseDiagnostics
+                );
             },
-            Msg::FetchDiagnosticsReady(response) => {
-                self.fetch_in_flight = false;
-                if let Ok(mut data) = response {
-                    self.diagnostic_data.append(&mut data.tag_data);
+
+
+            // responses
+            Msg::ResponsePing(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(common::HelloFrontEnd { data }) => {
+                            println!("success {:?}", data);
+                        }
+                        _ => { }
+                    }
+
+                } else {
+                    Log!("response - failed to ping");
                 }
             },
-            Msg::FetchReady(response) => {
-                self.fetch_in_flight = false;
-                self.data = response.ok();
+            Msg::ResponseDiagnostics(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(common::DiagnosticData { mut tag_data }) => {
+                            self.diagnostic_data.append(&mut tag_data);
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to request diagnostics");
+                }
             },
+            Msg::ResponseEmergency(_response) => {
+                println!("emergency response");
+            },
+            Msg::ResponseEndEmergency(_response) => {
+                println!("endemergency response");
+            },
+
             Msg::Ignore => {
                 // do nothing
             },
@@ -178,17 +203,16 @@ impl Component for RootComponent {
 }
 
 impl Renderable<RootComponent> for RootComponent {
+
     fn view(&self) -> Html<Self> {
         match self.current_page {
             Page::Diagnostics => {
                 html! {
                     <div>
+                        { self.navigation() }
                         <div>
-                            <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Login Page" }</button>
-                        </div>
-                        <div>
-                            <button onclick=|_| Msg::FetchEmergency,>{ "Start Emergency" }</button>
-                            <button onclick=|_| Msg::FetchEndEmergency,>{ "End Emergency" }</button>
+                            <button onclick=|_| Msg::RequestEmergency,>{ "Start Emergency" }</button>
+                            <button onclick=|_| Msg::RequestEndEmergency,>{ "End Emergency" }</button>
                         </div>
                         <h>{ "Diagnostics" }</h>
                         { self.render_diagnostics() }
@@ -198,11 +222,18 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Login => {
                 html! {
                     <div>
-                        <div>
-                            <button onclick=|_| Msg::ChangePage(Page::Diagnostics),>{ "Diagnostics Page" }</button>
-                        </div>
+                        { self.navigation() }
                         <h>{ "Login" }</h>
                         { self.view_data() }
+                    </div>
+                }
+            }
+            Page::Map => {
+                html! {
+                    <div>
+                        { self.navigation() }
+                        <h>{ "Map" }</h>
+                        <MapViewComponent/>
                     </div>
                 }
             }
@@ -219,6 +250,17 @@ impl Renderable<RootComponent> for RootComponent {
 }
 
 impl RootComponent {
+    fn navigation(&self) -> Html<Self> {
+        html! {
+            <div>
+                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
+            </div>
+        }
+
+    }
+
     fn view_data(&self) -> Html<RootComponent> {
         html! {
             <p>{ "Its empty in here." }</p>
