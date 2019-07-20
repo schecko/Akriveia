@@ -10,8 +10,8 @@ use std::time::Duration;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const NUM_USERS: u32 = 5;
-const MIN_RSSI_DISTANCE: i64 = 30;
-const MAX_RSSI_DISTANCE: i64 = 90;
+const MIN_RSSI_DISTANCE: i64 = -80;
+const MAX_RSSI_DISTANCE: i64 = -15;
 
 pub fn dummy_beacon_thread(dummy_id: u32,
                            receive: mpsc::Receiver<BeaconCommand>,

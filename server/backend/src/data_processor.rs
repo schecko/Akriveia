@@ -53,21 +53,22 @@ impl DataProcessor {
         let tag_distance0 = match tag_data[0].tag_distance {
             common::DataType::RSSI(rssi) => rssi,
             common::DataType::TOF(tof) => tof,
-        } as f32;
+        } as f64;
         let tag_distance1 = match tag_data[1].tag_distance {
             common::DataType::RSSI(rssi) => rssi,
             common::DataType::TOF(tof) => tof,
-        } as f32;
+        } as f64;
         let tag_distance2 = match tag_data[2].tag_distance {
             common::DataType::RSSI(rssi) => rssi,
             common::DataType::TOF(tof) => tof,
-        } as f32;
+        } as f64;
 
 
         let denom = 10.0 * env_factor;
-        let d1 = 10f32.powf((measure_power - tag_distance0) / denom);
-        let d2 = 10f32.powf((measure_power - tag_distance1) / denom);
-        let d3 = 10f32.powf((measure_power - tag_distance2) / denom);
+        let d1 = 10f64.powf((measure_power - tag_distance0) / denom);
+        let d2 = 10f64.powf((measure_power - tag_distance1) / denom);
+        let d3 = 10f64.powf((measure_power - tag_distance2) / denom);
+        println!("distances {} {} {}", d1, d2, d3);
 
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
@@ -80,7 +81,7 @@ impl DataProcessor {
         let x = (c * e - f * b) / (e * a - b * d);
         let y = (c * d - a * f) / (b * d - a * e);
         println!("calc {} {} {} {} {}", tag_distance0, tag_distance1, tag_distance2, x, y);
-        na::Vector2::new(x, y)
+        na::Vector2::new(x as f32, y as f32)
     }
 }
 
@@ -112,10 +113,7 @@ impl Handler<DPMessage> for DataProcessor {
                         if(hash_entry.tag_data_points.len() >= 3) {
                             let tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
                             // reset the point data
-                            println!("hash entry before: {:?}", hash_entry);
                             hash_entry.tag_data_points = Vec::new();
-                            println!("data point: {:?}", tag_location);
-                            println!("hash entry: {:?}", hash_entry);
 
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
