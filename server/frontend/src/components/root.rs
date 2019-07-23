@@ -70,6 +70,10 @@ pub struct RootComponent {
 
 pub enum Msg {
     Ignore,
+    // local functionality
+    ClearDiagnosticsBuffer,
+
+
     // page changes
     ChangePage(Page),
 
@@ -107,6 +111,9 @@ impl Component for RootComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ClearDiagnosticsBuffer => {
+                self.diagnostic_data = Vec::new();
+            },
             Msg::ChangePage(page) => {
                 self.current_page = page;
                 match self.current_page {
@@ -213,6 +220,7 @@ impl Renderable<RootComponent> for RootComponent {
                         <div>
                             <button onclick=|_| Msg::RequestEmergency,>{ "Start Emergency" }</button>
                             <button onclick=|_| Msg::RequestEndEmergency,>{ "End Emergency" }</button>
+                            <button onclick=|_| Msg::ClearDiagnosticsBuffer,>{ "Clear Diagnostics" }</button>
                         </div>
                         <h>{ "Diagnostics" }</h>
                         { self.render_diagnostics() }
