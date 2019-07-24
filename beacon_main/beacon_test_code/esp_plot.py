@@ -6,12 +6,17 @@ from matplotlib import style
 
 measure_power = -76.00
 N = 2.00
+
+size = 10
+max = 3.00
+min = 0.00
+
 x_1 = 0.00
 y_1 = 0.00
-x_2 = 3.00
-y_2 = 0.00
-x_3 = 0.00
-y_3 = 3.00
+x_2 = 0.00
+y_2 = max
+x_3 = max
+y_3 = 0.00
 
 data = []
 index = []
@@ -19,17 +24,43 @@ index = []
 def data_maker(a1,a2,a3):
     global data
     global index
+
+    n1 = []
+    n2 = []
+    n3 = []
+
     while True:
         msg1 = (a1.readline())
         msg2 = (a2.readline())
         msg3 = (a3.readline())
-        n1 = float(str(msg1).split('|')[-1].replace('\\r\\n\'', ''))
-        n2 = float(str(msg2).split('|')[-1].replace('\\r\\n\'', ''))
-        n3 = float(str(msg3).split('|')[-1].replace('\\r\\n\'', ''))
-        d1 = 10.00 ** ((measure_power - (n1)) / (10.00 * N))
-        d2 = 10.00 ** ((measure_power - (n2)) / (10.00 * N))
-        d3 = 10.00 ** ((measure_power - (n3)) / (10.00 * N))
+        
+        if len(n1) > size: n1.pop()
+        if len(n2) > size: n2.pop()
+        if len(n3) > size: n3.pop()
 
+        try:
+            n1.insert(0,float(str(msg1).split('|')[-1].replace('\\r\\n\'', '')))
+            n2.insert(0,float(str(msg2).split('|')[-1].replace('\\r\\n\'', '')))
+            n3.insert(0,float(str(msg3).split('|')[-1].replace('\\r\\n\'', '')))
+        except:
+            None
+
+        n10 = float(str(msg1).split('|')[-1].replace('\\r\\n\'', ''))
+        n20 = float(str(msg2).split('|')[-1].replace('\\r\\n\'', ''))
+        n30 = float(str(msg3).split('|')[-1].replace('\\r\\n\'', ''))
+
+        n11 = sum(n1)/len(n1)
+        n21 = sum(n2)/len(n2)
+        n31 = sum(n3)/len(n3)
+
+        d1 = 10.00 ** ((measure_power - (n11)) / (10.00 * N))
+        d2 = 10.00 ** ((measure_power - (n21)) / (10.00 * N))
+        d3 = 10.00 ** ((measure_power - (n31)) / (10.00 * N))
+        
+        print(str(n1) + "\n" + str(n2) + "\n" + str(n3))
+        print("AVG: " + str(n11) + ' ' + str(n21) + ' ' + str(n31))
+        print("D: " + str(d1) + " | " + str(d2) + " | " + str(d3))
+       
         # Trilateration solver
         A = -2.00 * x_1 + 2.00 * x_2
         B = -2.00 * y_1 + 2.00 * y_2
@@ -41,10 +72,15 @@ def data_maker(a1,a2,a3):
         y = (C * D - A * F) / (B * D - A * E)
 
         print(str(x) + '|' + str(y))
-        index = []
-        data = []
-        index.append(x)
-        data.append(y)
+        try:
+            if len(n1) >= size:
+                index = []
+                index.append(abs(x))
+            if len(n1) >= size:
+                data = []
+                data.append(abs(y))
+        except:
+            None
         time.sleep(1)
 
 
@@ -52,9 +88,19 @@ def plotter():
     def animate(i):
         x = index
         y = data
+
+        try:
+            if x[0] < min: x = min
+            elif x[0] > max: x = max
+            if y[0] < min: y = min
+            elif y[0] > max: y = max
+        except:
+            None
+
+
         ax1.clear()
-        ax1.set_ylim(bottom=0, top=5)
-        ax1.set_xlim(left=0, right=5)
+        ax1.set_ylim(bottom=0, top=10)
+        ax1.set_xlim(left=0, right=10)
         ax1.scatter(x, y)
 
     style.use('seaborn-whitegrid')
@@ -66,7 +112,7 @@ def plotter():
 
 if __name__ == "__main__":
 
-    a1 = serial.Serial('COM4', 115200)
+    a1 = serial.Serial('COM11', 115200)
     a2 = serial.Serial('COM3', 115200)
     a3 = serial.Serial('COM10', 115200)
     msg1 = b""
