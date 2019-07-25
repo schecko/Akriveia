@@ -9,13 +9,16 @@ use std::sync::{ Arc, Mutex, };
 use std::thread;
 use std::time::Duration;
 use std::io;
-use std::collections::{ HashMap, BTreeMap };
+use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
+
+const LOCATION_HISTORY_SIZE: u32 = 5;
 
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHashEntry {
     tag_data_points: Vec<common::TagData>,
+    location_history: VecDeque<na::Vector2<f32>>,
 }
 
 pub struct DataProcessor {
@@ -108,20 +111,29 @@ impl Handler<DPMessage> for DataProcessor {
                         hash_entry.tag_data_points.push(tag_data.clone());
 
                         if(hash_entry.tag_data_points.len() >= 3) {
-                            let tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
-                            // reset the point data
+                            let new_tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
+                            // reset the raw point data
                             hash_entry.tag_data_points = Vec::new();
+
+                            let lochist = &mut hash_entry.location_history;
+                            lochist.push_back(new_tag_location);
+                            if lochist.len() > LOCATION_HISTORY_SIZE as usize {
+                                lochist.pop_front();
+                            }
+                            let mut averaged_location = lochist.iter().fold(na::Vector2::new(0.0, 0.0), |acc, x| acc + x);
+                            averaged_location.x /= lochist.len() as f32; // TODO use vector div
+                            averaged_location.y /= lochist.len() as f32; // TODO use vector div
 
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
-                                    user_ref.location = tag_location;
+                                    user_ref.location = averaged_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
-                                    user.location = tag_location;
+                                    user.location = averaged_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
                                 }
                             }
@@ -131,6 +143,7 @@ impl Handler<DPMessage> for DataProcessor {
                     // create new entry
                     let mut hash_entry = TagHashEntry {
                         tag_data_points: Vec::new(),
+                        location_history: VecDeque::new(),
                     };
                     hash_entry.tag_data_points.push(tag_data.clone());
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
