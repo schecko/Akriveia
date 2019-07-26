@@ -5,6 +5,7 @@ extern crate yew;
 extern crate common;
 #[macro_use]
 extern crate stdweb;
+extern crate nalgebra as na;
 
 #[macro_use]
 mod util;

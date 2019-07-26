@@ -5,9 +5,11 @@ use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::services::console::ConsoleService;
 use crate::util;
 use std::time::Duration;
 use yew::format::{ Nothing, Json };
+use na;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -31,11 +33,57 @@ pub struct MapViewComponent {
     self_link: ComponentLink<MapViewComponent>,
 }
 
+fn screen_space(x: f64, y: f64) -> na::Vector2<f64> {
+    na::Vector2::new(x, MAP_HEIGHT as f64 - y)
+}
+
+fn screen_space_vector(coords: na::Vector2<f64>) -> na::Vector2<f64> {
+    na::Vector2::new(coords.x, MAP_HEIGHT as f64 - coords.y)
+}
+
 impl MapViewComponent {
     fn clear_map(&self) {
+        // clear the canvas and draw a border
+
+        self.context.set_line_dash(vec![]);
         self.context.clear_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
-        self.context.rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
-        self.context.stroke();
+        self.context.stroke_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
+
+        self.context.save();
+        self.context.set_line_dash(vec![5.0, 15.0]);
+        // vertical gridlines
+        for i in (MAP_SCALE as u32..MAP_WIDTH as u32).step_by(MAP_SCALE as usize) {
+            let pos0 = screen_space(i as f64, MAP_HEIGHT as f64);
+            let pos1 = screen_space(i as f64, 0.0);
+            self.context.begin_path();
+            self.context.move_to(pos0.x, pos0.y);
+            self.context.line_to(pos1.x, pos1.y);
+            self.context.stroke();
+        }
+        // horizontal gridlines
+        for i in (MAP_SCALE as u32..MAP_HEIGHT as u32).step_by(MAP_SCALE as usize) {
+            let pos0 = screen_space(MAP_WIDTH as f64, i as f64);
+            let pos1 = screen_space(0.0, i as f64);
+            self.context.begin_path();
+            self.context.move_to(pos0.x, pos0.y);
+            self.context.line_to(pos1.x, pos1.y);
+            self.context.stroke();
+        }
+        self.context.restore();
+
+        let text_adjustment = 10.0;
+        // x axis
+        for i in 0..(MAP_WIDTH / MAP_SCALE as u32) {
+            let pos = screen_space(i as f64 * MAP_SCALE + text_adjustment, text_adjustment);
+            self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
+        }
+        // y axis
+        // skip 0 because it was rendered by the y axis.
+        for i in 1..(MAP_HEIGHT / MAP_SCALE as u32) {
+            let pos = screen_space(text_adjustment, i as f64 * MAP_SCALE + text_adjustment);
+            self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
+        }
+
     }
 }
 
