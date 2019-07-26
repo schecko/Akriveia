@@ -46,13 +46,19 @@ fn scan_beacons(req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
-fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::StartEmergency);
     HttpResponse::Ok().finish()
 }
 
-fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+    let s = state.lock().unwrap();
+    s.beacon_manager.send(BeaconCommand::GetEmergency);
+    HttpResponse::Ok().finish()
+}
+
+fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
@@ -109,8 +115,8 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(web::resource(common::PING).to(hello))
             .service(scan_beacons)
-            .service(web::resource(common::EMERGENCY).to(emergency))
-            .service(web::resource(common::END_EMERGENCY).to(end_emergency))
+            .service(web::resource(common::EMERGENCY).to(post_emergency))
+            .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
             .service(web::resource(common::REALTIME_USERS).to_async(user::realtime_users))
             // these two last !!

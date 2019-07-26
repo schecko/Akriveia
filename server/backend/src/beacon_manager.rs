@@ -23,6 +23,7 @@ use std::thread;
 use std::time::Duration;
 
 pub struct BeaconManager {
+    pub emergency: bool,
     pub data_processor: Addr<DataProcessor>,
     pub diagnostic_data: common::DiagnosticData,
     pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
@@ -133,11 +134,13 @@ impl Handler<BeaconCommand> for BeaconManager {
                 for connection in &self.serial_connections {
                     connection.send(BeaconCommand::StartEmergency);
                 }
+                self.emergency = true;
             }
             BeaconCommand::EndEmergency => {
                 for connection in &self.serial_connections {
                     connection.send(BeaconCommand::EndEmergency);
                 }
+                self.emergency = false;
             },
 
         }
