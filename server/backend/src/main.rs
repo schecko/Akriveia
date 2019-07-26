@@ -117,7 +117,7 @@ fn main() -> std::io::Result<()> {
             .service(fs::Files::new("/", "static/").index_file("index.html"))
             .default_service(web::resource("").to(default_route))
     })
-    .bind("0.0.0.0:8080")?
+    .bind("localhost:8080")?
     .start();
 
     system.run()

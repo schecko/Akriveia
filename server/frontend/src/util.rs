@@ -8,7 +8,6 @@ pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
 
 macro_rules! Log {
     ($($arg:tt)*) => (
-        use yew::services::console::ConsoleService;
         let mut console = ConsoleService::new();
         console.log(format!($($arg)*).as_str());
     )
