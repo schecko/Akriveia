@@ -15,6 +15,7 @@ use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 use super::map_view::MapViewComponent;
+use super::emergency_buttons::EmergencyButtons;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -48,14 +49,8 @@ fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
     }
 }
 
-fn set_canvas_visibility(canvas: &CanvasElement, visible: bool) {
-    let visibility = if visible { "block" } else { "none" };
-    js! {
-        @{canvas}.style.display = @{visibility};
-    }
-}
-
 pub struct RootComponent {
+    emergency: bool,
     current_page: Page,
     data: Option<common::HelloFrontEnd>,
     diagnostic_data: Vec<common::TagData>,
@@ -96,6 +91,7 @@ impl Component for RootComponent {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         RootComponent {
+            emergency: false,
             current_page: Page::Login,
             data: None,
             diagnostic_service: None,
@@ -195,10 +191,10 @@ impl Component for RootComponent {
                 }
             },
             Msg::ResponseEmergency(_response) => {
-                println!("emergency response");
+                self.emergency = true;
             },
             Msg::ResponseEndEmergency(_response) => {
-                println!("endemergency response");
+                self.emergency = false;
             },
 
             Msg::Ignore => {
@@ -218,8 +214,11 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         { self.navigation() }
                         <div>
-                            <button onclick=|_| Msg::RequestEmergency,>{ "Start Emergency" }</button>
-                            <button onclick=|_| Msg::RequestEndEmergency,>{ "End Emergency" }</button>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestEmergency,
+                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                            />
                             <button onclick=|_| Msg::ClearDiagnosticsBuffer,>{ "Clear Diagnostics" }</button>
                         </div>
                         <h>{ "Diagnostics" }</h>
@@ -240,6 +239,13 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
+                        <div>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestEmergency,
+                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                            />
+                        </div>
                         <h>{ "Map" }</h>
                         <MapViewComponent/>
                     </div>

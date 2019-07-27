@@ -42,6 +42,7 @@ const USE_UDP_BEACONS: bool = false;
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
         BeaconManager {
+            emergency: false, // TODO get from db!
             data_processor: dp,
             diagnostic_data: common::DiagnosticData::new(),
             serial_connections: Vec::new(),
@@ -113,18 +114,21 @@ impl BeaconManager {
 }
 
 pub enum BeaconCommand {
+    GetEmergency,
     ScanBeacons,
     StartEmergency,
     EndEmergency,
 }
+
 impl Message for BeaconCommand {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<bool, io::Error>;
 }
 impl Handler<BeaconCommand> for BeaconManager {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<bool, io::Error>;
 
     fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
+            BeaconCommand::GetEmergency => { },
             BeaconCommand::ScanBeacons => {
                 println!("find beacons called!");
                 self.find_beacons(context);
@@ -144,7 +148,7 @@ impl Handler<BeaconCommand> for BeaconManager {
             },
 
         }
-        Ok(1)
+        Ok(self.emergency)
     }
 }
 

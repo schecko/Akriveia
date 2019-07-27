@@ -172,7 +172,6 @@ impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
         html! {
             <div>
-                <p> { "hello map" } </p>
                 { VNode::VRef(Node::from(self.map_canvas.to_owned()).to_owned()) }
             </div>
         }
