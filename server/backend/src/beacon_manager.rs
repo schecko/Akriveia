@@ -121,10 +121,10 @@ pub enum BeaconCommand {
 }
 
 impl Message for BeaconCommand {
-    type Result = Result<bool, io::Error>;
+    type Result = Result<common::SystemCommandResponse, io::Error>;
 }
 impl Handler<BeaconCommand> for BeaconManager {
-    type Result = Result<bool, io::Error>;
+    type Result = Result<common::SystemCommandResponse, io::Error>;
 
     fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
@@ -148,7 +148,7 @@ impl Handler<BeaconCommand> for BeaconManager {
             },
 
         }
-        Ok(self.emergency)
+        Ok(common::SystemCommandResponse::new(self.emergency))
     }
 }
 

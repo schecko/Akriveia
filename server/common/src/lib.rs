@@ -22,6 +22,19 @@ pub enum DataType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemCommandResponse {
+    pub emergency: bool,
+}
+
+impl SystemCommandResponse {
+    pub fn new(emergency: bool) -> SystemCommandResponse {
+        SystemCommandResponse {
+            emergency,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
     pub beacon_mac: String,
     pub tag_distance: DataType,

@@ -2,6 +2,7 @@
 use yew::prelude::*;
 use crate::components::root;
 use yew::Component;
+use yew::services::console::ConsoleService;
 
 pub enum Msg {
     RequestEmergency,
@@ -39,10 +40,12 @@ impl Component for EmergencyButtons {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::RequestEmergency => self.on_emergency.as_mut().unwrap().emit(()),
+            Msg::RequestEmergency => {
+                self.on_emergency.as_mut().unwrap().emit(())
+            },
             Msg::RequestEndEmergency => self.on_end_emergency.as_mut().unwrap().emit(()),
         }
-        false
+        true
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
