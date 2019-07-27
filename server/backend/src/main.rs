@@ -46,13 +46,28 @@ fn scan_beacons(req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
-fn emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::StartEmergency);
     HttpResponse::Ok().finish()
 }
 
-fn end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    let s = state.lock().unwrap();
+    s.beacon_manager
+        .send(BeaconCommand::GetEmergency)
+        .then(|res| {
+            match res {
+                Ok(Ok(data)) => {
+                    ok(HttpResponse::Ok().json(data))
+                },
+                _ => {
+                    ok(HttpResponse::BadRequest().finish())
+                }
+        }})
+}
+
+fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
@@ -109,8 +124,11 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(web::resource(common::PING).to(hello))
             .service(scan_beacons)
-            .service(web::resource(common::EMERGENCY).to(emergency))
-            .service(web::resource(common::END_EMERGENCY).to(end_emergency))
+            .service(web::resource(common::EMERGENCY)
+                .route(web::get().to_async(get_emergency))
+                .route(web::post().to(post_emergency))
+            )
+            .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
             .service(web::resource(common::REALTIME_USERS).to_async(user::realtime_users))
             // these two last !!

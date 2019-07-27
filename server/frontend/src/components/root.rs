@@ -15,6 +15,7 @@ use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 use super::map_view::MapViewComponent;
+use super::emergency_buttons::EmergencyButtons;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -48,14 +49,8 @@ fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
     }
 }
 
-fn set_canvas_visibility(canvas: &CanvasElement, visible: bool) {
-    let visibility = if visible { "block" } else { "none" };
-    js! {
-        @{canvas}.style.display = @{visibility};
-    }
-}
-
 pub struct RootComponent {
+    emergency: bool,
     current_page: Page,
     data: Option<common::HelloFrontEnd>,
     diagnostic_data: Vec<common::TagData>,
@@ -72,7 +67,8 @@ pub enum Msg {
     Ignore,
     // local functionality
     ClearDiagnosticsBuffer,
-
+    StartDiagnosticsInterval,
+    StopDiagnosticsInterval,
 
     // page changes
     ChangePage(Page),
@@ -82,12 +78,14 @@ pub enum Msg {
     RequestDiagnostics,
     RequestEmergency,
     RequestEndEmergency,
+    RequestGetEmergency,
 
     // responses
     ResponsePing(util::Response<common::HelloFrontEnd>),
     ResponseDiagnostics(util::Response<common::DiagnosticData>),
     ResponseEmergency(util::Response<()>),
     ResponseEndEmergency(util::Response<()>),
+    ResponseGetEmergency(util::Response<common::SystemCommandResponse>),
 }
 
 impl Component for RootComponent {
@@ -96,6 +94,7 @@ impl Component for RootComponent {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         RootComponent {
+            emergency: false,
             current_page: Page::Login,
             data: None,
             diagnostic_service: None,
@@ -118,15 +117,26 @@ impl Component for RootComponent {
                 self.current_page = page;
                 match self.current_page {
                     Page::Diagnostics => {
-                        let mut interval_service = IntervalService::new();
-                        self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
-                        self.diagnostic_service = Some(interval_service);
+                        if self.emergency {
+                            self.link.send_self(Msg::StartDiagnosticsInterval);
+                        } else {
+                            self.link.send_self(Msg::RequestGetEmergency);
+                        }
                     },
                     _ => {
                         self.diagnostic_service = None;
                         self.diagnostic_service_task = None;
                     }
                 }
+            },
+            Msg::StartDiagnosticsInterval => {
+                let mut interval_service = IntervalService::new();
+                self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
+                self.diagnostic_service = Some(interval_service);
+            },
+            Msg::StopDiagnosticsInterval => {
+                self.diagnostic_service_task = None;
+                self.diagnostic_service = None;
             },
 
             // requests
@@ -154,6 +164,14 @@ impl Component for RootComponent {
                     (),
                     self.link,
                     Msg::ResponseEndEmergency
+                );
+            },
+            Msg::RequestGetEmergency => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    common::EMERGENCY,
+                    self.link,
+                    Msg::ResponseGetEmergency
                 );
             },
             Msg::RequestDiagnostics => {
@@ -195,10 +213,27 @@ impl Component for RootComponent {
                 }
             },
             Msg::ResponseEmergency(_response) => {
-                println!("emergency response");
+                self.emergency = true;
+                self.link.send_self(Msg::StartDiagnosticsInterval);
             },
             Msg::ResponseEndEmergency(_response) => {
-                println!("endemergency response");
+                self.emergency = false;
+            },
+            Msg::ResponseGetEmergency(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(common::SystemCommandResponse { emergency }) => {
+                            if emergency {
+                                self.link.send_self(Msg::StartDiagnosticsInterval);
+                            }
+                            self.emergency = emergency;
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to request diagnostics");
+                }
             },
 
             Msg::Ignore => {
@@ -218,8 +253,11 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         { self.navigation() }
                         <div>
-                            <button onclick=|_| Msg::RequestEmergency,>{ "Start Emergency" }</button>
-                            <button onclick=|_| Msg::RequestEndEmergency,>{ "End Emergency" }</button>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestEmergency,
+                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                            />
                             <button onclick=|_| Msg::ClearDiagnosticsBuffer,>{ "Clear Diagnostics" }</button>
                         </div>
                         <h>{ "Diagnostics" }</h>
@@ -240,6 +278,13 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
+                        <div>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestEmergency,
+                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                            />
+                        </div>
                         <h>{ "Map" }</h>
                         <MapViewComponent/>
                     </div>
