@@ -145,9 +145,11 @@ impl Component for MapViewComponent {
                     match body {
                         Ok(data) => {
                             for user in data.iter() {
-                                let x: f64 = user.location.x as f64 * MAP_SCALE;
-                                let y: f64 = user.location.y as f64 * MAP_SCALE;
-                                self.context.fill_rect(x, y, 20.0, 20.0);
+                                let pos = screen_space(
+                                    user.location.x as f64 * MAP_SCALE,
+                                    user.location.y as f64 * MAP_SCALE,
+                                );
+                                self.context.fill_rect(pos.x, pos.y, 20.0, 20.0);
                             }
                         },
                         _ => { }
