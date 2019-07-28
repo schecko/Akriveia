@@ -16,6 +16,7 @@ use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
+use super::diagnostics::Diagnostics;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -64,25 +65,20 @@ pub struct RootComponent {
 }
 
 pub enum Msg {
-    Ignore,
     // local functionality
-    ClearDiagnosticsBuffer,
-    StartDiagnosticsInterval,
-    StopDiagnosticsInterval,
+    Ignore,
 
     // page changes
     ChangePage(Page),
 
     // requests
     RequestPing,
-    RequestDiagnostics,
     RequestEmergency,
     RequestEndEmergency,
     RequestGetEmergency,
 
     // responses
     ResponsePing(util::Response<common::HelloFrontEnd>),
-    ResponseDiagnostics(util::Response<common::DiagnosticData>),
     ResponseEmergency(util::Response<()>),
     ResponseEndEmergency(util::Response<()>),
     ResponseGetEmergency(util::Response<common::SystemCommandResponse>),
@@ -110,33 +106,11 @@ impl Component for RootComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::ClearDiagnosticsBuffer => {
-                self.diagnostic_data = Vec::new();
-            },
             Msg::ChangePage(page) => {
                 self.current_page = page;
                 match self.current_page {
-                    Page::Diagnostics => {
-                        if self.emergency {
-                            self.link.send_self(Msg::StartDiagnosticsInterval);
-                        } else {
-                            self.link.send_self(Msg::RequestGetEmergency);
-                        }
-                    },
-                    _ => {
-                        self.diagnostic_service = None;
-                        self.diagnostic_service_task = None;
-                    }
+                    _ => { }
                 }
-            },
-            Msg::StartDiagnosticsInterval => {
-                let mut interval_service = IntervalService::new();
-                self.diagnostic_service_task = Some(interval_service.spawn(Duration::from_millis(1000), self.link.send_back(|_| Msg::RequestDiagnostics)));
-                self.diagnostic_service = Some(interval_service);
-            },
-            Msg::StopDiagnosticsInterval => {
-                self.diagnostic_service_task = None;
-                self.diagnostic_service = None;
             },
 
             // requests
@@ -174,15 +148,6 @@ impl Component for RootComponent {
                     Msg::ResponseGetEmergency
                 );
             },
-            Msg::RequestDiagnostics => {
-                self.fetch_task = get_request!(
-                    self.fetch_service,
-                    common::DIAGNOSTICS,
-                    self.link,
-                    Msg::ResponseDiagnostics
-                );
-            },
-
 
             // responses
             Msg::ResponsePing(response) => {
@@ -199,22 +164,8 @@ impl Component for RootComponent {
                     Log!("response - failed to ping");
                 }
             },
-            Msg::ResponseDiagnostics(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::DiagnosticData { mut tag_data }) => {
-                            self.diagnostic_data.append(&mut tag_data);
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to request diagnostics");
-                }
-            },
             Msg::ResponseEmergency(_response) => {
                 self.emergency = true;
-                self.link.send_self(Msg::StartDiagnosticsInterval);
             },
             Msg::ResponseEndEmergency(_response) => {
                 self.emergency = false;
@@ -224,9 +175,6 @@ impl Component for RootComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(common::SystemCommandResponse { emergency }) => {
-                            if emergency {
-                                self.link.send_self(Msg::StartDiagnosticsInterval);
-                            }
                             self.emergency = emergency;
                         }
                         _ => { }
@@ -251,6 +199,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Diagnostics => {
                 html! {
                     <div>
+                        <h>{ "Diagnostics" }</h>
                         { self.navigation() }
                         <div>
                             <EmergencyButtons
@@ -258,18 +207,18 @@ impl Renderable<RootComponent> for RootComponent {
                                 on_emergency=|_| Msg::RequestEmergency,
                                 on_end_emergency=|_| Msg::RequestEndEmergency,
                             />
-                            <button onclick=|_| Msg::ClearDiagnosticsBuffer,>{ "Clear Diagnostics" }</button>
                         </div>
-                        <h>{ "Diagnostics" }</h>
-                        { self.render_diagnostics() }
+                        <Diagnostics
+                            emergency={self.emergency}
+                        />
                     </div>
                 }
             }
             Page::Login => {
                 html! {
                     <div>
-                        { self.navigation() }
                         <h>{ "Login" }</h>
+                        { self.navigation() }
                         { self.view_data() }
                     </div>
                 }
@@ -277,6 +226,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Map => {
                 html! {
                     <div>
+                        <h>{ "Map" }</h>
                         { self.navigation() }
                         <div>
                             <EmergencyButtons
@@ -285,7 +235,6 @@ impl Renderable<RootComponent> for RootComponent {
                                 on_end_emergency=|_| Msg::RequestEndEmergency,
                             />
                         </div>
-                        <h>{ "Map" }</h>
                         <MapViewComponent/>
                     </div>
                 }
@@ -317,33 +266,6 @@ impl RootComponent {
     fn view_data(&self) -> Html<RootComponent> {
         html! {
             <p>{ "Its empty in here." }</p>
-        }
-    }
-
-    fn render_diagnostics(&self) -> Html<RootComponent> {
-        if self.diagnostic_data.len() > 0 {
-            html! {
-                <table> {
-                    for self.diagnostic_data.iter().map(|row| {
-                        match row.tag_distance {
-                            common::DataType::RSSI(strength) => {
-                                html! {
-                                    <tr>{ format!("name: {}\tmac: {}\trssi: {}", &row.tag_name, &row.tag_mac, strength ) } </tr>
-                                }
-                            },
-                            common::DataType::TOF(distance) => {
-                                html! {
-                                    <tr>{ format!("name: {}\tmac: {}\ttof: {}", &row.tag_name, &row.tag_mac, distance ) } </tr>
-                                }
-                            },
-                        }
-                    })
-                } </table>
-            }
-        } else {
-            html! {
-                <p>{ "No diagnostics yet..." }</p>
-            }
         }
     }
 }
