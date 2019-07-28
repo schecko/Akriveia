@@ -18,6 +18,7 @@ use controllers::user;
 
 use actix::prelude::*;
 use actix_files as fs;
+use actix_web::http::header;
 use actix_web::{ get, middleware, Error, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use data_processor::*;
@@ -88,12 +89,6 @@ fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl
         }})
 }
 
-fn index_async(req: HttpRequest) -> impl Future<Item = HttpResponse, Error = Error> {
-    ok(HttpResponse::Ok()
-        .content_type("text/html")
-        .body(format!("Hello {}!", req.match_info().get("name").unwrap())))
-}
-
 fn default_route(req: HttpRequest) -> HttpResponse {
     println!("default route called");
     println!("request was: {:?}", req);
@@ -132,7 +127,7 @@ fn main() -> std::io::Result<()> {
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
             .service(web::resource(common::REALTIME_USERS).to_async(user::realtime_users))
             // these two last !!
-            .service(fs::Files::new("/", "static/").index_file("index.html"))
+            .service(fs::Files::new("/", "static").index_file("index.html"))
             .default_service(web::resource("").to(default_route))
     })
     .bind("0.0.0.0:8080")?

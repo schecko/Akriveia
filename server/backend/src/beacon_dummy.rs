@@ -9,7 +9,7 @@ use std::thread;
 use std::time::Duration;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
-const NUM_USERS: u32 = 1;
+const NUM_USERS: u32 = 5;
 const MIN_RSSI_DISTANCE: i64 = -82;
 const MAX_RSSI_DISTANCE: i64 = -50;
 
