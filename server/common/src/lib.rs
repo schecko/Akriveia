@@ -55,12 +55,23 @@ impl DiagnosticData {
     }
 }
 
+// NOTE temporary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserBeaconSourceLocations {
+    pub name: String,
+    pub location: na::Vector2<f64>,
+    pub distance_to_tag: f64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     //floor: String,
     pub last_active: SystemTime,
-    pub location: na::Vector2<f32>,
+    pub location: na::Vector2<f64>,
     pub tag_mac: String,
+
+    // NOTE TEMPORARY
+    pub beacon_sources: Vec<UserBeaconSourceLocations>,
 }
 
 impl User {
@@ -69,6 +80,7 @@ impl User {
             last_active: UNIX_EPOCH,
             location: na::Vector2::new(0., 0.),
             tag_mac,
+            beacon_sources: Vec::new(),
         }
     }
 }

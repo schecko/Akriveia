@@ -18,7 +18,7 @@ const LOCATION_HISTORY_SIZE: u32 = 5;
 #[derive(Debug)]
 struct TagHashEntry {
     tag_data_points: Vec<common::TagData>,
-    location_history: VecDeque<na::Vector2<f32>>,
+    location_history: VecDeque<na::Vector2<f64>>,
 }
 
 pub struct DataProcessor {
@@ -40,17 +40,19 @@ impl DataProcessor {
         }
     }
 
-    fn calc_trilaterate(tag_data: &Vec<common::TagData>) -> na::Vector2<f32> {
+    fn calc_trilaterate(tag_data: &Vec<common::TagData>, beacon_sources: &mut Vec<common::UserBeaconSourceLocations>) -> na::Vector2<f64> {
         if(tag_data.len() < 3) {
             panic!("not enough data points to trilaterate");
         }
+        assert!(beacon_sources.len() == 0);
+
+        let env_factor = 2.0;
+        let measure_power = -76.0;
         // TODO move to db
         let bloc1 = na::Vector2::new(0.0, 0.0);
         let bloc2 = na::Vector2::new(3.0, 0.0);
         let bloc3 = na::Vector2::new(0.0, 3.0);
 
-        let env_factor = 2.0;
-        let measure_power = -76.0;
 
         // TODO change calc based on type
         let tag_distance0 = match tag_data[0].tag_distance {
@@ -72,6 +74,26 @@ impl DataProcessor {
         let d2 = 10f64.powf((measure_power - tag_distance1) / denom);
         let d3 = 10f64.powf((measure_power - tag_distance2) / denom);
 
+        { // NOTE temporary
+            beacon_sources.push(common::UserBeaconSourceLocations {
+                name: "beacon1".to_string(),
+                location: bloc1,
+                distance_to_tag: d1,
+            });
+
+            beacon_sources.push(common::UserBeaconSourceLocations {
+                name: "beacon2".to_string(),
+                location: bloc2,
+                distance_to_tag: d2,
+            });
+
+            beacon_sources.push(common::UserBeaconSourceLocations {
+                name: "beacon3".to_string(),
+                location: bloc3,
+                distance_to_tag: d3,
+            });
+        }
+
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
         let b = -2.0 * bloc1.y + 2.0 * bloc2.y;
@@ -82,7 +104,8 @@ impl DataProcessor {
 
         let x = (c * e - f * b) / (e * a - b * d);
         let y = (c * d - a * f) / (b * d - a * e);
-        na::Vector2::new(x as f32, y as f32)
+
+        na::Vector2::new(x as f64, y as f64)
     }
 }
 
@@ -111,7 +134,8 @@ impl Handler<DPMessage> for DataProcessor {
                         hash_entry.tag_data_points.push(tag_data.clone());
 
                         if(hash_entry.tag_data_points.len() >= 3) {
-                            let new_tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points);
+                            let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
+                            let new_tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points, &mut beacon_sources);
                             // reset the raw point data
                             hash_entry.tag_data_points = Vec::new();
 
@@ -121,18 +145,20 @@ impl Handler<DPMessage> for DataProcessor {
                                 lochist.pop_front();
                             }
                             let mut averaged_location = lochist.iter().fold(na::Vector2::new(0.0, 0.0), |acc, x| acc + x);
-                            averaged_location.x /= lochist.len() as f32; // TODO use vector div
-                            averaged_location.y /= lochist.len() as f32; // TODO use vector div
+                            averaged_location.x /= lochist.len() as f64; // TODO use vector div
+                            averaged_location.y /= lochist.len() as f64; // TODO use vector div
 
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
+                                    user_ref.beacon_sources = beacon_sources;
                                     user_ref.location = averaged_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
+                                    user.beacon_sources = beacon_sources;
                                     user.location = averaged_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
                                 }
