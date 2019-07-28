@@ -52,9 +52,9 @@ pub fn dummy_beacon_thread(dummy_id: u32,
                 .do_send( TagDataMessage {
                     data: common::TagData {
                         tag_name: format!("user_{}", user_number),
-                        tag_mac: format!("mac_{}", user_number),
+                        tag_mac: format!("tag_mac_{}", user_number),
                         tag_distance: common::DataType::RSSI(user_distance),
-                        beacon_mac: format!("mac_dummy_{}", dummy_id),
+                        beacon_mac: format!("beacon_mac_{}", dummy_id),
                     }
                 });
             thread::sleep(MESSAGE_INTERVAL);
