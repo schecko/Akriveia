@@ -9,7 +9,7 @@ use yew::services::console::ConsoleService;
 use crate::util;
 use std::time::Duration;
 use yew::format::{ Nothing, Json };
-use std::collections::VecDeque;
+use std::collections::{ VecDeque, BTreeSet };
 use super::value_button::ValueButton;
 use na;
 
@@ -18,6 +18,7 @@ const MAX_BUFFER_SIZE: usize = 0x50;
 
 pub enum Msg {
     ClearBuffer,
+    ToggleBeaconSelected(String),
 
     RequestDiagnostics,
 
@@ -32,6 +33,8 @@ pub struct Diagnostics {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Diagnostics>,
+    active_beacons: BTreeSet<String>,
+    selected_beacons: BTreeSet<String>,
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -61,6 +64,8 @@ impl Component for Diagnostics {
             emergency: props.emergency,
             fetch_service: FetchService::new(),
             diagnostic_data: VecDeque::new(),
+            active_beacons: BTreeSet::new(),
+            selected_beacons: BTreeSet::new(),
             fetch_task: None,
             interval_service: None,
             interval_service_task: None,
@@ -78,6 +83,13 @@ impl Component for Diagnostics {
             Msg::ClearBuffer => {
                 self.diagnostic_data = VecDeque::new();
             },
+            Msg::ToggleBeaconSelected(b_mac) => {
+                if self.selected_beacons.contains(&b_mac) {
+                    self.selected_beacons.remove(&b_mac);
+                } else {
+                    self.selected_beacons.insert(b_mac.clone());
+                }
+            },
             Msg::RequestDiagnostics => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
@@ -86,13 +98,16 @@ impl Component for Diagnostics {
                     Msg::ResponseDiagnostics
                 );
             },
-
             Msg::ResponseDiagnostics(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(common::DiagnosticData { mut tag_data }) => {
                             for point in tag_data.into_iter() {
+                                if !self.active_beacons.contains(&point.beacon_mac) {
+                                    self.active_beacons.insert(point.beacon_mac.clone());
+                                    self.selected_beacons.insert(point.beacon_mac.clone());
+                                }
                                 self.diagnostic_data.push_front(point);
                             }
                             self.diagnostic_data.truncate(MAX_BUFFER_SIZE);
@@ -123,6 +138,17 @@ impl Component for Diagnostics {
 impl Renderable<Diagnostics> for Diagnostics {
     fn view(&self) -> Html<Self> {
         if self.diagnostic_data.len() > 0 {
+            let mut beacon_selections = self.active_beacons.iter().map(|b_mac| {
+                let set_border = self.selected_beacons.contains(b_mac);
+                html! {
+                    <ValueButton
+                        on_click=|value| Msg::ToggleBeaconSelected(value),
+                        border=set_border,
+                        value={b_mac.clone()}
+                    />
+                }
+            });
+            let filtered: Vec<common::TagData> = self.diagnostic_data.iter().filter(|point| self.selected_beacons.contains(&point.beacon_mac)).cloned().collect();
             html! {
                 <>
                     <button
@@ -130,9 +156,13 @@ impl Renderable<Diagnostics> for Diagnostics {
                     >
                         {"Reset Data"}
                     </button>
+                    <div>
+                        { "Select Beacons: " }
+                        { for beacon_selections }
+                    </div>
                     <table>
                     {
-                        for self.diagnostic_data.iter().map(|row| {
+                        for filtered.iter().map(|row| {
                             match row.tag_distance {
                                 common::DataType::RSSI(strength) => {
                                     html! {

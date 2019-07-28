@@ -11,7 +11,6 @@ mod beacon_dummy;
 mod beacon_manager;
 mod beacon_serial;
 mod data_processor;
-
 mod controllers;
 
 use controllers::user;

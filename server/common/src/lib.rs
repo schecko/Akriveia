@@ -9,6 +9,7 @@ pub const END_EMERGENCY: &str = "/endemergency";
 pub const PING: &str = "/hello";
 pub const DIAGNOSTICS: &str = "/diagnostics";
 pub const REALTIME_USERS: &str = "/realtime_users";
+pub const BEACON: &str = "/beacon";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HelloFrontEnd {
@@ -81,6 +82,21 @@ impl User {
             location: na::Vector2::new(0., 0.),
             tag_mac,
             beacon_sources: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Beacon {
+    pub mac: String,
+    pub name: String,
+}
+
+impl Beacon {
+    pub fn new(mac: String) -> Beacon {
+        Beacon {
+            mac,
+            name: "unknown".to_string(),
         }
     }
 }
