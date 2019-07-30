@@ -1,5 +1,5 @@
 #!/bin/sh
 # This script is designed to be run once per machine as root(use sudo).
 
-apt install git libusb-1.0-0-dev gdbserver libudev-dev
+apt install make git gdbserver
 
