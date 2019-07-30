@@ -17,8 +17,9 @@ const LOCATION_HISTORY_SIZE: u32 = 5;
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHashEntry {
-    tag_data_points: Vec<common::TagData>,
-    location_history: VecDeque<na::Vector2<f64>>,
+    pub tag_name: String,
+    pub tag_mac: String,
+    pub rssi_history: BTreeMap<String, VecDeque<i64>>,
 }
 
 pub struct DataProcessor {
@@ -127,17 +128,34 @@ impl Handler<DPMessage> for DataProcessor {
         match msg {
             DPMessage::LocationData(tag_data) => {
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
-                    if let Some(hash_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
+                    if let Some(tag_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
                         // replace any existing element, otherwise just add the new element to
                         // prevent duplicates
-                        hash_entry.tag_data_points = hash_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
-                        hash_entry.tag_data_points.push(tag_data.clone());
+                        let rssi_value = match tag_data.tag_distance {
+                            common::DataType::RSSI(rssi) => rssi,
+                            common::DataType::TOF(tof) => tof,
+                        } as f64;
+
+                        if let Some(beacon_entry) = tag_entry.rssi_history.get_mut(&tag_data.beacon_mac) {
+                            beacon_entry.push_back(rssi_value);
+                            if beacon_entry.len() > LOCATION_HISTORY_SIZE {
+                                beacon_entry.pop_front();
+                            }
+                        }
+
+
+
+/*
+                        tag_entry.tag_data_points = tag_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
+                        tag_entry.tag_data_points.push(tag_data.clone());
 
                         if(hash_entry.tag_data_points.len() >= 3) {
                             let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
                             let new_tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points, &mut beacon_sources);
                             // reset the raw point data
                             hash_entry.tag_data_points = Vec::new();
+
+
 
                             let lochist = &mut hash_entry.location_history;
                             lochist.push_back(new_tag_location);
@@ -164,6 +182,7 @@ impl Handler<DPMessage> for DataProcessor {
                                 }
                             }
                         }
+                        */
                     }
                 } else {
                     // create new entry
