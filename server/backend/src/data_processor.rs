@@ -12,7 +12,7 @@ use std::io;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
 
-const LOCATION_HISTORY_SIZE: u32 = 5;
+const LOCATION_HISTORY_SIZE: usize = 5;
 
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
@@ -127,70 +127,67 @@ impl Handler<DPMessage> for DataProcessor {
     fn handle (&mut self, msg: DPMessage, _: &mut Context<Self>) -> Self::Result {
         match msg {
             DPMessage::LocationData(tag_data) => {
+                let rssi_value = match tag_data.tag_distance {
+                    common::DataType::RSSI(rssi) => rssi,
+                    common::DataType::TOF(tof) => tof,
+                };
+
                 if self.tag_hash.contains_key(&tag_data.tag_mac) {
                     if let Some(tag_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
-                        // replace any existing element, otherwise just add the new element to
-                        // prevent duplicates
-                        let rssi_value = match tag_data.tag_distance {
-                            common::DataType::RSSI(rssi) => rssi,
-                            common::DataType::TOF(tof) => tof,
-                        } as f64;
 
                         if let Some(beacon_entry) = tag_entry.rssi_history.get_mut(&tag_data.beacon_mac) {
                             beacon_entry.push_back(rssi_value);
                             if beacon_entry.len() > LOCATION_HISTORY_SIZE {
                                 beacon_entry.pop_front();
                             }
+                        } else {
+                            let mut deque = VecDeque::new();
+                            deque.push_back(rssi_value);
+                            tag_entry.rssi_history.insert(tag_data.beacon_mac.clone(), deque);
                         }
 
+                        // TODO pick the most recent 3 beacons
+                        if tag_entry.rssi_history.len() >= 3 {
+                            let averaged_data: Vec<common::TagData> = tag_entry.rssi_history.iter().map(|(beacon_mac, hist_vec)| {
+                                common::TagData {
+                                    tag_mac: tag_entry.tag_mac.clone(),
+                                    tag_name: tag_entry.tag_name.clone(),
+                                    beacon_mac: beacon_mac.clone(),
+                                    // TODO recasting back to RSSI is silly... refactor...
+                                    tag_distance: common::DataType::RSSI(hist_vec.into_iter().sum::<i64>() / hist_vec.len() as i64),
+                                }
+                            }).collect();
+                            println!("averaged data: {:?}", averaged_data);
 
-
-/*
-                        tag_entry.tag_data_points = tag_entry.tag_data_points.iter().filter(|it| it.beacon_mac != tag_data.beacon_mac).cloned().collect();
-                        tag_entry.tag_data_points.push(tag_data.clone());
-
-                        if(hash_entry.tag_data_points.len() >= 3) {
                             let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
-                            let new_tag_location = Self::calc_trilaterate(&hash_entry.tag_data_points, &mut beacon_sources);
-                            // reset the raw point data
-                            hash_entry.tag_data_points = Vec::new();
-
-
-
-                            let lochist = &mut hash_entry.location_history;
-                            lochist.push_back(new_tag_location);
-                            if lochist.len() > LOCATION_HISTORY_SIZE as usize {
-                                lochist.pop_front();
-                            }
-                            let mut averaged_location = lochist.iter().fold(na::Vector2::new(0.0, 0.0), |acc, x| acc + x);
-                            averaged_location.x /= lochist.len() as f64; // TODO use vector div
-                            averaged_location.y /= lochist.len() as f64; // TODO use vector div
-
+                            let new_tag_location = Self::calc_trilaterate(&averaged_data, &mut beacon_sources);
                             // update the user information
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
                                     user_ref.beacon_sources = beacon_sources;
-                                    user_ref.location = averaged_location;
+                                    user_ref.location = new_tag_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
                                     let mut user = common::User::new(tag_data.tag_mac.clone());
                                     user.beacon_sources = beacon_sources;
-                                    user.location = averaged_location;
+                                    user.location = new_tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
                                 }
                             }
                         }
-                        */
                     }
                 } else {
                     // create new entry
                     let mut hash_entry = TagHashEntry {
-                        tag_data_points: Vec::new(),
-                        location_history: VecDeque::new(),
+                        tag_name: tag_data.tag_name.clone(),
+                        tag_mac: tag_data.tag_mac.clone(),
+                        rssi_history: BTreeMap::new(),
                     };
-                    hash_entry.tag_data_points.push(tag_data.clone());
+                    let mut deque = VecDeque::new();
+                    deque.push_back(rssi_value);
+                    hash_entry.rssi_history.insert(tag_data.beacon_mac.clone(), deque);
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 }
             },
