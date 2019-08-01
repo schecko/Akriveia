@@ -157,7 +157,6 @@ impl Handler<DPMessage> for DataProcessor {
                                     tag_distance: common::DataType::RSSI(hist_vec.into_iter().sum::<i64>() / hist_vec.len() as i64),
                                 }
                             }).collect();
-                            println!("averaged data: {:?}", averaged_data);
 
                             let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
                             let new_tag_location = Self::calc_trilaterate(&averaged_data, &mut beacon_sources);
