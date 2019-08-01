@@ -144,7 +144,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                                 tag_name: name.to_string(),
                                                 tag_mac: mac.to_string(),
                                                 tag_distance: common::DataType::RSSI(rssi_numeric),
-                                                beacon_mac: "hello".to_string(),
+                                                beacon_mac: (&beacon_info.port_name).to_string(),
                                             }
                                         });
                                 },

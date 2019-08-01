@@ -166,12 +166,12 @@ impl Renderable<Diagnostics> for Diagnostics {
                             match row.tag_distance {
                                 common::DataType::RSSI(strength) => {
                                     html! {
-                                        <tr>{ format!("name: {}\tmac: {}\trssi: {}", &row.tag_name, &row.tag_mac, strength ) } </tr>
+                                        <tr>{ format!("beacon_mac: {}\tname: {}\tmac: {}\trssi: {}", &row.beacon_mac, &row.tag_name, &row.tag_mac, strength ) } </tr>
                                     }
                                 },
                                 common::DataType::TOF(distance) => {
                                     html! {
-                                        <tr>{ format!("name: {}\tmac: {}\ttof: {}", &row.tag_name, &row.tag_mac, distance ) } </tr>
+                                        <tr>{ format!("beacon_mac: {}\tname: {}\tmac: {}\ttof: {}", &row.beacon_mac, &row.tag_name, &row.tag_mac, distance ) } </tr>
                                     }
                                 },
                             }

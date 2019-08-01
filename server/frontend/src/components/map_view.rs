@@ -154,6 +154,8 @@ impl Component for MapViewComponent {
                         );
                         self.context.set_fill_style_color("#0000FFFF");
                         self.context.fill_rect(beacon_loc.x, beacon_loc.y - 30.0, 30.0, 30.0);
+                        self.context.set_fill_style_color("#000000FF");
+                        self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
                         match &self.show_distance {
                             Some(tag_mac) if tag_mac == &user.tag_mac => {
                                 self.context.set_fill_style_color("#00000034");
@@ -161,10 +163,7 @@ impl Component for MapViewComponent {
                                 self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * MAP_SCALE, 0.0, std::f64::consts::PI * 2.0, true);
                                 self.context.fill(FillRule::NonZero);
                             },
-                            _ => {
-                                self.context.set_fill_style_color("#000000FF");
-                                self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
-                            }
+                            _ => { }
                         }
                     }
                 }
