@@ -3,7 +3,3 @@
 
 # install the same packages as the pi
 bash ../pi/install
-
-# install dev packages
-apt install -qq codeblocks
-
