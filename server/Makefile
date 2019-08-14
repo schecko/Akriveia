@@ -7,7 +7,7 @@ BACKEND_ARGS = -p backend
 
 all: run-back
 
-SOURCE_CARGO=source ~/.cargo/env
+SOURCE_CARGO=source "$(CARGO_HOME)\\env"
 
 # build the backend, for independant work from the frontend
 build-back:
