@@ -10,8 +10,9 @@
 
 use actix::prelude::*;
 use actix_web::{ Error, Result };
-use crate::beacon_serial::*;
 use crate::beacon_dummy::*;
+use crate::beacon_serial::*;
+use crate::beacon_udp::*;
 use crate::data_processor::*;
 use futures::{ future::ok, Future };
 use serialport::prelude::*;
@@ -27,6 +28,7 @@ pub struct BeaconManager {
     pub data_processor: Addr<DataProcessor>,
     pub diagnostic_data: common::DiagnosticData,
     pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
+    pub udp_connections: Vec<Addr<BeaconUDP>>,
 }
 impl Actor for BeaconManager {
     type Context = Context<Self>;
@@ -35,14 +37,15 @@ impl Actor for BeaconManager {
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const NUM_DUMMY_BEACONS: u32 = 5;
 
-const USE_DUMMY_BEACONS: bool = true;
+const USE_DUMMY_BEACONS: bool = false;
 const USE_SERIAL_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
         BeaconManager {
             emergency: false, // TODO get from db!
+            udp_connections: Vec::new(),
             data_processor: dp,
             diagnostic_data: common::DiagnosticData::new(),
             serial_connections: Vec::new(),
@@ -56,7 +59,7 @@ impl BeaconManager {
     }
 
     fn find_beacons_udp(&mut self, context: &mut Context<Self>) {
-        unimplemented!();
+        self.udp_connections.push(BeaconUDP::new("127.0.0.1:0".parse().unwrap()));
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
@@ -85,8 +88,6 @@ impl BeaconManager {
                             println!("\t\tSerial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
                             println!("\t\tManufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
                             println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
-
-
 
                             let (serial_send, serial_receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
                             let address = context.address().recipient();
