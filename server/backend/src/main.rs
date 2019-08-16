@@ -14,6 +14,9 @@ mod beacon_udp;
 mod controllers;
 mod data_processor;
 
+use controllers::beacon;
+use controllers::map;
+use controllers::system;
 use controllers::user;
 
 use actix::prelude::*;
@@ -34,17 +37,26 @@ pub struct AkriveiaState {
     pub data_processor: Addr<DataProcessor>,
 }
 
+impl AkriveiaState {
+    pub fn new() -> web::Data<Mutex<AkriveiaState>> {
+
+        let data_processor_addr =  DataProcessor::new().start();
+        let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
+
+        beacon_manager_addr.do_send(BeaconCommand::ScanBeacons);
+
+        web::Data::new(Mutex::new(AkriveiaState {
+            beacon_manager: beacon_manager_addr,
+            data_processor: data_processor_addr,
+        }))
+    }
+}
+
 fn hello(req: HttpRequest) -> HttpResponse {
     let hello_data = common::HelloFrontEnd {
         data: 0xDEADBEEF,
     };
     HttpResponse::Ok().json(hello_data)
-}
-
-#[get("/scan_beacons")]
-fn scan_beacons(req: HttpRequest) -> HttpResponse {
-
-    HttpResponse::Ok().finish()
 }
 
 fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
@@ -100,15 +112,7 @@ fn main() -> std::io::Result<()> {
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
-    let data_processor_addr =  DataProcessor::new().start();
-    let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
-
-    beacon_manager_addr.do_send(BeaconCommand::ScanBeacons);
-
-    let state = web::Data::new(Mutex::new(AkriveiaState {
-        beacon_manager: beacon_manager_addr,
-        data_processor: data_processor_addr,
-    }));
+    let state = AkriveiaState::new();
 
     // start the webserver
     HttpServer::new(move || {
@@ -117,11 +121,20 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::DefaultHeaders::new().header("X-Version", "0.2"))
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-            .service(web::resource(common::PING).to(hello))
-            .service(scan_beacons)
-            .service(web::resource(common::EMERGENCY)
-                .route(web::get().to_async(get_emergency))
-                .route(web::post().to(post_emergency))
+            .service(
+                web::resource(common::EMERGENCY)
+                    .route(web::get().to_async(get_emergency))
+                    .route(web::post().to(post_emergency))
+            )
+            .service(
+                web::resource("beacons")
+                    .route(web::get().to_async(beacon::get_beacons))
+            )
+            .service(
+                web::resource("beacon/{id}")
+                    .route(web::get().to_async(beacon::get_beacon))
+                    .route(web::put().to_async(beacon::put_beacon))
+                    .route(web::post().to_async(beacon::post_beacon))
             )
             .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
