@@ -10,8 +10,9 @@ extern crate nalgebra as na;
 mod beacon_dummy;
 mod beacon_manager;
 mod beacon_serial;
-mod data_processor;
+mod beacon_udp;
 mod controllers;
+mod data_processor;
 
 use controllers::user;
 
