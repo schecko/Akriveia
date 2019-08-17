@@ -1,17 +1,12 @@
 
-use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{ CanvasRenderingContext2d, Element, Node, FillRule };
-use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
+use yew::services::fetch::{ FetchService, FetchTask, Request, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use yew::services::console::ConsoleService;
 use crate::util;
 use std::time::Duration;
 use yew::format::{ Nothing, Json };
 use std::collections::{ VecDeque, BTreeSet };
 use super::value_button::ValueButton;
-use na;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -59,7 +54,7 @@ impl Component for Diagnostics {
     type Message = Msg;
     type Properties = DiagnosticsProps;
 
-    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut result = Diagnostics {
             emergency: props.emergency,
             fetch_service: FetchService::new(),
@@ -102,7 +97,7 @@ impl Component for Diagnostics {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(common::DiagnosticData { mut tag_data }) => {
+                        Ok(common::DiagnosticData { tag_data }) => {
                             for point in tag_data.into_iter() {
                                 if !self.active_beacons.contains(&point.beacon_mac) {
                                     self.active_beacons.insert(point.beacon_mac.clone());

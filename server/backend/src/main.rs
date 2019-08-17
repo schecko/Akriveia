@@ -1,3 +1,4 @@
+#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
@@ -16,20 +17,16 @@ mod data_processor;
 
 use controllers::beacon;
 use controllers::map;
-use controllers::system;
 use controllers::user;
 
 use actix::prelude::*;
 use actix_files as fs;
-use actix_web::http::header;
-use actix_web::{ get, middleware, Error, web, App, HttpRequest, HttpResponse, HttpServer, };
+use actix_web::{ middleware, Error, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use data_processor::*;
 use futures::{ future::ok, Future, };
-use serde_derive::{ Deserialize, Serialize, };
 use std::env;
 use std::sync::*;
-use std::thread::*;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
@@ -52,20 +49,13 @@ impl AkriveiaState {
     }
 }
 
-fn hello(req: HttpRequest) -> HttpResponse {
-    let hello_data = common::HelloFrontEnd {
-        data: 0xDEADBEEF,
-    };
-    HttpResponse::Ok().json(hello_data)
-}
-
-fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::StartEmergency);
     HttpResponse::Ok().finish()
 }
 
-fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(BeaconCommand::GetEmergency)
@@ -80,13 +70,13 @@ fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> im
         }})
 }
 
-fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> HttpResponse {
+fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
     HttpResponse::Ok().finish()
 }
 
-fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)

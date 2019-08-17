@@ -4,10 +4,8 @@ extern crate regex;
 use actix::prelude::*;
 use crate::beacon_manager::*;
 use serialport::*;
-use serialport::prelude::*;
 use std::io::{ self, Write };
 use std::sync::mpsc;
-use std::sync::{ Arc, Mutex, };
 use std::thread;
 use std::time::Duration;
 use std::io::*;
@@ -105,28 +103,25 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     }
                     thread::sleep(Duration::from_millis(100));
 
-                    let mut char_count = 0;
                     let mut temp_buffer: Vec<u8> = vec![0; 4000];
                     match opened_port.read(temp_buffer.as_mut_slice()) {
                         Ok(num) => {
                             serial_buffer.extend_from_slice(&mut temp_buffer[..num]);
-                            char_count += num;
                         },
                         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                         Err(e) => eprintln!("{:?}", e),
                     }
 
-                    let data = String::from_utf8_lossy(&serial_buffer[..char_count]).to_string();
                     let serial_string = String::from_utf8_lossy(&serial_buffer[..]).to_string();
 
                     let mut last_line = "";
                     for line in serial_string.split("\n") {
 
-                        let mut split: Vec<&str> = line.split("|").collect();
+                        let split: Vec<&str> = line.split("|").collect();
                         if split.len() == 3 {
                             let name = split[0];
                             let mac = split[1];
-                            let mut rssi = split[2];
+                            let rssi = split[2];
                             let reg = Regex::new(r"/[^$0-9]+/").unwrap();
                             let rssi_stripped = reg.replace_all(&rssi, "");
 
@@ -146,7 +141,8 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                                 tag_distance: common::DataType::RSSI(rssi_numeric),
                                                 beacon_mac: (&beacon_info.port_name).to_string(),
                                             }
-                                        });
+                                        })
+                                        .expect("failed to send tag message to manager");
                                 },
                                 Err(e) => {
                                     println!("parsed a bad number: {}, error {}", e, rssi_stripped);
@@ -160,7 +156,6 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     }
                     serial_buffer = Vec::new();
                     serial_buffer.extend_from_slice(last_line.as_bytes());
-                    char_count = 0;
                 }
 
                 match send_command("end".to_string(), &mut opened_port, 4) {

@@ -1,19 +1,9 @@
 
 use common;
 use crate::util;
-use failure::Error;
-use std::convert::TryFrom;
-use std::time::Duration;
-use stdweb::web::{ CanvasRenderingContext2d, Element, HtmlElement, Node, };
-use stdweb::web::html_element::CanvasElement;
-use stdweb::web;
 use yew::format::{ Nothing, Json };
-use yew::services::console::ConsoleService;
-use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
-use yew::services::interval::*;
-use yew::virtual_dom::vnode::VNode;
+use yew::services::fetch::{ FetchService, FetchTask, Request, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
@@ -26,59 +16,26 @@ pub enum Page {
     Map,
 }
 
-fn get_canvas() -> CanvasElement {
-    unsafe {
-       js! (
-            return document.querySelector("canvas");
-        ).into_reference_unchecked().unwrap()
-    }
-}
-
-fn get_canvas_by_id(id: &str) -> CanvasElement {
-    unsafe {
-       js! (
-            return document.getElementById(id);
-        ).into_reference_unchecked().unwrap()
-    }
-}
-
-fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
-    unsafe {
-        js! (
-            return @{canvas}.getContext("2d");
-        ).into_reference_unchecked().unwrap()
-    }
-}
-
 pub struct RootComponent {
     emergency: bool,
     current_page: Page,
-    data: Option<common::HelloFrontEnd>,
-    diagnostic_data: Vec<common::TagData>,
-    diagnostic_service: Option<IntervalService>,
-    diagnostic_service_task: Option<IntervalTask>,
-    fetch_in_flight: bool,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
-    map_canvas: Option<CanvasElement>,
 }
 
 pub enum Msg {
     // local functionality
-    Ignore,
 
     // page changes
     ChangePage(Page),
 
     // requests
-    RequestPing,
     RequestEmergency,
     RequestEndEmergency,
     RequestGetEmergency,
 
     // responses
-    ResponsePing(util::Response<common::HelloFrontEnd>),
     ResponseEmergency(util::Response<()>),
     ResponseEndEmergency(util::Response<()>),
     ResponseGetEmergency(util::Response<common::SystemCommandResponse>),
@@ -88,20 +45,16 @@ impl Component for RootComponent {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        RootComponent {
+    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        link.send_self(Msg::RequestGetEmergency);
+        let root = RootComponent {
             emergency: false,
-            current_page: Page::Login,
-            data: None,
-            diagnostic_service: None,
-            diagnostic_service_task: None,
-            diagnostic_data: Vec::new(),
+            current_page: Page::FrontPage,
             fetch_service: FetchService::new(),
-            fetch_in_flight: false,
             fetch_task: None,
             link: link,
-            map_canvas: None,
-        }
+        };
+        root
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -114,14 +67,6 @@ impl Component for RootComponent {
             },
 
             // requests
-            Msg::RequestPing => {
-                self.fetch_task = get_request!(
-                    self.fetch_service,
-                    common::PING,
-                    self.link,
-                    Msg::ResponsePing
-                );
-            },
             Msg::RequestEmergency => {
                 self.fetch_task = post_request!(
                     self.fetch_service,
@@ -150,20 +95,6 @@ impl Component for RootComponent {
             },
 
             // responses
-            Msg::ResponsePing(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::HelloFrontEnd { data }) => {
-                            println!("success {:?}", data);
-                        }
-                        _ => { }
-                    }
-
-                } else {
-                    Log!("response - failed to ping");
-                }
-            },
             Msg::ResponseEmergency(_response) => {
                 self.emergency = true;
             },
@@ -182,10 +113,6 @@ impl Component for RootComponent {
                 } else {
                     Log!("response - failed to request diagnostics");
                 }
-            },
-
-            Msg::Ignore => {
-                // do nothing
             },
         }
         true
