@@ -9,24 +9,22 @@
 
 
 use actix::prelude::*;
-use actix_web::{ Error, Result };
-use crate::beacon_serial::*;
+use actix_web::Result;
 use crate::beacon_dummy::*;
+use crate::beacon_serial::*;
+use crate::beacon_udp::*;
 use crate::data_processor::*;
-use futures::{ future::ok, Future };
-use serialport::prelude::*;
 use serialport;
 use std::io;
 use std::sync::mpsc;
-use std::sync::{ Arc, Mutex, };
 use std::thread;
-use std::time::Duration;
 
 pub struct BeaconManager {
     pub emergency: bool,
     pub data_processor: Addr<DataProcessor>,
     pub diagnostic_data: common::DiagnosticData,
     pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
+    pub udp_connections: Vec<Addr<BeaconUDP>>,
 }
 impl Actor for BeaconManager {
     type Context = Context<Self>;
@@ -35,14 +33,15 @@ impl Actor for BeaconManager {
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const NUM_DUMMY_BEACONS: u32 = 5;
 
-const USE_DUMMY_BEACONS: bool = true;
+const USE_DUMMY_BEACONS: bool = false;
 const USE_SERIAL_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
         BeaconManager {
             emergency: false, // TODO get from db!
+            udp_connections: Vec::new(),
             data_processor: dp,
             diagnostic_data: common::DiagnosticData::new(),
             serial_connections: Vec::new(),
@@ -55,8 +54,8 @@ impl BeaconManager {
         if USE_UDP_BEACONS { self.find_beacons_udp(context); }
     }
 
-    fn find_beacons_udp(&mut self, context: &mut Context<Self>) {
-        unimplemented!();
+    fn find_beacons_udp(&mut self, _context: &mut Context<Self>) {
+        self.udp_connections.push(BeaconUDP::new("127.0.0.1:0".parse().unwrap()));
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
@@ -85,8 +84,6 @@ impl BeaconManager {
                             println!("\t\tSerial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
                             println!("\t\tManufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
                             println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
-
-
 
                             let (serial_send, serial_receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
                             let address = context.address().recipient();
@@ -136,13 +133,17 @@ impl Handler<BeaconCommand> for BeaconManager {
             BeaconCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
                 for connection in &self.serial_connections {
-                    connection.send(BeaconCommand::StartEmergency);
+                    connection
+                        .send(BeaconCommand::StartEmergency)
+                        .expect("failed to send start emergency to serial beacon connection");
                 }
                 self.emergency = true;
             }
             BeaconCommand::EndEmergency => {
                 for connection in &self.serial_connections {
-                    connection.send(BeaconCommand::EndEmergency);
+                    connection
+                        .send(BeaconCommand::EndEmergency)
+                        .expect("failed to send end emergency to serial beacon connection");
                 }
                 self.emergency = false;
             },
@@ -159,7 +160,7 @@ impl Message for GetDiagnosticData {
 impl Handler<GetDiagnosticData> for BeaconManager {
     type Result = Result<common::DiagnosticData, io::Error>;
 
-    fn handle(&mut self, msg: GetDiagnosticData, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, _msg: GetDiagnosticData, _context: &mut Context<Self>) -> Self::Result {
         let res = self.diagnostic_data.clone();
         self.diagnostic_data.tag_data = Vec::new();
         Ok(res)
@@ -175,7 +176,7 @@ impl Message for TagDataMessage {
 impl Handler<TagDataMessage> for BeaconManager {
     type Result = Result<u64, io::Error>;
 
-    fn handle(&mut self, msg: TagDataMessage, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
         // find the beacons
         self.diagnostic_data.tag_data.push(msg.data.clone());
         self.data_processor.do_send(DPMessage::LocationData(msg.data.clone()));

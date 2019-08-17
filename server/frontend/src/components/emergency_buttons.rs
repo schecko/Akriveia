@@ -1,8 +1,6 @@
 
 use yew::prelude::*;
-use crate::components::root;
 use yew::Component;
-use yew::services::console::ConsoleService;
 
 pub enum Msg {
     RequestEmergency,
@@ -13,7 +11,6 @@ pub struct EmergencyButtons {
     is_emergency: bool,
     on_emergency: Option<Callback<()>>,
     on_end_emergency: Option<Callback<()>>,
-    self_link: ComponentLink<EmergencyButtons>,
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -27,12 +24,11 @@ impl Component for EmergencyButtons {
     type Message = Msg;
     type Properties = EmergencyButtonsProps;
 
-    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        let mut result = EmergencyButtons {
+    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
+        let result = EmergencyButtons {
             is_emergency: props.is_emergency,
             on_emergency: props.on_emergency,
             on_end_emergency: props.on_end_emergency,
-            self_link: link,
         };
 
         result

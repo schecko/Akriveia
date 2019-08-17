@@ -1,13 +1,6 @@
 
 use actix::prelude::*;
-use actix_web::{ Error, Result };
-use crate::beacon_serial::*;
-use futures::{future::ok, Future};
-use serialport::prelude::*;
-use serialport;
-use std::sync::{ Arc, Mutex, };
-use std::thread;
-use std::time::Duration;
+use actix_web::Result;
 use std::io;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
@@ -42,7 +35,7 @@ impl DataProcessor {
     }
 
     fn calc_trilaterate(tag_data: &Vec<common::TagData>, beacon_sources: &mut Vec<common::UserBeaconSourceLocations>) -> na::Vector2<f64> {
-        if(tag_data.len() < 3) {
+        if tag_data.len() < 3 {
             panic!("not enough data points to trilaterate");
         }
         assert!(beacon_sources.len() == 0);
@@ -190,9 +183,6 @@ impl Handler<DPMessage> for DataProcessor {
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 }
             },
-            _ => {
-                panic!("unknown message sent to data processor");
-            },
         }
 
         Ok(1)
@@ -208,7 +198,7 @@ impl Message for OutUserData {
 impl Handler<OutUserData> for DataProcessor {
     type Result = Result<Vec<common::User>, io::Error>;
 
-    fn handle (&mut self, msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
+    fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
         Ok(self.users.values().cloned().collect())
     }
 }
