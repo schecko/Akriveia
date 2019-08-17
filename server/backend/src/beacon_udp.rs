@@ -53,6 +53,7 @@ impl Handler<BeaconCommand> for BeaconUDP {
                 let stream = stream::iter_ok::<_, io::Error>(stream_data);
                 // TODO handle
                 let _ = (&mut self.sink).send_all(stream);
+                Ok(common::SystemCommandResponse{ emergency: true })
             },
             BeaconCommand::EndEmergency => {
                 let stream_data = self.beacon_ips.iter()
@@ -60,13 +61,12 @@ impl Handler<BeaconCommand> for BeaconUDP {
                 let stream = stream::iter_ok::<_, io::Error>(stream_data);
                 // TODO handle
                 let _ = (&mut self.sink).send_all(stream);
+                Ok(common::SystemCommandResponse{ emergency: false })
             },
             _ => {
+                Ok(common::SystemCommandResponse{ emergency: true })
             }
         }
-        Ok(common::SystemCommandResponse{ emergency: true })
-
-
     }
 }
 
