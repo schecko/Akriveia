@@ -100,3 +100,16 @@ impl Beacon {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Map {
+    pub name: String,
+}
+
+impl Map {
+    pub fn new() -> Map {
+        Map {
+            name: "unknown".to_string(),
+        }
+    }
+}
