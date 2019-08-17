@@ -135,6 +135,18 @@ fn main() -> std::io::Result<()> {
                     .route(web::get().to_async(beacon::get_beacon))
                     .route(web::put().to_async(beacon::put_beacon))
                     .route(web::post().to_async(beacon::post_beacon))
+                    .route(web::delete().to_async(beacon::delete_beacon))
+            )
+            .service(
+                web::resource("user/{id}")
+                    .route(web::get().to_async(user::get_user))
+                    .route(web::put().to_async(user::put_user))
+                    .route(web::post().to_async(user::post_user))
+                    .route(web::delete().to_async(user::delete_user))
+            )
+            .service(
+                web::resource("users")
+                    .route(web::get().to_async(user::get_users))
             )
             .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
