@@ -148,6 +148,17 @@ fn main() -> std::io::Result<()> {
                 web::resource("users")
                     .route(web::get().to_async(user::get_users))
             )
+            .service(
+                web::resource("map/{id}")
+                    .route(web::get().to_async(map::get_map))
+                    .route(web::put().to_async(map::put_map))
+                    .route(web::post().to_async(map::post_map))
+                    .route(web::delete().to_async(map::delete_map))
+            )
+            .service(
+                web::resource("maps")
+                    .route(web::get().to_async(map::get_maps))
+            )
             .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
             .service(web::resource(common::REALTIME_USERS).to_async(user::realtime_users))
