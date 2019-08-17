@@ -6,7 +6,7 @@ extern crate bytes;
 use bytes::{ BytesMut, Bytes };
 use std::io;
 use std::net::SocketAddr;
-use futures::{ stream, Stream, Sink, Future, future::ok };
+use futures::{ stream, Stream, Sink, };
 use futures::stream::SplitSink;
 use tokio::net::{ UdpSocket, UdpFramed };
 use tokio::codec::BytesCodec;
@@ -51,13 +51,15 @@ impl Handler<BeaconCommand> for BeaconUDP {
                 let stream_data = self.beacon_ips.iter()
                     .map(|&ip| (Bytes::from("start"), ip));
                 let stream = stream::iter_ok::<_, io::Error>(stream_data);
-                (&mut self.sink).send_all(stream);
+                // TODO handle
+                let _ = (&mut self.sink).send_all(stream);
             },
             BeaconCommand::EndEmergency => {
                 let stream_data = self.beacon_ips.iter()
                     .map(|&ip| (Bytes::from("end"), ip));
                 let stream = stream::iter_ok::<_, io::Error>(stream_data);
-                (&mut self.sink).send_all(stream);
+                // TODO handle
+                let _ = (&mut self.sink).send_all(stream);
             },
             _ => {
             }

@@ -1,11 +1,10 @@
 
 use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{ CanvasRenderingContext2d, Element, Node, FillRule };
-use yew::services::fetch::{ FetchService, FetchTask, Request, Response, };
-use yew::services::interval::{ IntervalTask, IntervalService, };
+use stdweb::web::{ CanvasRenderingContext2d, Node, FillRule };
+use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::services::interval::IntervalService;
 use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use yew::services::console::ConsoleService;
 use crate::util;
 use std::time::Duration;
 use yew::format::{ Nothing, Json };
@@ -32,8 +31,7 @@ pub struct MapViewComponent {
     context: CanvasRenderingContext2d,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    interval_service: IntervalService,
-    interval_service_task: IntervalTask,
+    _interval_service: IntervalService,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
     users: BTreeMap<String, Box<common::User>>,
@@ -42,10 +40,6 @@ pub struct MapViewComponent {
 
 fn screen_space(x: f64, y: f64) -> na::Vector2<f64> {
     na::Vector2::new(x, MAP_HEIGHT as f64 - y)
-}
-
-fn screen_space_vector(coords: na::Vector2<f64>) -> na::Vector2<f64> {
-    na::Vector2::new(coords.x, MAP_HEIGHT as f64 - coords.y)
 }
 
 impl MapViewComponent {
@@ -119,14 +113,13 @@ impl Component for MapViewComponent {
         let context = get_context(&canvas);
 
         let mut interval_service = IntervalService::new();
-        let task = interval_service.spawn(REALTIME_USER_POLL_RATE, link.send_back(|_| Msg::RequestRealtimeUser));
+        let _task = interval_service.spawn(REALTIME_USER_POLL_RATE, link.send_back(|_| Msg::RequestRealtimeUser));
 
-        let mut result = MapViewComponent {
+        let result = MapViewComponent {
             context: context,
             fetch_service: FetchService::new(),
             fetch_task: None,
-            interval_service: interval_service,
-            interval_service_task: task,
+            _interval_service: interval_service,
             map_canvas: canvas,
             users: BTreeMap::new(),
             self_link: link,
@@ -141,7 +134,7 @@ impl Component for MapViewComponent {
         match msg {
             Msg::RenderMap => {
                 self.context.save();
-                for (tag_mac, user) in self.users.iter() {
+                for (_tag_mac, user) in self.users.iter() {
                     let user_pos = screen_space(
                         user.location.x as f64 * MAP_SCALE,
                         user.location.y as f64 * MAP_SCALE,
@@ -203,7 +196,7 @@ impl Component for MapViewComponent {
                     if let Ok(data) = body {
                         for user in data.iter() {
                             match self.users.get_mut(&user.tag_mac) {
-                                Some(mut local_user_data) => {
+                                Some(local_user_data) => {
                                     **local_user_data = user.clone();
                                 },
                                 None => {
@@ -231,7 +224,7 @@ impl Component for MapViewComponent {
 
 impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
-        let mut render_distance_buttons = self.users.iter().map(|(user_mac, user)| {
+        let mut render_distance_buttons = self.users.iter().map(|(user_mac, _user)| {
             let set_border = match &self.show_distance {
                 Some(selected) => selected == user_mac,
                 None => false,

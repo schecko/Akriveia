@@ -1,6 +1,5 @@
 
 use yew::{ Component, Callback, ComponentLink, Html, Renderable, ShouldRender, html, };
-use yew::services::console::ConsoleService;
 
 pub enum Msg {
     Click,
@@ -25,7 +24,7 @@ impl Component for ValueButton {
     type Message = Msg;
     type Properties = ValueButtonProps;
 
-    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut _link: ComponentLink<Self>) -> Self {
         ValueButton {
             value: props.value,
             on_click: props.on_click,
