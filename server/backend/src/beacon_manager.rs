@@ -33,9 +33,9 @@ impl Actor for BeaconManager {
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const NUM_DUMMY_BEACONS: u32 = 5;
 
-const USE_DUMMY_BEACONS: bool = false;
+const USE_DUMMY_BEACONS: bool = true;
 const USE_SERIAL_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = true;
+const USE_UDP_BEACONS: bool = false;
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {

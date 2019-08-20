@@ -2,7 +2,7 @@
 use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, Node, FillRule };
 use yew::services::fetch::{ FetchService, FetchTask, Request, };
-use yew::services::interval::IntervalService;
+use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use crate::util;
@@ -28,14 +28,36 @@ pub enum Msg {
 }
 
 pub struct MapViewComponent {
+    emergency: bool,
     context: CanvasRenderingContext2d,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    _interval_service: IntervalService,
+    interval_service: Option<IntervalService>,
+    interval_service_task: Option<IntervalTask>,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
     users: BTreeMap<String, Box<common::User>>,
     show_distance: Option<String>,
+}
+
+impl MapViewComponent {
+    fn start_service(&mut self) {
+        let mut interval_service = IntervalService::new();
+        self.interval_service_task = Some(
+            interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(|_| Msg::RequestRealtimeUser))
+        );
+        self.interval_service = Some(interval_service);
+    }
+
+    fn end_service(&mut self) {
+        self.interval_service = None;
+        self.interval_service_task = None;
+    }
+}
+
+#[derive(Clone, Default, PartialEq)]
+pub struct MapViewProps {
+    pub emergency: bool,
 }
 
 fn screen_space(x: f64, y: f64) -> na::Vector2<f64> {
@@ -84,7 +106,6 @@ impl MapViewComponent {
             let pos = screen_space(text_adjustment, i as f64 * MAP_SCALE + text_adjustment);
             self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
         }
-
     }
 }
 
@@ -98,9 +119,9 @@ fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
 
 impl Component for MapViewComponent {
     type Message = Msg;
-    type Properties = ();
+    type Properties = MapViewProps;
 
-    fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let canvas: CanvasElement = unsafe {
             js! (
                 let c = document.createElement("canvas");
@@ -112,14 +133,13 @@ impl Component for MapViewComponent {
         canvas.set_height(MAP_HEIGHT);
         let context = get_context(&canvas);
 
-        let mut interval_service = IntervalService::new();
-        let _task = interval_service.spawn(REALTIME_USER_POLL_RATE, link.send_back(|_| Msg::RequestRealtimeUser));
-
-        let result = MapViewComponent {
+        let mut result = MapViewComponent {
+            emergency: props.emergency,
             context: context,
             fetch_service: FetchService::new(),
             fetch_task: None,
-            _interval_service: interval_service,
+            interval_service: None,
+            interval_service_task: None,
             map_canvas: canvas,
             users: BTreeMap::new(),
             self_link: link,
@@ -127,6 +147,9 @@ impl Component for MapViewComponent {
         };
 
         result.clear_map();
+        if props.emergency {
+            result.start_service();
+        }
         result
     }
 
@@ -216,8 +239,15 @@ impl Component for MapViewComponent {
         }
     }
 
-    fn change(&mut self, _: Self::Properties) -> ShouldRender {
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
         // do not overwrite the canvas or context.
+        self.emergency = props.emergency;
+
+        if self.emergency {
+            self.start_service();
+        } else {
+            self.end_service();
+        }
         true
     }
 }
