@@ -139,7 +139,7 @@ fn main() -> std::io::Result<()> {
             });
 
         // By default, tokio_postgres uses the tokio crate as its runtime.
-        tokio::run(fut);
+        actix::spawn(fut);
     }
     let state = AkriveiaState::new();
 
