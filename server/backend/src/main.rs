@@ -16,11 +16,10 @@ mod beacon_udp;
 mod controllers;
 mod data_processor;
 
-use tokio_postgres::{NoTls};
-
 use controllers::beacon;
 use controllers::map;
 use controllers::user;
+use controllers::system;
 
 use actix::prelude::*;
 use actix_files as fs;
@@ -104,43 +103,7 @@ fn main() -> std::io::Result<()> {
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
-    {
-        let fut = tokio_postgres::connect("port=5432 host=localhost password=postgres user=postgres", NoTls)
-            .map(|(client, connection)| {
-                // The connection object performs the actual communication with the database,
-                // so spawn it off to run on its own.
-                let connection = connection.map_err(|e| eprintln!("db connection error: {}", e));
-                tokio::spawn(connection);
-
-                // The client is what you use to make requests.
-                client
-            })
-
-            .and_then(|mut client| {
-                // Now we can prepare a simple statement that just returns its parameter.
-                client.prepare("SELECT $1::TEXT")
-                    .map(|statement| (client, statement))
-            })
-
-            .and_then(|(mut client, statement)| {
-                // And then execute it, returning a Stream of Rows which we collect into a Vec
-                client.query(&statement, &[&"hello world"]).collect()
-            })
-
-            // Now we can check that we got back the same string we sent over.
-            .map(|rows| {
-                let value: &str = rows[0].get(0);
-                assert_eq!(value, "hello world");
-            })
-
-            // And report any errors that happened.
-            .map_err(|e| {
-                eprintln!("db error: {}", e);
-            });
-
-        // By default, tokio_postgres uses the tokio crate as its runtime.
-        actix::spawn(fut);
-    }
+    system::create_db();
     let state = AkriveiaState::new();
 
     // start the webserver
