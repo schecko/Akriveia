@@ -109,6 +109,7 @@ impl Actor for DataProcessor {
 
 pub enum DPMessage {
     LocationData(common::TagData),
+    ResetData(), // Reset the stored data
 }
 impl Message for DPMessage {
     type Result = Result<u64, io::Error>;
@@ -182,6 +183,17 @@ impl Handler<DPMessage> for DataProcessor {
                     hash_entry.rssi_history.insert(tag_data.beacon_mac.clone(), deque);
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 }
+            },
+            DPMessage::ResetData() => {
+                // Does this even work?
+                // Is there any other sort of permission that is needed?
+                let empty = self.tag_hash.is_empty();
+                println!("Hash map is empty: {}", empty);
+                if self.tag_hash.is_empty() != true {
+                    self.tag_hash.clear();
+                }
+                // Does users have to be cleared too?
+                
             },
         }
 

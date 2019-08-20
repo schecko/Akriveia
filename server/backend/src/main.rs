@@ -73,6 +73,8 @@ fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> i
 fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> HttpResponse {
     let s = state.lock().unwrap();
     s.beacon_manager.do_send(BeaconCommand::EndEmergency);
+    // Add line for data_processor to empty hash map
+    //s.data_processor.do_send(DPMessage::ResetData);
     HttpResponse::Ok().finish()
 }
 
