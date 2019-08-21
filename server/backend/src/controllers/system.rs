@@ -124,9 +124,8 @@ fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
         })
 }
 
-fn loop_db_commands(client: tokio_postgres::Client, commands: Vec<&str>, chug_along: bool) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> + '_ {
+fn loop_db_commands(client: tokio_postgres::Client, commands: Vec<&str>, ignore_errors: bool) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> + '_ {
     loop_fn((client, commands.into_iter()), move |(mut client, mut schema_it)| {
-        let chug = chug_along;
         let it = Box::new(schema_it.next());
         ok::<_, tokio_postgres::Error>(it)
             .and_then(move |it| {
@@ -143,7 +142,7 @@ fn loop_db_commands(client: tokio_postgres::Client, commands: Vec<&str>, chug_al
                                                 ok(())
                                             },
                                             Err(e) => {
-                                                if chug {
+                                                if ignore_errors {
                                                     ok(())
                                                 } else {
                                                     err(e)
