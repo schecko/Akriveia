@@ -136,6 +136,10 @@ fn main() -> std::io::Result<()> {
                     .route(web::delete().to_async(beacon_controller::delete_beacon))
             )
             .service(
+                web::resource("users")
+                    .route(web::get().to_async(user_controller::get_users))
+            )
+            .service(
                 web::resource("user/{id}")
                     .route(web::get().to_async(user_controller::get_user))
                     .route(web::put().to_async(user_controller::put_user))
@@ -143,8 +147,8 @@ fn main() -> std::io::Result<()> {
                     .route(web::delete().to_async(user_controller::delete_user))
             )
             .service(
-                web::resource("users")
-                    .route(web::get().to_async(user_controller::get_users))
+                web::resource("maps")
+                    .route(web::get().to_async(map_controller::get_maps))
             )
             .service(
                 web::resource("map/{id}")
@@ -152,10 +156,6 @@ fn main() -> std::io::Result<()> {
                     .route(web::put().to_async(map_controller::put_map))
                     .route(web::post().to_async(map_controller::post_map))
                     .route(web::delete().to_async(map_controller::delete_map))
-            )
-            .service(
-                web::resource("maps")
-                    .route(web::get().to_async(map_controller::get_maps))
             )
             .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
             .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
