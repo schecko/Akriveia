@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 21] = [
+const SCHEMA: [&str; 22] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -53,10 +53,13 @@ const SCHEMA: [&str; 21] = [
     );",
     "CREATE TABLE system.networks (
         mac_address MACADDR PRIMARY KEY,
-        ip INET,
+        host_beacon_udp BOOLEAN,
         host_webserver BOOLEAN,
-        host_beacon_udp BOOLEAN
+        ip INET,
+        name VARCHAR(255)
     )",
+
+    // create roles and users
     "CREATE ROLE ak_admin_role",
     "CREATE ROLE ak_responder_role",
     "CREATE USER admin WITH PASSWORD 'admin' SYSID 1 ROLE ak_admin_role",
@@ -76,6 +79,9 @@ const SCHEMA: [&str; 21] = [
     "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
+    "INSERT INTO system.networks(mac_address, host_beacon_udp, host_webserver, ip, name)
+            VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
+    ",
 ];
 
 fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
