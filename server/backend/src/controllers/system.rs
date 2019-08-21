@@ -19,36 +19,63 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 7] = [
-    "CREATE TABLE maps (
+const SCHEMA: [&str; 21] = [
+    "CREATE SCHEMA runtime",
+    "CREATE SCHEMA system",
+    "CREATE TABLE runtime.maps (
         floor_id VARCHAR(255) PRIMARY KEY,
         blueprint BYTEA,
-        name VARCHAR(256)
+        blueprint_bounds INTEGER[2],
+        name VARCHAR(256),
+        scale REAL
+
     );",
-    "CREATE TABLE users (
+    "CREATE TABLE runtime.users (
         id INTEGER PRIMARY KEY,
-        coordinates real[2],
-        emergency_contact INTEGER REFERENCES users(id),
+        coordinates REAL[2],
+        emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
         id_tag INTEGER,
         last_seen timestamp,
         mac_address MACADDR,
-        map_id VARCHAR(255) REFERENCES maps(floor_id),
+        map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
         name VARCHAR(256),
         note VARCHAR(1024),
         phone_number VARCHAR(20),
         type INTEGER
     );",
-    "CREATE TABLE beacons (
+    "CREATE TABLE runtime.beacons (
         mac_address MACADDR PRIMARY KEY,
-        coordinates real[2],
-        map_id VARCHAR(255) REFERENCES maps(floor_id),
-        name VARCHAR(255)
+        coordinates REAL[2],
+        map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
+        name VARCHAR(255),
+        note VARCHAR(1024)
     );",
-    "CREATE ROLE ak_admin_role WITH LOGIN",
-    "CREATE ROLE ak_responder_role WITH LOGIN",
+    "CREATE TABLE system.networks (
+        mac_address MACADDR PRIMARY KEY,
+        ip INET,
+        host_webserver BOOLEAN,
+        host_beacon_udp BOOLEAN
+    )",
+    "CREATE ROLE ak_admin_role",
+    "CREATE ROLE ak_responder_role",
     "CREATE USER admin WITH PASSWORD 'admin' SYSID 1 ROLE ak_admin_role",
     "CREATE USER responder WITH PASSWORD NULL SYSID 2 ROLE ak_responder_role",
+
+    // update permissions for responders
+    "GRANT CONNECT ON DATABASE ak TO ak_responder_role",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_responder_role",
+
+    // update persmissions for admins
+    "GRANT CONNECT ON DATABASE ak TO ak_admin_role",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
+    "GRANT UPDATE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
+    "GRANT INSERT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
+    "GRANT DELETE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
+    "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
+    "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
+    "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
 ];
 
 fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
@@ -163,6 +190,7 @@ pub fn create_db() {
             loop_db_commands(client, SCHEMA.to_vec(), false)
         })
         .map(|_| {
+            println!("successfully recreated ak database");
         })
         .map_err(|e| {
             eprintln!("db error: {}", e);
