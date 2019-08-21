@@ -23,19 +23,19 @@ const SCHEMA: [&str; 7] = [
     "CREATE TABLE maps (
         floor_id VARCHAR(255) PRIMARY KEY,
         blueprint BYTEA,
-        name TEXT
+        name VARCHAR(256)
     );",
     "CREATE TABLE users (
         id INTEGER PRIMARY KEY,
         coordinates real[2],
         emergency_contact INTEGER REFERENCES users(id),
-        employee_id VARCHAR(255),
+        employee_id VARCHAR(256),
         id_tag INTEGER,
         last_seen timestamp,
         mac_address MACADDR,
         map_id VARCHAR(255) REFERENCES maps(floor_id),
-        name VARCHAR(255),
-        note TEXT,
+        name VARCHAR(256),
+        note VARCHAR(1024),
         phone_number VARCHAR(20),
         type INTEGER
     );",
