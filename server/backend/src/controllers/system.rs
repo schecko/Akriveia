@@ -60,12 +60,7 @@ pub fn create_db() {
     println!("creating db");
     let fut = ensure_ak()
         .and_then(|_| {
-            tokio_postgres::connect("dbname=ak host=localhost password=postgres user=postgres", NoTls)
-        })
-        .map(|(client, connection)| {
-            let connection = connection.map_err(|e| eprintln!("db connection error: {}", e));
-            actix::spawn(connection);
-            client
+            connect_db("dbname=ak host=localhost password=postgres user=postgres")
         })
         .and_then(|mut _client| {
             let _schema = vec![
