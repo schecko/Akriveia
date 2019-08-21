@@ -6,10 +6,30 @@ use std::time::{ SystemTime, UNIX_EPOCH };
 
 pub const EMERGENCY: &str = "/emergency";
 pub const END_EMERGENCY: &str = "/endemergency";
-pub const PING: &str = "/hello";
 pub const DIAGNOSTICS: &str = "/diagnostics";
 pub const REALTIME_USERS: &str = "/realtime_users";
 pub const BEACON: &str = "/beacon";
+
+pub fn beacon_url(id: &str) -> String {
+    return format!("/beacon/{}", id);
+}
+pub fn beacons_url() -> String {
+    return String::from("/beacons");
+}
+
+pub fn user_url(id: &str) -> String {
+    return format!("/user/{}", id);
+}
+pub fn users_url() -> String {
+    return String::from("/users");
+}
+
+pub fn map_url(id: &str) -> String {
+    return format!("/map/{}", id);
+}
+pub fn maps_url() -> String {
+    return String::from("/maps");
+}
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HelloFrontEnd {

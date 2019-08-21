@@ -35,6 +35,7 @@ use data_processor::*;
 use futures::{ future::ok, Future, };
 use std::env;
 use std::sync::*;
+use common::*;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
@@ -125,33 +126,33 @@ fn main() -> std::io::Result<()> {
                     .route(web::post().to(post_emergency))
             )
             .service(
-                web::resource("beacons")
+                web::resource(&beacons_url())
                     .route(web::get().to_async(beacon_controller::get_beacons))
             )
             .service(
-                web::resource("beacon/{id}")
+                web::resource(&beacon_url("{id}"))
                     .route(web::get().to_async(beacon_controller::get_beacon))
                     .route(web::put().to_async(beacon_controller::put_beacon))
                     .route(web::post().to_async(beacon_controller::post_beacon))
                     .route(web::delete().to_async(beacon_controller::delete_beacon))
             )
             .service(
-                web::resource("users")
+                web::resource(&users_url())
                     .route(web::get().to_async(user_controller::get_users))
             )
             .service(
-                web::resource("user/{id}")
+                web::resource(&user_url("{id}"))
                     .route(web::get().to_async(user_controller::get_user))
                     .route(web::put().to_async(user_controller::put_user))
                     .route(web::post().to_async(user_controller::post_user))
                     .route(web::delete().to_async(user_controller::delete_user))
             )
             .service(
-                web::resource("maps")
+                web::resource(&maps_url())
                     .route(web::get().to_async(map_controller::get_maps))
             )
             .service(
-                web::resource("map/{id}")
+                web::resource(&map_url("{id}"))
                     .route(web::get().to_async(map_controller::get_map))
                     .route(web::put().to_async(map_controller::put_map))
                     .route(web::post().to_async(map_controller::post_map))
