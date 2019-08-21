@@ -69,9 +69,10 @@ const SCHEMA: [&str; 3] = [
     " CREATE TABLE beacons (
         mac_address macaddr PRIMARY KEY,
         name varchar(255),
-        map_id INTEGER REFERENCES maps(id)
+        map_id INTEGER REFERENCES maps(floor_id)
     );",
 ];
+
 pub fn create_db() {
     println!("creating db");
     let fut = ensure_ak()
@@ -79,76 +80,43 @@ pub fn create_db() {
             connect_db("dbname=ak host=localhost password=postgres user=postgres")
         })
         .and_then(|client| {
-
-           loop_fn((client, SCHEMA.iter()), |(client, mut schema_it)| {
+           loop_fn((client, SCHEMA.iter()), |(mut client, mut schema_it)| {
                 println!("loopin dooping");
-                ok::<_, tokio_postgres::Error>(()).and_then(|_| {
-                    match schema_it.next() {
-                        Some(command) => {
-                            println!("looping {}", command);
-                            Ok(Loop::Continue((client, schema_it)))
-                        },
-                        None => {
-                            println!("stop looping");
-                            Ok(Loop::Break((client, None)))
+                let it = Box::new(schema_it.next());
+                ok::<_, tokio_postgres::Error>(it)
+                    .and_then(|it| {
+                        match *it {
+                            Some(command) => {
+                                Either::A(client.prepare(command)
+                                    .map(|statement| (client, statement))
+                                    .and_then(|(mut client, statement)| {
+                                        client.execute(&statement, &[])
+                                            .map(|row_count| {
+                                                assert_eq!(row_count, 0);
+                                                (it, client)
+                                            })
+                                    }))
+                            },
+                            None => {
+                                Either::B(ok::<_, tokio_postgres::Error>((it, client)))
+                            }
                         }
-                    }
-                })
+                    })
+                    .and_then(|(it, client)| {
+                        match *it {
+                            Some(_) => {
+                                Ok(Loop::Continue((client, schema_it)))
+                            },
+                            None => {
+                                Ok(Loop::Break((client, None)))
+                            }
+                        }
+                    })
             })
             .map(|_x: (tokio_postgres::Client, Option<&str>)| {
             })
-                /*match schema_it {
-                    Some(command) => client.prepare(command)
-                        .map(|statement| (client, statement))
-                        .and_then(|(client, statement)| {
-                            client.execute(&statement, &[])
-                                .map(|row_count| {
-                                    assert_eq!(row_count, 0);
-                                    client
-                                })
-                        })
-                        .and_then(|client| {
-                            Loop::Continue((client, schema_it.next())
-                        }),
-                    None => Either::B(Loop::Break((client, None))),
-                }*/
-
-
-            /*ok(client
-                .simple_query("
-                    CREATE TABLE maps (
-                        floor_id varchar(255) PRIMARY KEY,
-                        name varchar(255),
-                        blueprint bytea
-                    );
-                    CREATE TABLE users (
-                        name varchar(255),
-                        mac_address macaddr
-                    );
-                    CREATE TABLE beacons (
-                        mac_address macaddr PRIMARY KEY,
-                        name varchar(255),
-                        map_id INTEGER REFERENCES maps(id)
-                    );
-                ")
-                .map(|stream| {
-                    println!("hello hello");
-                    match stream {
-                        tokio_postgres::SimpleQueryMessage::CommandComplete(b) => { println!("stream is {:?}", b); },
-                        _ => {},
-                    }
-                })
-                .map_err(|e| {
-                    eprintln!("db error: {}", e);
-                })
-            )*/
-
-                //ok(client)
-            //ok(())
         })
-        .map(|_hello| {
-            //let () = hello;
-            //println!("hello {:?}", hello);
+        .map(|_x| {
         })
         .map_err(|e| {
             eprintln!("db error: {}", e);
