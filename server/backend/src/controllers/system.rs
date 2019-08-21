@@ -1,10 +1,10 @@
 use tokio_postgres::{ NoTls, error::SqlState, };
-use futures::{ Future, future::ok, future::Either, };
+use futures::{ Future, future::Loop, future::ok, future::Either, future::loop_fn, };
 
 fn connect_db(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
     tokio_postgres::connect(params, NoTls)
         .map(|(client, connection)| {
-            let connection = connection.map_err(|e| eprintln!("db connection error: {}", e));
+            let connection = connection.map_err(|e| eprintln!("connect db error: {}", e));
             tokio::spawn(connection);
             client
         })
@@ -56,44 +56,47 @@ fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
         })
 }
 
+const SCHEMA: [&str; 3] = [
+    "CREATE TABLE maps (
+        floor_id varchar(255) PRIMARY KEY,
+        name varchar(255),
+        blueprint bytea
+    );",
+    "CREATE TABLE users (
+        name varchar(255),
+        mac_address macaddr
+    );",
+    " CREATE TABLE beacons (
+        mac_address macaddr PRIMARY KEY,
+        name varchar(255),
+        map_id INTEGER REFERENCES maps(id)
+    );",
+];
 pub fn create_db() {
     println!("creating db");
     let fut = ensure_ak()
         .and_then(|_| {
             connect_db("dbname=ak host=localhost password=postgres user=postgres")
         })
-        .and_then(|mut _client| {
-            let _schema = vec![
-                "CREATE TABLE maps (
-                    floor_id varchar(255) PRIMARY KEY,
-                    name varchar(255),
-                    blueprint bytea
-                );",
-                "CREATE TABLE users (
-                    name varchar(255),
-                    mac_address macaddr
-                );",
-                " CREATE TABLE beacons (
-                    mac_address macaddr PRIMARY KEY,
-                    name varchar(255),
-                    map_id INTEGER REFERENCES maps(id)
-                );",
-            ];
+        .and_then(|client| {
 
-           /* loop_fn((client, schema.iter()), |(mut client, schema_it)| {
-                ok(())
-                    .and_then(|_| {
-                        match schema_it.next() {
-                            Some(command) => {
-                                println!("looping {}", command);
-                                Ok(Loop::Continue((client, schema_it)))
-                            },
-                            None => {
-                                println!("stop looping");
-                                Ok(Loop::Break((client, None)))
-                            }
+           loop_fn((client, SCHEMA.iter()), |(client, mut schema_it)| {
+                println!("loopin dooping");
+                ok::<_, tokio_postgres::Error>(()).and_then(|_| {
+                    match schema_it.next() {
+                        Some(command) => {
+                            println!("looping {}", command);
+                            Ok(Loop::Continue((client, schema_it)))
+                        },
+                        None => {
+                            println!("stop looping");
+                            Ok(Loop::Break((client, None)))
                         }
-                    })
+                    }
+                })
+            })
+            .map(|_x: (tokio_postgres::Client, Option<&str>)| {
+            })
                 /*match schema_it {
                     Some(command) => client.prepare(command)
                         .map(|statement| (client, statement))
@@ -109,11 +112,8 @@ pub fn create_db() {
                         }),
                     None => Either::B(Loop::Break((client, None))),
                 }*/
-            })
-            .map(|x: (tokio_postgres::Client, std::slice::Iter<_>)| {
-            })
 
-            */
+
             /*ok(client
                 .simple_query("
                     CREATE TABLE maps (
@@ -144,7 +144,7 @@ pub fn create_db() {
             )*/
 
                 //ok(client)
-            ok(())
+            //ok(())
         })
         .map(|_hello| {
             //let () = hello;
