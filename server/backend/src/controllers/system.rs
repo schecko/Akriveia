@@ -58,18 +58,28 @@ fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
 
 const SCHEMA: [&str; 3] = [
     "CREATE TABLE maps (
-        floor_id varchar(255) PRIMARY KEY,
-        name varchar(255),
-        blueprint bytea
+        floor_id VARCHAR(255) PRIMARY KEY,
+        blueprint BYTEA,
+        name TEXT
     );",
     "CREATE TABLE users (
-        name varchar(255),
-        mac_address macaddr
+        id INTEGER PRIMARY KEY,
+        coordinates real[2],
+        emergency_contact INTEGER REFERENCES users(id),
+        employee_id VARCHAR(255),
+        id_tag INTEGER,
+        last_seen timestamp,
+        mac_address MACADDR,
+        map_id VARCHAR(255) REFERENCES maps(floor_id),
+        name VARCHAR(255),
+        note TEXT,
+        phone_number VARCHAR(20)
     );",
     " CREATE TABLE beacons (
-        mac_address macaddr PRIMARY KEY,
-        name varchar(255),
-        map_id INTEGER REFERENCES maps(floor_id)
+        mac_address MACADDR PRIMARY KEY,
+        coordinates real[2],
+        map_id VARCHAR(255) REFERENCES maps(floor_id),
+        name VARCHAR(255)
     );",
 ];
 
@@ -81,7 +91,6 @@ pub fn create_db() {
         })
         .and_then(|client| {
            loop_fn((client, SCHEMA.iter()), |(mut client, mut schema_it)| {
-                println!("loopin dooping");
                 let it = Box::new(schema_it.next());
                 ok::<_, tokio_postgres::Error>(it)
                     .and_then(|it| {
