@@ -1,16 +1,20 @@
 use tokio_postgres::{ NoTls, error::SqlState, };
 use futures::{ Future, future::ok, future::Either, };
 
+fn connect_db(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+    tokio_postgres::connect(params, NoTls)
+        .map(|(client, connection)| {
+            let connection = connection.map_err(|e| eprintln!("db connection error: {}", e));
+            tokio::spawn(connection);
+            client
+        })
+}
+
 fn ensure_ak() -> impl Future<Item=(), Error=tokio_postgres::Error> {
     tokio_postgres::connect("dbname=ak host=localhost password=postgres user=postgres", NoTls)
         .then(|res| {
             // make a connection to the default database to create the ak db
-            let connect = tokio_postgres::connect("host=localhost password=postgres user=postgres", NoTls)
-                .map(|(client, connection)| {
-                    let connection = connection.map_err(|e| eprintln!("db connection error: {}", e));
-                    tokio::spawn(connection);
-                    client
-                });
+            let connect = connect_db("host=localhost password=postgres user=postgres");
 
             // check if the ak connection was successful, and delete ak if necessary
             match &res {
@@ -80,7 +84,6 @@ pub fn create_db() {
                     map_id INTEGER REFERENCES maps(id)
                 );",
             ];
-            ensure_ak();
 
            /* loop_fn((client, schema.iter()), |(mut client, schema_it)| {
                 ok(())
