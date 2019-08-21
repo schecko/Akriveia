@@ -11,6 +11,7 @@ fn connect_db(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=to
 }
 
 // dont bother undoing table creations, the entire ak database is dropped and recreated.
+// NOTE: this should be in the reverse order of the schema
 const UNDO_SCHEMA: [&str; 4] = [
     "DROP USER responder",
     "DROP USER admin",
