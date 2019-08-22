@@ -11,6 +11,7 @@ use yew::format::{ Nothing, Json };
 use std::collections::BTreeMap;
 use super::value_button::ValueButton;
 use na;
+use common::*;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -182,7 +183,7 @@ impl Component for MapViewComponent {
             Msg::RequestRealtimeUser => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    common::REALTIME_USERS,
+                    &users_realtime_url(),
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );

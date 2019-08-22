@@ -1,18 +1,39 @@
 use actix_web::{ Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
-use futures::{ future::ok, Future, };
+use futures::{ future::Either, future::ok, Future, };
 use std::sync::*;
 use crate::beacon_manager::{ BeaconCommand, GetDiagnosticData, };
 use common::*;
 
-pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> HttpResponse {
+pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     if payload.emergency {
-        s.beacon_manager.do_send(BeaconCommand::StartEmergency);
+        Either::A(s.beacon_manager
+            .send(BeaconCommand::StartEmergency)
+            .then(|res| {
+                match res {
+                    Ok(Ok(data)) => {
+                        ok(HttpResponse::Ok().json(data))
+                    },
+                    _ => {
+                        ok(HttpResponse::BadRequest().finish())
+                    }
+            }})
+        )
     } else {
-        s.beacon_manager.do_send(BeaconCommand::EndEmergency);
+        Either::B(s.beacon_manager
+            .send(BeaconCommand::EndEmergency)
+            .then(|res| {
+                match res {
+                    Ok(Ok(data)) => {
+                        ok(HttpResponse::Ok().json(data))
+                    },
+                    _ => {
+                        ok(HttpResponse::BadRequest().finish())
+                    }
+            }})
+        )
     }
-    HttpResponse::Ok().finish()
 }
 
 pub fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {

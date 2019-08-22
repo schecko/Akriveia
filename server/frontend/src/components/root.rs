@@ -31,13 +31,11 @@ pub enum Msg {
     ChangePage(Page),
 
     // requests
-    RequestEmergency,
-    RequestEndEmergency,
+    RequestPostEmergency(bool),
     RequestGetEmergency,
 
     // responses
-    ResponseEmergency(util::Response<()>),
-    ResponseEndEmergency(util::Response<()>),
+    ResponsePostEmergency(util::Response<common::SystemCommandResponse>),
     ResponseGetEmergency(util::Response<common::SystemCommandResponse>),
 }
 
@@ -67,22 +65,13 @@ impl Component for RootComponent {
             },
 
             // requests
-            Msg::RequestEmergency => {
+            Msg::RequestPostEmergency(is_emergency) => {
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &system_emergency_url(),
-                    SystemCommandResponse::new(true),
+                    SystemCommandResponse::new(is_emergency),
                     self.link,
-                    Msg::ResponseEmergency
-                );
-            },
-            Msg::RequestEndEmergency => {
-                self.fetch_task = post_request!(
-                    self.fetch_service,
-                    &system_emergency_url(),
-                    SystemCommandResponse::new(false),
-                    self.link,
-                    Msg::ResponseEndEmergency
+                    Msg::ResponsePostEmergency
                 );
             },
             Msg::RequestGetEmergency => {
@@ -95,11 +84,18 @@ impl Component for RootComponent {
             },
 
             // responses
-            Msg::ResponseEmergency(_response) => {
-                self.emergency = true;
-            },
-            Msg::ResponseEndEmergency(_response) => {
-                self.emergency = false;
+            Msg::ResponsePostEmergency(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(common::SystemCommandResponse { emergency }) => {
+                            self.emergency = emergency;
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to post start emergency");
+                }
             },
             Msg::ResponseGetEmergency(response) => {
                 let (meta, Json(body)) = response.into_parts();
@@ -111,7 +107,7 @@ impl Component for RootComponent {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to request diagnostics");
+                    Log!("response - failed to request emergency status");
                 }
             },
         }
@@ -131,8 +127,8 @@ impl Renderable<RootComponent> for RootComponent {
                         <div>
                             <EmergencyButtons
                                 is_emergency={self.emergency},
-                                on_emergency=|_| Msg::RequestEmergency,
-                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                                on_emergency=|_| Msg::RequestPostEmergency(true),
+                                on_end_emergency=|_| Msg::RequestPostEmergency(false),
                             />
                         </div>
                         <Diagnostics
@@ -158,8 +154,8 @@ impl Renderable<RootComponent> for RootComponent {
                         <div>
                             <EmergencyButtons
                                 is_emergency={self.emergency},
-                                on_emergency=|_| Msg::RequestEmergency,
-                                on_end_emergency=|_| Msg::RequestEndEmergency,
+                                on_emergency=|_| Msg::RequestPostEmergency(true),
+                                on_end_emergency=|_| Msg::RequestPostEmergency(false),
                             />
                         </div>
                         <MapViewComponent/>

@@ -17,8 +17,8 @@ macro_rules! Log {
 macro_rules! post_request {
     ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
         match Request::post($url)
-            .header("Content-Type", "text/html")
-            .header("Accept", "text/html")
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .body(Json(&$request))
         {
             Ok(req) => {
@@ -33,8 +33,8 @@ macro_rules! post_request {
     };
     ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
         match Request::post($url)
-            .header("Content-Type", "text/html")
-            .header("Accept", "text/html")
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .body(Json(&$request))
         {
             Ok(req) => Some($fetch_service.fetch(req, $link.send_back($msg))),
@@ -46,8 +46,8 @@ macro_rules! post_request {
 macro_rules! get_request {
     ($fetch_service:expr, $url:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
         match Request::get($url)
-            .header("Content-Type", "text/html")
-            .header("Accept", "text/html")
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .body(Nothing)
         {
             Ok(req) => {
@@ -62,8 +62,8 @@ macro_rules! get_request {
     };
     ($fetch_service:expr, $url:expr, $link:expr, $msg:expr) => {
         match Request::get($url)
-            .header("Content-Type", "text/html")
-            .header("Accept", "text/html")
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .body(Nothing)
         {
             Ok(req) => Some($fetch_service.fetch(req, $link.send_back($msg))),

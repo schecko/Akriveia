@@ -4,12 +4,6 @@ extern crate nalgebra as na;
 use serde_derive::{ Deserialize, Serialize };
 use std::time::{ SystemTime, UNIX_EPOCH };
 
-pub const EMERGENCY: &str = "/emergency";
-pub const END_EMERGENCY: &str = "/endemergency";
-pub const DIAGNOSTICS: &str = "/diagnostics";
-pub const REALTIME_USERS: &str = "/realtime_users";
-pub const BEACON: &str = "/beacon";
-
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
 }
@@ -22,6 +16,9 @@ pub fn user_url(id: &str) -> String {
 }
 pub fn users_url() -> String {
     return String::from("/users");
+}
+pub fn users_realtime_url() -> String {
+    return String::from("/users/realtime");
 }
 
 pub fn map_url(id: &str) -> String {

@@ -29,7 +29,7 @@ use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
-use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
+use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use data_processor::*;
 use std::env;
@@ -73,7 +73,17 @@ fn main() -> std::io::Result<()> {
     // start the webserver
     HttpServer::new(move || {
         App::new()
-            .data(web::JsonConfig::default().limit(4096))
+            .data(
+                web::JsonConfig::default()
+                    .limit(4096)
+                    .error_handler(|err, req| {
+                        println!("Failed to parse request body {:?},\n {:?}", err, req);
+                        error::InternalError::from_response(
+                            err,
+                            HttpResponse::BadRequest().finish()
+                        ).into()
+                    })
+            )
             .register_data(state.clone())
             .wrap(middleware::DefaultHeaders::new().header("X-Version", "0.2"))
             .wrap(middleware::Compress::default())
@@ -120,7 +130,7 @@ fn main() -> std::io::Result<()> {
                 web::resource(&system_diagnostics_url())
                     .route(web::get().to_async(system_controller::diagnostics))
             )
-            .service(web::resource(common::REALTIME_USERS).to_async(user_controller::realtime_users))
+            .service(web::resource(&users_realtime_url()).to_async(user_controller::realtime_users))
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))
             .default_service(web::resource("").to(default_route))

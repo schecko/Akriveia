@@ -7,6 +7,7 @@ use std::time::Duration;
 use yew::format::{ Nothing, Json };
 use std::collections::{ VecDeque, BTreeSet };
 use super::value_button::ValueButton;
+use common::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -88,7 +89,7 @@ impl Component for Diagnostics {
             Msg::RequestDiagnostics => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    common::DIAGNOSTICS,
+                    &system_diagnostics_url(),
                     self.self_link,
                     Msg::ResponseDiagnostics
                 );
@@ -124,6 +125,7 @@ impl Component for Diagnostics {
             self.start_service();
         } else {
             self.end_service();
+            self.diagnostic_data = VecDeque::new();
         }
 
         true
