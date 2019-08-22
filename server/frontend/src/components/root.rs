@@ -1,5 +1,5 @@
 
-use common;
+use common::*;
 use crate::util;
 use yew::format::{ Nothing, Json };
 use yew::services::fetch::{ FetchService, FetchTask, Request, };
@@ -70,8 +70,8 @@ impl Component for RootComponent {
             Msg::RequestEmergency => {
                 self.fetch_task = post_request!(
                     self.fetch_service,
-                    common::EMERGENCY,
-                    (),
+                    &system_emergency_url(),
+                    SystemCommandResponse::new(true),
                     self.link,
                     Msg::ResponseEmergency
                 );
@@ -79,8 +79,8 @@ impl Component for RootComponent {
             Msg::RequestEndEmergency => {
                 self.fetch_task = post_request!(
                     self.fetch_service,
-                    common::END_EMERGENCY,
-                    (),
+                    &system_emergency_url(),
+                    SystemCommandResponse::new(false),
                     self.link,
                     Msg::ResponseEndEmergency
                 );
@@ -88,7 +88,7 @@ impl Component for RootComponent {
             Msg::RequestGetEmergency => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    common::EMERGENCY,
+                    &system_emergency_url(),
                     self.link,
                     Msg::ResponseGetEmergency
                 );

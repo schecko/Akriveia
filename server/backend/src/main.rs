@@ -19,7 +19,7 @@ mod models;
 
 use controllers::beacon_controller;
 use controllers::map_controller;
-//use controllers::system_controller;
+use controllers::system_controller;
 use controllers::user_controller;
 
 //use models::beacon;
@@ -29,10 +29,9 @@ use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
-use actix_web::{ middleware, Error, web, App, HttpRequest, HttpResponse, HttpServer, };
+use actix_web::{ middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use data_processor::*;
-use futures::{ future::ok, Future, };
 use std::env;
 use std::sync::*;
 use common::*;
@@ -58,48 +57,6 @@ impl AkriveiaState {
     }
 }
 
-fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> HttpResponse {
-    let s = state.lock().unwrap();
-    s.beacon_manager.do_send(BeaconCommand::StartEmergency);
-    HttpResponse::Ok().finish()
-}
-
-fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let s = state.lock().unwrap();
-    s.beacon_manager
-        .send(BeaconCommand::GetEmergency)
-        .then(|res| {
-            match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
-                },
-                _ => {
-                    ok(HttpResponse::BadRequest().finish())
-                }
-        }})
-}
-
-fn post_end_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> HttpResponse {
-    let s = state.lock().unwrap();
-    s.beacon_manager.do_send(BeaconCommand::EndEmergency);
-    HttpResponse::Ok().finish()
-}
-
-fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let s = state.lock().unwrap();
-    s.beacon_manager
-        .send(GetDiagnosticData)
-        .then(|res| {
-            match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
-                },
-                _ => {
-                    ok(HttpResponse::BadRequest().finish())
-                }
-        }})
-}
-
 fn default_route(req: HttpRequest) -> HttpResponse {
     println!("default route called");
     println!("request was: {:?}", req);
@@ -116,15 +73,11 @@ fn main() -> std::io::Result<()> {
     // start the webserver
     HttpServer::new(move || {
         App::new()
+            .data(web::JsonConfig::default().limit(4096))
             .register_data(state.clone())
             .wrap(middleware::DefaultHeaders::new().header("X-Version", "0.2"))
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-            .service(
-                web::resource(common::EMERGENCY)
-                    .route(web::get().to_async(get_emergency))
-                    .route(web::post().to(post_emergency))
-            )
             .service(
                 web::resource(&beacons_url())
                     .route(web::get().to_async(beacon_controller::get_beacons))
@@ -158,8 +111,15 @@ fn main() -> std::io::Result<()> {
                     .route(web::post().to_async(map_controller::post_map))
                     .route(web::delete().to_async(map_controller::delete_map))
             )
-            .service(web::resource(common::END_EMERGENCY).to(post_end_emergency))
-            .service(web::resource(common::DIAGNOSTICS).to_async(diagnostics))
+            .service(
+                web::resource(&system_emergency_url())
+                    .route(web::get().to_async(system_controller::get_emergency))
+                    .route(web::post().to_async(system_controller::post_emergency))
+            )
+            .service(
+                web::resource(&system_diagnostics_url())
+                    .route(web::get().to_async(system_controller::diagnostics))
+            )
             .service(web::resource(common::REALTIME_USERS).to_async(user_controller::realtime_users))
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))
