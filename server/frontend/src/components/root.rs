@@ -158,7 +158,9 @@ impl Renderable<RootComponent> for RootComponent {
                                 on_end_emergency=|_| Msg::RequestPostEmergency(false),
                             />
                         </div>
-                        <MapViewComponent/>
+                        <MapViewComponent
+                            emergency={self.emergency}
+                        />
                     </div>
                 }
             }
