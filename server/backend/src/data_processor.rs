@@ -185,15 +185,9 @@ impl Handler<DPMessage> for DataProcessor {
                 }
             },
             DPMessage::ResetData() => {
-                // Does this even work?
-                // Is there any other sort of permission that is needed?
-                let empty = self.tag_hash.is_empty();
-                println!("Hash map is empty: {}", empty);
-                if self.tag_hash.is_empty() != true {
-                    self.tag_hash.clear();
-                }
-                // Does users have to be cleared too?
-                
+                // clears all tag or user data    
+                self.tag_hash.clear();
+                self.users.clear();
             },
         }
 
