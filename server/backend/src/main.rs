@@ -15,6 +15,7 @@ mod beacon_serial;
 mod beacon_udp;
 mod controllers;
 mod data_processor;
+mod db_utils;
 mod models;
 
 use controllers::beacon_controller;

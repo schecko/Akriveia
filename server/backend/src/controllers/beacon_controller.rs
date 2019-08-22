@@ -1,17 +1,34 @@
-use actix_web::{ Error, web, HttpRequest, HttpResponse, };
+use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
-use futures::{ future::ok, Future, };
+use futures::{ future::ok, Future, future::Either, };
 use std::sync::*;
+use crate::models::beacon;
+use crate::db_utils;
 
 pub fn get_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let _ = state.lock().unwrap();
     let id = req.match_info().get("id");
     match id {
         Some(beacon_id) => {
-            ok(HttpResponse::Ok().json(common::Beacon::new(beacon_id.to_string())))
+            let bid = String::from(beacon_id);
+            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                .and_then(move |client| {
+                    beacon::get_beacon(client, bid)
+                })
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
+                .and_then(|beacon| {
+                    match beacon.1 {
+                        Some(b) => HttpResponse::Ok().json(b),
+                        None => HttpResponse::NotFound().finish(),
+                    }
+                })
+            )
         },
         None => {
-            ok(HttpResponse::NotFound().finish())
+            Either::B(ok(HttpResponse::NotFound().finish()))
         }
     }
 }

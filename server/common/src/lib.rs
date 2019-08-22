@@ -120,28 +120,42 @@ impl User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub mac: String,
+    pub mac_address: String,
+    pub coordinates: na::Vector2<f64>,
+    pub map_id: String,
     pub name: String,
+    pub note: String,
 }
 
 impl Beacon {
     pub fn new(mac: String) -> Beacon {
         Beacon {
-            mac,
+            mac_address: mac,
+            coordinates: na::Vector2::new(0.0, 0.0),
+            map_id: "unknown".to_string(),
             name: "unknown".to_string(),
+            note: "".to_string(),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
+    pub floor_id: String,
+    pub blueprint: Vec<u8>,
+    pub blueprint_bounds: na::Vector2<i32>,
     pub name: String,
+    pub scale: f64,
 }
 
 impl Map {
-    pub fn new() -> Map {
+    pub fn new(floor_id: String) -> Map {
         Map {
+            floor_id,
+            blueprint: Vec::new(),
+            blueprint_bounds: na::Vector2::new(0, 0),
             name: "unknown".to_string(),
+            scale: 1.0,
         }
     }
 }
