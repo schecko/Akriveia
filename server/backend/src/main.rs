@@ -71,6 +71,15 @@ fn main() -> std::io::Result<()> {
     system::create_db();
     let state = AkriveiaState::new();
 
+    let insert = db_utils::default_connect()
+        .and_then(|client| {
+            models::beacon::insert_beacon(client, common::Beacon::new("00:00:00:00:00:00".to_string()))
+        })
+        .map(|_| {})
+        .map_err(|_| {});
+
+    tokio::run(insert);
+
     // start the webserver
     HttpServer::new(move || {
         App::new()

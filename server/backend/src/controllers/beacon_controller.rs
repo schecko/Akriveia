@@ -13,14 +13,14 @@ pub fn get_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> i
             let bid = String::from(beacon_id);
             Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
                 .and_then(move |client| {
-                    beacon::get_beacon(client, bid)
+                    beacon::select_beacon(client, bid)
                 })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
                     error::ErrorBadRequest(postgres_err)
                 })
-                .and_then(|beacon| {
-                    match beacon.1 {
+                .and_then(|(_client, beacon)| {
+                    match beacon {
                         Some(b) => HttpResponse::Ok().json(b),
                         None => HttpResponse::NotFound().finish(),
                     }
@@ -39,17 +39,21 @@ pub fn get_beacons(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) ->
 }
 
 // new beacon
-pub fn post_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_beacon(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
     let _ = state.lock().unwrap();
-    let id = req.match_info().get("id");
-    match id {
-        Some(beacon_id) => {
-            ok(HttpResponse::Ok().json(common::Beacon::new(beacon_id.to_string())))
-        },
-        None => {
-            ok(HttpResponse::NotFound().finish())
-        }
-    }
+    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+        .and_then(move |client| {
+            beacon::insert_beacon(client, payload.0)
+        })
+        .map_err(|postgres_err| {
+            error::ErrorBadRequest(postgres_err)
+        })
+        .and_then(|(_client, beacon)| {
+            match beacon {
+                Some(b) => HttpResponse::Ok().json(b),
+                None => HttpResponse::NotFound().finish(),
+            }
+        })
 }
 
 // update beacon
