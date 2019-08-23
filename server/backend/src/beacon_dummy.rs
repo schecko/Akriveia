@@ -7,6 +7,7 @@ use rand::Rng;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use common::MacAddress;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const NUM_USERS: u32 = 5;
@@ -52,9 +53,9 @@ pub fn dummy_beacon_thread(dummy_id: u32,
                 .do_send( TagDataMessage {
                     data: common::TagData {
                         tag_name: format!("user_{}", user_number),
-                        tag_mac: format!("tag_mac_{}", user_number),
+                        tag_mac: MacAddress::from_bytes(&[0, 0, 0, 0, 0, user_number as u8]).unwrap(),
                         tag_distance: common::DataType::RSSI(user_distance),
-                        beacon_mac: format!("beacon_mac_{}", dummy_id),
+                        beacon_mac: MacAddress::from_bytes(&[0, 0, 0, 0, 0, dummy_id as u8]).unwrap(),
                     }
                 });
             thread::sleep(MESSAGE_INTERVAL);

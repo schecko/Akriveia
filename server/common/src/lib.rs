@@ -1,8 +1,10 @@
 extern crate serde_derive;
 extern crate nalgebra as na;
+extern crate eui48;
 
 use serde_derive::{ Deserialize, Serialize };
 use std::time::{ SystemTime, UNIX_EPOCH };
+pub use eui48::MacAddress;
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
@@ -69,9 +71,9 @@ impl SystemCommandResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
-    pub beacon_mac: String,
+    pub beacon_mac: MacAddress,
     pub tag_distance: DataType,
-    pub tag_mac: String,
+    pub tag_mac: MacAddress,
     pub tag_name: String,
 }
 
@@ -99,20 +101,22 @@ pub struct UserBeaconSourceLocations {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     //floor: String,
+    pub id: u32,
     pub last_active: SystemTime,
     pub location: na::Vector2<f64>,
-    pub tag_mac: String,
+    pub tag_mac: MacAddress,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
 }
 
 impl User {
-    pub fn new(tag_mac: String) -> User {
+    pub fn new() -> User {
         User {
+            id: 0xFFFFFFFF,
             last_active: UNIX_EPOCH,
-            location: na::Vector2::new(0., 0.),
-            tag_mac,
+            location: na::Vector2::new(0.0, 0.0),
+            tag_mac: MacAddress::nil(),
             beacon_sources: Vec::new(),
         }
     }
@@ -120,7 +124,8 @@ impl User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub mac_address: String,
+    pub id: u32,
+    pub mac_address: MacAddress,
     pub coordinates: na::Vector2<f64>,
     pub map_id: String,
     pub name: String,
@@ -128,9 +133,10 @@ pub struct Beacon {
 }
 
 impl Beacon {
-    pub fn new(mac: String) -> Beacon {
+    pub fn new() -> Beacon {
         Beacon {
-            mac_address: mac,
+            id: 0xFFFFFFFF,
+            mac_address: MacAddress::nil(),
             coordinates: na::Vector2::new(0.0, 0.0),
             map_id: "unknown".to_string(),
             name: "unknown".to_string(),

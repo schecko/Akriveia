@@ -31,7 +31,7 @@ const SCHEMA: [&str; 22] = [
 
     );",
     "CREATE TABLE runtime.users (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         coordinates REAL[2],
         emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
@@ -45,14 +45,16 @@ const SCHEMA: [&str; 22] = [
         type INTEGER
     );",
     "CREATE TABLE runtime.beacons (
-        mac_address MACADDR PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
+        mac_address MACADDR,
         coordinates REAL[2],
         map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
         name VARCHAR(255),
         note VARCHAR(1024)
     );",
     "CREATE TABLE system.networks (
-        mac_address MACADDR PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
+        mac_address MACADDR,
         host_beacon_udp BOOLEAN,
         host_webserver BOOLEAN,
         ip INET,
@@ -182,9 +184,9 @@ fn loop_db_commands(client: tokio_postgres::Client, commands: Vec<&str>, ignore_
     })
 }
 
-pub fn create_db() {
+pub fn create_db() -> impl Future<Item=(), Error=()> {
     println!("creating db");
-    let fut = ensure_ak()
+    ensure_ak()
         .and_then(|_| {
             connect_db("dbname=ak host=localhost password=postgres user=postgres")
         })
@@ -199,7 +201,5 @@ pub fn create_db() {
         })
         .map_err(|e| {
             eprintln!("db error: {}", e);
-        });
-
-        actix::spawn(fut);
+        })
 }

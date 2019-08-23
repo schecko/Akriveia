@@ -14,7 +14,7 @@ const MAX_BUFFER_SIZE: usize = 0x50;
 
 pub enum Msg {
     ClearBuffer,
-    ToggleBeaconSelected(String),
+    ToggleBeaconSelected(MacAddress),
 
     RequestDiagnostics,
 
@@ -29,8 +29,8 @@ pub struct Diagnostics {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Diagnostics>,
-    active_beacons: BTreeSet<String>,
-    selected_beacons: BTreeSet<String>,
+    active_beacons: BTreeSet<MacAddress>,
+    selected_beacons: BTreeSet<MacAddress>,
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -139,9 +139,9 @@ impl Renderable<Diagnostics> for Diagnostics {
                 let set_border = self.selected_beacons.contains(b_mac);
                 html! {
                     <ValueButton
-                        on_click=|value| Msg::ToggleBeaconSelected(value),
+                        on_click=|value: String| Msg::ToggleBeaconSelected(MacAddress::parse_str(&value).unwrap()),
                         border=set_border,
-                        value={b_mac.clone()}
+                        value={b_mac.to_hex_string()}
                     />
                 }
             });

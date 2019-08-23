@@ -68,15 +68,23 @@ fn main() -> std::io::Result<()> {
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
-    system::create_db();
+    let create_db_fut = system::create_db();
+    // intentionally block all further execution
+    tokio::run(create_db_fut);
+
     let state = AkriveiaState::new();
 
     let insert = db_utils::default_connect()
         .and_then(|client| {
-            models::beacon::insert_beacon(client, common::Beacon::new("00:00:00:00:00:00".to_string()))
+            println!("inserting");
+            models::beacon::insert_beacon(client, common::Beacon::new())
         })
-        .map(|_| {})
-        .map_err(|_| {});
+        .map(|result_beacon| {
+            println!("result is : {:?}", result_beacon.1);
+        })
+        .map_err(|e| {
+            println!("db error {:?}", e);
+        });
 
     tokio::run(insert);
 
