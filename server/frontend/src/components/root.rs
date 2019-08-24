@@ -7,6 +7,7 @@ use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
+use super::beacon_list::BeaconList;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -14,6 +15,7 @@ pub enum Page {
     FrontPage,
     Login,
     Map,
+    BeaconList,
 }
 
 pub struct RootComponent {
@@ -164,6 +166,15 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::BeaconList => {
+               html! {
+                    <div>
+                        <h>{ "BeaconList" }</h>
+                        { self.navigation() }
+                        <BeaconList/>
+                    </div>
+                }
+            }
             Page::FrontPage => {
                 html! {
                     <div>
@@ -183,6 +194,7 @@ impl RootComponent {
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "BeaconList" }</button>
             </div>
         }
 
