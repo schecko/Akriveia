@@ -5,24 +5,26 @@ pub enum Msg {
     Click,
 }
 
-pub struct ValueButton {
-    pub value: String,
-    pub on_click: Option<Callback<String>>,
+pub struct ValueButton<T> {
+    pub value: T,
+    pub on_click: Option<Callback<T>>,
     pub disabled: bool,
     pub border: bool,
 }
 
 #[derive(Clone, PartialEq, Default)]
-pub struct ValueButtonProps {
-    pub value: String,
-    pub on_click: Option<Callback<String>>,
+pub struct ValueButtonProps<T> {
+    pub value: T,
+    pub on_click: Option<Callback<T>>,
     pub disabled: bool,
     pub border: bool,
 }
 
-impl Component for ValueButton {
+impl <T: 'static> Component for ValueButton<T>
+    where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
+{
     type Message = Msg;
-    type Properties = ValueButtonProps;
+    type Properties = ValueButtonProps<T>;
 
     fn create(props: Self::Properties, mut _link: ComponentLink<Self>) -> Self {
         ValueButton {
@@ -51,7 +53,9 @@ impl Component for ValueButton {
     }
 }
 
-impl Renderable<ValueButton> for ValueButton {
+impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
+    where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
+{
     fn view(&self) -> Html<Self> {
         let cls = if self.border { "bold_font" } else { "" };
 

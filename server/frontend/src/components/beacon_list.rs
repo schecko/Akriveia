@@ -91,42 +91,36 @@ impl Component for BeaconList {
 
 impl Renderable<BeaconList> for BeaconList {
     fn view(&self) -> Html<Self> {
-        if self.list.len() > 0 {
-            html! {
-                <>
-                    <table>
-                    <tr>
-                        <td>{ "mac" }</td>
-                        <td>{ "location" }</td>
-                        <td>{ "floor" }</td>
-                        <td>{ "name" }</td>
-                        <td>{ "note" }</td>
-                    </tr>
-                    {
-                        for self.list.iter().map(|row| {
-                            let map_id = match &row.map_id {
-                                Some(id) => id,
-                                None => "",
-                            };
+        html! {
+            <>
+                <table>
+                <tr>
+                    <td>{ "mac" }</td>
+                    <td>{ "coordinates" }</td>
+                    <td>{ "floor" }</td>
+                    <td>{ "name" }</td>
+                    <td>{ "note" }</td>
+                </tr>
+                {
+                    for self.list.iter().map(|row| {
+                        let map_id = match &row.map_id {
+                            Some(id) => id,
+                            None => "",
+                        };
 
-                            html! {
-                            <tr>
-                                <td>{ &row.mac_address.to_hex_string() }</td>
-                                <td>{ format!("{} {}", &row.coordinates.x, &row.coordinates.y) }</td>
-                                <td>{ map_id }</td>
-                                <td>{ &row.name }</td>
-                                <td>{ &row.note }</td>
-                            </tr>
-                            }
-                        })
-                    }
-                    </table>
-                </>
-            }
-        } else {
-            html! {
-                <p>{ "no beacons" }</p>
-            }
+                        html! {
+                        <tr>
+                            <td>{ &row.mac_address.to_hex_string() }</td>
+                            <td>{ format!("{},{}", &row.coordinates.x, &row.coordinates.y) }</td>
+                            <td>{ map_id }</td>
+                            <td>{ &row.name }</td>
+                            <td>{ &row.note }</td>
+                        </tr>
+                        }
+                    })
+                }
+                </table>
+            </>
         }
     }
 }

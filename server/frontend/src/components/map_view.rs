@@ -261,7 +261,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 None => false,
             };
             html! {
-                <ValueButton
+                <ValueButton<String>
                     on_click=|value: String| Msg::ViewDistance(MacAddress::parse_str(&value).unwrap()),
                     border=set_border,
                     value={user_mac.to_hex_string()}

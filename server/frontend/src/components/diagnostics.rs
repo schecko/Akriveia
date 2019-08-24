@@ -138,7 +138,7 @@ impl Renderable<Diagnostics> for Diagnostics {
             let mut beacon_selections = self.active_beacons.iter().map(|b_mac| {
                 let set_border = self.selected_beacons.contains(b_mac);
                 html! {
-                    <ValueButton
+                    <ValueButton<String>
                         on_click=|value: String| Msg::ToggleBeaconSelected(MacAddress::parse_str(&value).unwrap()),
                         border=set_border,
                         value={b_mac.to_hex_string()}
