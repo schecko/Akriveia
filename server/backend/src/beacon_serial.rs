@@ -22,7 +22,7 @@ pub struct BeaconSerialConn {
     pub manager: Recipient<TagDataMessage>,
 }
 
-fn send_command(command: String, port: &mut Box<SerialPort>, attempts: u64) -> bool {
+fn send_command(command: String, port: &mut Box<dyn SerialPort>, attempts: u64) -> bool {
     for i in 0.. {
         if let Ok(_) = port.write(command.as_bytes()) {};
 
