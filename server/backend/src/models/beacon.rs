@@ -8,18 +8,25 @@ use tokio_postgres::types::Type;
 fn row_to_beacon(row: Option<Row>) -> Option<Beacon> {
     match row {
         Some(data) => {
-            let coordinates: Vec<f64> = data.get(2);
-            for column in data.columns().iter() {
+            let mut b = Beacon::new();
+
+            for (i, column) in data.columns().iter().enumerate() {
                 println!("col {:?}", column);
+                match column.name() {
+                    "id" => b.id = data.get(i),
+                    "mac_address" => b.mac_address = data.get(i),
+                    "coordinates" => {
+                        let coordinates: Vec<f64> = data.get(i);
+                        b.coordinates = na::Vector2::new(coordinates[0], coordinates[1]);
+                    }
+                    "map_id" => b.map_id = data.get(i),
+                    "name" => b.name = data.get(i),
+                    "note" => b.note = data.get(i),
+                    unhandled => { panic!("unhandled beacon column {}", unhandled); },
+                }
             }
-            Some(Beacon {
-                id: data.get(0),
-                mac_address: data.get(1),
-                coordinates: na::Vector2::new(coordinates[0], coordinates[1]),
-                map_id: data.get(3),
-                name: data.get(4),
-                note: data.get(5),
-            })
+
+            Some(b)
         },
         None => None,
     }
