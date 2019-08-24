@@ -9,9 +9,7 @@ fn row_to_beacon(row: Option<Row>) -> Option<Beacon> {
     match row {
         Some(data) => {
             let mut b = Beacon::new();
-
             for (i, column) in data.columns().iter().enumerate() {
-                println!("col {:?}", column);
                 match column.name() {
                     "id" => b.id = data.get(i),
                     "mac_address" => b.mac_address = data.get(i),
@@ -33,7 +31,6 @@ fn row_to_beacon(row: Option<Row>) -> Option<Beacon> {
 }
 
 pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
-    println!("helllo");
     client
         .prepare("
             SELECT * FROM runtime.beacons
@@ -73,7 +70,6 @@ pub fn select_beacon_by_mac(mut client: tokio_postgres::Client, mac_address: Str
 }
 
 pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
-    println!("beacon is: {:?}", beacon);
     client
         .prepare_typed("
             INSERT INTO runtime.beacons (
