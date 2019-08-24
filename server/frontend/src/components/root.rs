@@ -8,6 +8,7 @@ use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
 use super::beacon_list::BeaconList;
+use super::beacon_add::BeaconAdd;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -16,6 +17,7 @@ pub enum Page {
     Login,
     Map,
     BeaconList,
+    BeaconAdd,
 }
 
 pub struct RootComponent {
@@ -175,6 +177,15 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::BeaconAdd => {
+               html! {
+                    <div>
+                        <h>{ "BeaconAdd" }</h>
+                        { self.navigation() }
+                        <BeaconAdd/>
+                    </div>
+                }
+            }
             Page::FrontPage => {
                 html! {
                     <div>
@@ -194,7 +205,12 @@ impl RootComponent {
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
-                <button onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "BeaconList" }</button>
+                <select>
+                    // TODO CSS for navigation bar
+                    <option disabled=true,>{ "Beacon Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "Beacon List" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::BeaconAdd), disabled={self.current_page == Page::BeaconAdd},>{ "Add Beacon" }</option>
+                </select>
             </div>
         }
 

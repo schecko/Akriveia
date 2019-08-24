@@ -70,6 +70,7 @@ impl Component for BeaconList {
                 if meta.status.is_success() {
                     match body {
                         Ok(list) => {
+                            Log!("list is: {:?}", list);
                             self.list = list;
                         }
                         _ => { }
@@ -83,6 +84,7 @@ impl Component for BeaconList {
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+        self.self_link.send_self(Msg::RequestGetBeacons);
         true
     }
 }

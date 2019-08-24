@@ -114,8 +114,11 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacon_url("{id}"))
                     .route(web::get().to_async(beacon_controller::get_beacon))
                     .route(web::put().to_async(beacon_controller::put_beacon))
-                    .route(web::post().to_async(beacon_controller::post_beacon))
                     .route(web::delete().to_async(beacon_controller::delete_beacon))
+            )
+            .service(
+                web::resource(&beacon_url(""))
+                    .route(web::post().to_async(beacon_controller::post_beacon))
             )
             .service(
                 web::resource(&users_url())
