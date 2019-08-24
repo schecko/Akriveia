@@ -146,6 +146,8 @@ impl Handler<BeaconCommand> for BeaconManager {
                         .expect("failed to send end emergency to serial beacon connection");
                 }
                 self.emergency = false;
+                // Send a message to DP to clear hashmap
+                self.data_processor.do_send(DPMessage::ResetData);
             },
 
         }
@@ -183,4 +185,3 @@ impl Handler<TagDataMessage> for BeaconManager {
         Ok(1)
     }
 }
-
