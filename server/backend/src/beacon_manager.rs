@@ -147,7 +147,7 @@ impl Handler<BeaconCommand> for BeaconManager {
                 }
                 self.emergency = false;
                 // Send a message to DP to clear hashmap
-                self.data_processor.do_send(DPMessage::ResetData());
+                self.data_processor.do_send(DPMessage::ResetData);
             },
 
         }

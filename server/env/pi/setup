@@ -3,4 +3,4 @@
 
 # install rust per user, kind of annoying but the only supported method of obtaining rust 1.31+ for actix support. rocket is even worse and requires the unstable rust branch...  
 curl https://sh.rustup.rs -sSf | sh -s -- -y
-
+cargo install cargo-web

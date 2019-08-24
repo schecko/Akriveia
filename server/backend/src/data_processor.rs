@@ -109,7 +109,7 @@ impl Actor for DataProcessor {
 
 pub enum DPMessage {
     LocationData(common::TagData),
-    ResetData(), // Reset the stored data
+    ResetData, // Reset the stored data
 }
 impl Message for DPMessage {
     type Result = Result<u64, io::Error>;
@@ -184,8 +184,7 @@ impl Handler<DPMessage> for DataProcessor {
                     self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 }
             },
-            DPMessage::ResetData() => {
-                // clears all tag or user data    
+            DPMessage::ResetData => {
                 self.tag_hash.clear();
                 self.users.clear();
             },
