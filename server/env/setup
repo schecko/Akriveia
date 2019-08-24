@@ -11,3 +11,4 @@ else
 	echo "Please rerun this script in the same folder that it is located, ie in the same folder as rust_config"
 fi
 
+cargo install cargo-web || echo "failed to install cargo web, this is likely because it is already installed."
