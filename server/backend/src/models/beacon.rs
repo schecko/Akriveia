@@ -107,3 +107,69 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 })
         })
 }
+
+pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            UPDATE runtime.beacons
+            SET (
+                mac_address = $1
+                coordinates = $2
+                map_id = $3,
+                name = $4,
+                note = $5
+            ) WHERE (
+                id = $6
+            )
+            RETURNING *
+        ", &[
+            Type::MACADDR,
+            Type::FLOAT8_ARRAY,
+            Type::VARCHAR,
+            Type::VARCHAR,
+            Type::VARCHAR,
+            Type::INT4,
+        ])
+        .and_then(move |statement| {
+            let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
+            client
+                .query(&statement, &[
+                   &beacon.mac_address,
+                   &coords,
+                   &beacon.map_id,
+                   &beacon.name,
+                   &beacon.note,
+                   &beacon.id,
+                ])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    (client, row_to_beacon(row))
+                })
+        })
+}
+
+pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            DELETE FROM runtime.beacons
+            WHERE (
+                id = $1
+            )
+        ", &[
+            Type::INT4,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&id])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(_row, _next)| {
+                    client
+                })
+        })
+}
