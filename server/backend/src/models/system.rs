@@ -27,12 +27,12 @@ const SCHEMA: [&str; 22] = [
         blueprint BYTEA,
         blueprint_bounds INTEGER[2],
         name VARCHAR(256),
-        scale REAL
+        scale DOUBLE PRECISION
 
     );",
     "CREATE TABLE runtime.users (
         id SERIAL PRIMARY KEY,
-        coordinates REAL[2],
+        coordinates DOUBLE PRECISION[2],
         emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
         id_tag INTEGER,
@@ -47,7 +47,7 @@ const SCHEMA: [&str; 22] = [
     "CREATE TABLE runtime.beacons (
         id SERIAL PRIMARY KEY,
         mac_address MACADDR,
-        coordinates REAL[2],
+        coordinates DOUBLE PRECISION[2],
         map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
         name VARCHAR(255),
         note VARCHAR(1024)

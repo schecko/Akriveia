@@ -8,17 +8,17 @@ use tokio_postgres::types::Type;
 fn row_to_beacon(row: Option<Row>) -> Option<Beacon> {
     match row {
         Some(data) => {
-            let coordinates: Vec<f64> = data.get(1);
+            let coordinates: Vec<f64> = data.get(2);
             for column in data.columns().iter() {
                 println!("col {:?}", column);
             }
             Some(Beacon {
-                id: 0xFFFFFFFF,
-                mac_address: data.get(0),
+                id: data.get(0),
+                mac_address: data.get(1),
                 coordinates: na::Vector2::new(coordinates[0], coordinates[1]),
-                map_id: data.get(2),
-                name: data.get(3),
-                note: data.get(4),
+                map_id: data.get(3),
+                name: data.get(4),
+                note: data.get(5),
             })
         },
         None => None,
@@ -29,7 +29,7 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
     println!("helllo");
     client
         .prepare("
-            SELECT FROM runtime.beacons
+            SELECT * FROM runtime.beacons
             WHERE id = $1::INTEGER
         ")
         .and_then(move |statement| {
@@ -77,6 +77,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 note
             )
             VALUES( $1, $2, $3, $4, $5 )
+            RETURNING *
         ", &[
             Type::MACADDR,
             Type::FLOAT8_ARRAY,

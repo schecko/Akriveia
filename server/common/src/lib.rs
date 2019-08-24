@@ -101,7 +101,7 @@ pub struct UserBeaconSourceLocations {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     //floor: String,
-    pub id: u32,
+    pub id: i32,
     pub last_active: SystemTime,
     pub location: na::Vector2<f64>,
     pub tag_mac: MacAddress,
@@ -113,7 +113,7 @@ pub struct User {
 impl User {
     pub fn new() -> User {
         User {
-            id: 0xFFFFFFFF,
+            id: -1,
             last_active: UNIX_EPOCH,
             location: na::Vector2::new(0.0, 0.0),
             tag_mac: MacAddress::nil(),
@@ -124,10 +124,10 @@ impl User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub id: u32,
+    pub id: i32,
     pub mac_address: MacAddress,
     pub coordinates: na::Vector2<f64>,
-    pub map_id: String,
+    pub map_id: Option<String>,
     pub name: String,
     pub note: String,
 }
@@ -135,10 +135,10 @@ pub struct Beacon {
 impl Beacon {
     pub fn new() -> Beacon {
         Beacon {
-            id: 0xFFFFFFFF,
+            id: -1,
             mac_address: MacAddress::nil(),
             coordinates: na::Vector2::new(0.0, 0.0),
-            map_id: "unknown".to_string(),
+            map_id: None,
             name: "unknown".to_string(),
             note: "".to_string(),
         }
