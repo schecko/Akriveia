@@ -4,6 +4,7 @@ use actix_web::Result;
 use std::io;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
+use common::MacAddress;
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -11,19 +12,19 @@ const LOCATION_HISTORY_SIZE: usize = 5;
 #[derive(Debug)]
 struct TagHashEntry {
     pub tag_name: String,
-    pub tag_mac: String,
-    pub rssi_history: BTreeMap<String, VecDeque<i64>>,
+    pub tag_mac: MacAddress,
+    pub rssi_history: BTreeMap<MacAddress, VecDeque<i64>>,
 }
 
 pub struct DataProcessor {
     // this hash maps the id_tag mac address to data points for that id tag.
-    tag_hash: HashMap<String, Box<TagHashEntry>>,
+    tag_hash: HashMap<MacAddress, Box<TagHashEntry>>,
     // TODO support floors
     // TODO init with db data?
     // this tree maps tag mac addresses to users
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
-    users: BTreeMap<String, common::User>
+    users: BTreeMap<MacAddress, common::User>
 }
 
 impl DataProcessor {
@@ -163,7 +164,8 @@ impl Handler<DPMessage> for DataProcessor {
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
-                                    let mut user = common::User::new(tag_data.tag_mac.clone());
+                                    let mut user = common::User::new();
+                                    user.tag_mac = tag_data.tag_mac.clone();
                                     user.beacon_sources = beacon_sources;
                                     user.location = new_tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);

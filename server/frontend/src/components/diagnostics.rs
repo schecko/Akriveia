@@ -7,13 +7,14 @@ use std::time::Duration;
 use yew::format::{ Nothing, Json };
 use std::collections::{ VecDeque, BTreeSet };
 use super::value_button::ValueButton;
+use common::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
 
 pub enum Msg {
     ClearBuffer,
-    ToggleBeaconSelected(String),
+    ToggleBeaconSelected(MacAddress),
 
     RequestDiagnostics,
 
@@ -28,8 +29,8 @@ pub struct Diagnostics {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Diagnostics>,
-    active_beacons: BTreeSet<String>,
-    selected_beacons: BTreeSet<String>,
+    active_beacons: BTreeSet<MacAddress>,
+    selected_beacons: BTreeSet<MacAddress>,
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -88,7 +89,7 @@ impl Component for Diagnostics {
             Msg::RequestDiagnostics => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    common::DIAGNOSTICS,
+                    &system_diagnostics_url(),
                     self.self_link,
                     Msg::ResponseDiagnostics
                 );
@@ -124,6 +125,7 @@ impl Component for Diagnostics {
             self.start_service();
         } else {
             self.end_service();
+            self.diagnostic_data = VecDeque::new();
         }
 
         true
@@ -137,9 +139,9 @@ impl Renderable<Diagnostics> for Diagnostics {
                 let set_border = self.selected_beacons.contains(b_mac);
                 html! {
                     <ValueButton
-                        on_click=|value| Msg::ToggleBeaconSelected(value),
+                        on_click=|value: String| Msg::ToggleBeaconSelected(MacAddress::parse_str(&value).unwrap()),
                         border=set_border,
-                        value={b_mac.clone()}
+                        value={b_mac.to_hex_string()}
                     />
                 }
             });

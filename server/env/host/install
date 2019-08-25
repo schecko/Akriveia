@@ -1,5 +1,0 @@
-#!/bin/bash
-# like the pi counterpart, this file is intended to be executed as root.
-
-# install the same packages as the pi
-bash ../pi/install

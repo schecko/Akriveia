@@ -11,6 +11,7 @@ use yew::format::{ Nothing, Json };
 use std::collections::BTreeMap;
 use super::value_button::ValueButton;
 use na;
+use common::*;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -20,7 +21,7 @@ const MAP_SCALE: f64 = MAP_WIDTH as f64 / 4.0;
 
 pub enum Msg {
     RenderMap,
-    ViewDistance(String),
+    ViewDistance(MacAddress),
 
     RequestRealtimeUser,
 
@@ -36,8 +37,8 @@ pub struct MapViewComponent {
     interval_service_task: Option<IntervalTask>,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
-    users: BTreeMap<String, Box<common::User>>,
-    show_distance: Option<String>,
+    users: BTreeMap<MacAddress, Box<common::User>>,
+    show_distance: Option<MacAddress>,
 }
 
 impl MapViewComponent {
@@ -205,7 +206,7 @@ impl Component for MapViewComponent {
             Msg::RequestRealtimeUser => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    common::REALTIME_USERS,
+                    &users_realtime_url(),
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );
@@ -261,9 +262,9 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             };
             html! {
                 <ValueButton
-                    on_click=|value| Msg::ViewDistance(value),
+                    on_click=|value: String| Msg::ViewDistance(MacAddress::parse_str(&value).unwrap()),
                     border=set_border,
-                    value={user_mac.clone()}
+                    value={user_mac.to_hex_string()}
                 />
             }
         });

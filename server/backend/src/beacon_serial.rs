@@ -11,7 +11,7 @@ use std::time::Duration;
 use std::io::*;
 use std::str;
 use regex::Regex;
-
+use common::MacAddress;
 
 #[allow(dead_code)] // remove this once vid/pid are actually used.
 pub struct BeaconSerialConn {
@@ -120,7 +120,7 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                         let split: Vec<&str> = line.split("|").collect();
                         if split.len() == 3 {
                             let name = split[0];
-                            let mac = split[1];
+                            let mac = MacAddress::parse_str(split[1]).unwrap();
                             let rssi = split[2];
                             let reg = Regex::new(r"/[^$0-9]+/").unwrap();
                             let rssi_stripped = reg.replace_all(&rssi, "");
@@ -137,9 +137,9 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                                         .do_send( TagDataMessage {
                                             data: common::TagData {
                                                 tag_name: name.to_string(),
-                                                tag_mac: mac.to_string(),
+                                                tag_mac: mac,
                                                 tag_distance: common::DataType::RSSI(rssi_numeric),
-                                                beacon_mac: (&beacon_info.port_name).to_string(),
+                                                beacon_mac: MacAddress::from_bytes(&beacon_info.port_name.as_bytes()[0..6]).unwrap(),
                                             }
                                         })
                                         .expect("failed to send tag message to manager");
