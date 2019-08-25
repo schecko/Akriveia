@@ -14,9 +14,9 @@ macro_rules! Log {
     )
 }
 
-macro_rules! post_request {
-    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
-        match Request::post($url)
+macro_rules! request {
+    ($method:ident, $fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
+        match Request::$method($url)
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .body(Json(&$request))
@@ -31,8 +31,8 @@ macro_rules! post_request {
             },
         };
     };
-    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
-        match Request::post($url)
+    ($method:ident, $fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
+        match Request::$method($url)
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .body(Json(&$request))
@@ -43,31 +43,29 @@ macro_rules! post_request {
     };
 }
 
-macro_rules! get_request {
-    ($fetch_service:expr, $url:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
-        match Request::get($url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .body(Nothing)
-        {
-            Ok(req) => {
-                $success();
-                Some($fetch_service.fetch(req, $link.send_back($msg)))
-            },
-            Err(e) => {
-                $error(e);
-                None
-            },
-        };
+macro_rules! post_request {
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
+        request!(post, $fetch_service, $url, $request, $link, $msg, $success, $error);
     };
-    ($fetch_service:expr, $url:expr, $link:expr, $msg:expr) => {
-        match Request::get($url)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .body(Nothing)
-        {
-            Ok(req) => Some($fetch_service.fetch(req, $link.send_back($msg))),
-            Err(_) => None,
-        };
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
+        request!(post, $fetch_service, $url, $request, $link, $msg);
+    };
+}
+
+macro_rules! get_request {
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
+        request!(get, $fetch_service, $url, $request, $link, $msg, $success, $error);
+    };
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
+        request!(get, $fetch_service, $url, $request, $link, $msg);
+    };
+}
+
+macro_rules! put_request {
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
+        request!(put, $fetch_service, $url, $request, $link, $msg, $success, $error);
+    };
+    ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr) => {
+        request!(put, $fetch_service, $url, $request, $link, $msg);
     };
 }

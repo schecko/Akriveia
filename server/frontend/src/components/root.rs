@@ -18,6 +18,7 @@ pub enum Page {
     Map,
     BeaconList,
     BeaconAdd,
+    BeaconUpdate(i32),
 }
 
 pub struct RootComponent {
@@ -173,16 +174,29 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         <h>{ "BeaconList" }</h>
                         { self.navigation() }
-                        <BeaconList/>
+                        <BeaconList
+                            change_page=|page| Msg::ChangePage(page),
+                        />
                     </div>
                 }
             }
             Page::BeaconAdd => {
                html! {
                     <div>
-                        <h>{ "BeaconAdd" }</h>
+                        <h>{ "Add Beacon" }</h>
                         { self.navigation() }
                         <BeaconAdd/>
+                    </div>
+                }
+            }
+            Page::BeaconUpdate(id) => {
+               html! {
+                    <div>
+                        <h>{ "Update Beacon" }</h>
+                        { self.navigation() }
+                        <BeaconUpdate
+                            id=id,
+                        />
                     </div>
                 }
             }

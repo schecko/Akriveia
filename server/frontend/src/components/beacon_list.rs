@@ -1,12 +1,16 @@
 use yew::services::fetch::{ FetchService, FetchTask, Request, };
 //use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use crate::util;
 //use std::time::Duration;
 use yew::format::{ Nothing, Json };
 use common::*;
+use super::value_button::ValueButton;
+use super::root;
 
 pub enum Msg {
+    ChangeRootPage(root::Page),
+
     RequestGetBeacons,
 
     ResponseGetBeacons(util::Response<Vec<common::Beacon>>),
@@ -19,10 +23,12 @@ pub struct BeaconList {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    change_page: Option<Callback<root::Page>>,
 }
 
 #[derive(Clone, Default, PartialEq)]
 pub struct BeaconListProps {
+    pub change_page: Option<Callback<root::Page>>,
 }
 
 /*impl BeaconList {
@@ -42,7 +48,7 @@ impl Component for BeaconList {
     type Message = Msg;
     type Properties = BeaconListProps;
 
-    fn create(_props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetBeacons);
         let result = BeaconList {
             fetch_service: FetchService::new(),
@@ -51,6 +57,7 @@ impl Component for BeaconList {
             //interval_service: None,
             //interval_service_task: None,
             self_link: link,
+            change_page: props.change_page,
         };
         result
     }
@@ -79,6 +86,9 @@ impl Component for BeaconList {
                     Log!("response - failed to request diagnostics");
                 }
             },
+            Msg::ChangeRootPage(page) => {
+                self.change_page.as_mut().unwrap().emit(page);
+            }
         }
         true
     }
@@ -91,6 +101,30 @@ impl Component for BeaconList {
 
 impl Renderable<BeaconList> for BeaconList {
     fn view(&self) -> Html<Self> {
+        let mut rows = self.list.iter().map(|row| {
+            let map_id = match &row.map_id {
+                Some(id) => id,
+                None => "",
+            };
+
+            html! {
+                <tr>
+                    <td>{ &row.mac_address.to_hex_string() }</td>
+                    <td>{ format!("{},{}", &row.coordinates.x, &row.coordinates.y) }</td>
+                    <td>{ map_id }</td>
+                    <td>{ &row.name }</td>
+                    <td>{ &row.note }</td>
+                    <td>
+                        <ValueButton<i32>
+                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconUpdate(value)),
+                            border=false,
+                            value={row.id}
+                        />
+                    </td>
+                </tr>
+            }
+        });
+
         html! {
             <>
                 <table>
@@ -101,24 +135,7 @@ impl Renderable<BeaconList> for BeaconList {
                     <td>{ "name" }</td>
                     <td>{ "note" }</td>
                 </tr>
-                {
-                    for self.list.iter().map(|row| {
-                        let map_id = match &row.map_id {
-                            Some(id) => id,
-                            None => "",
-                        };
-
-                        html! {
-                        <tr>
-                            <td>{ &row.mac_address.to_hex_string() }</td>
-                            <td>{ format!("{},{}", &row.coordinates.x, &row.coordinates.y) }</td>
-                            <td>{ map_id }</td>
-                            <td>{ &row.name }</td>
-                            <td>{ &row.note }</td>
-                        </tr>
-                        }
-                    })
-                }
+                { for rows }
                 </table>
             </>
         }
