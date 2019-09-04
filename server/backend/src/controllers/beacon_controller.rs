@@ -1,12 +1,11 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
+use crate::db_utils;
+use crate::models::beacon;
 use futures::{ future::ok, Future, future::Either, };
 use std::sync::*;
-use crate::models::beacon;
-use crate::db_utils;
 
-pub fn get_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
+pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id_string_out = req.match_info().get("id");
     match id_string_out {
         Some(id_string) => {
@@ -39,8 +38,7 @@ pub fn get_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> i
     }
 }
 
-pub fn get_beacons(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
+pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             beacon::select_beacons(client)
@@ -55,8 +53,7 @@ pub fn get_beacons(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) ->
 }
 
 // new beacon
-pub fn post_beacon(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
+pub fn post_beacon(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             beacon::insert_beacon(client, payload.0)
@@ -73,8 +70,7 @@ pub fn post_beacon(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pa
 }
 
 // update beacon
-pub fn put_beacon(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
+pub fn put_beacon(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             beacon::update_beacon(client, payload.0)
@@ -90,8 +86,7 @@ pub fn put_beacon(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
         })
 }
 
-pub fn delete_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
+pub fn delete_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id_string_out = req.match_info().get("id");
     match id_string_out {
         Some(id_string) => {

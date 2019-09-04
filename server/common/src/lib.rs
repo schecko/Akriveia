@@ -139,7 +139,7 @@ impl Beacon {
             mac_address: MacAddress::nil(),
             coordinates: na::Vector2::new(0.0, 0.0),
             map_id: None,
-            name: "unknown".to_string(),
+            name: "".to_string(),
             note: "".to_string(),
         }
     }
@@ -147,20 +147,22 @@ impl Beacon {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
-    pub floor_id: String,
+    pub id: i32,
     pub blueprint: Vec<u8>,
-    pub blueprint_bounds: na::Vector2<i32>,
+    pub bounds: na::Vector2<f64>,
     pub name: String,
+    pub note: String,
     pub scale: f64,
 }
 
 impl Map {
-    pub fn new(floor_id: String) -> Map {
+    pub fn new() -> Map {
         Map {
-            floor_id,
+            id: -1,
             blueprint: Vec::new(),
-            blueprint_bounds: na::Vector2::new(0, 0),
-            name: "unknown".to_string(),
+            bounds: na::Vector2::new(0.0, 0.0),
+            name: "".to_string(),
+            note: "".to_string(),
             scale: 1.0,
         }
     }

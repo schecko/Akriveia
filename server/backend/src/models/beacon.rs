@@ -67,7 +67,7 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
 pub fn select_beacon_by_mac(mut client: tokio_postgres::Client, mac_address: String) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
     client
         .prepare("
-            SELECT FROM runtime.beacons
+            SELECT * FROM runtime.beacons
             WHERE mac_address = $1::MACADDR
         ")
         .and_then(move |statement| {
@@ -109,11 +109,11 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
                 .query(&statement, &[
-                   &beacon.mac_address,
-                   &coords,
-                   &beacon.map_id,
-                   &beacon.name,
-                   &beacon.note
+                    &beacon.mac_address,
+                    &coords,
+                    &beacon.map_id,
+                    &beacon.name,
+                    &beacon.note
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -153,12 +153,12 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
                 .query(&statement, &[
-                   &beacon.mac_address,
-                   &coords,
-                   &beacon.map_id,
-                   &beacon.name,
-                   &beacon.note,
-                   &beacon.id,
+                    &beacon.mac_address,
+                    &coords,
+                    &beacon.map_id,
+                    &beacon.name,
+                    &beacon.note,
+                    &beacon.id,
                 ])
                 .into_future()
                 .map_err(|err| {

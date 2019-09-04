@@ -23,42 +23,43 @@ const SCHEMA: [&str; 22] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
-        floor_id VARCHAR(255) PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         blueprint BYTEA,
-        blueprint_bounds INTEGER[2],
-        name VARCHAR(256),
-        scale DOUBLE PRECISION
-
+        bounds DOUBLE PRECISION[2] NOT NULL,
+        name VARCHAR(256) UNIQUE,
+        scale DOUBLE PRECISION,
+        note VARCHAR(1024)
     );",
     "CREATE TABLE runtime.users (
         id SERIAL PRIMARY KEY,
-        coordinates DOUBLE PRECISION[2],
+        coordinates DOUBLE PRECISION[2] NOT NULL,
         emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
         id_tag INTEGER,
-        last_seen timestamp,
+        last_seen timestamp NOT NULL,
         mac_address MACADDR,
-        map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
-        name VARCHAR(256),
+        map_id INTEGER REFERENCES runtime.maps(id),
+        name VARCHAR(256) UNIQUE,
         note VARCHAR(1024),
         phone_number VARCHAR(20),
-        type INTEGER
+        type INTEGER NOT NULL
     );",
     "CREATE TABLE runtime.beacons (
         id SERIAL PRIMARY KEY,
-        mac_address MACADDR,
-        coordinates DOUBLE PRECISION[2],
-        map_id VARCHAR(255) REFERENCES runtime.maps(floor_id),
-        name VARCHAR(255),
+        mac_address MACADDR UNIQUE,
+        ip INET UNIQUE,
+        coordinates DOUBLE PRECISION[2] NOT NULL,
+        map_id INTEGER REFERENCES runtime.maps(id),
+        name VARCHAR(255) UNIQUE,
         note VARCHAR(1024)
     );",
     "CREATE TABLE system.networks (
         id SERIAL PRIMARY KEY,
         mac_address MACADDR,
-        host_beacon_udp BOOLEAN,
-        host_webserver BOOLEAN,
+        host_beacon_udp BOOLEAN NOT NULL,
+        host_webserver BOOLEAN NOT NULL,
         ip INET,
-        name VARCHAR(255)
+        name VARCHAR(255) UNIQUE
     )",
 
     // create roles and users
