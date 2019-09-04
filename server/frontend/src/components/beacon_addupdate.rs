@@ -1,15 +1,15 @@
-use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use common::*;
 use crate::util;
 use yew::format::Json;
-use common::*;
+use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 pub enum Msg {
     AddAnotherBeacon,
-    InputName(String),
     InputCoordinate(usize, String),
-    InputMacAddress(String),
     InputFloorName(String),
+    InputMacAddress(String),
+    InputName(String),
     InputNote(String),
 
     RequestAddUpdateBeacon,
@@ -24,12 +24,12 @@ struct Data {
     pub beacon: common::Beacon,
     // the mac address needs to be parsed (and validated) as a mac address.
     // keep the raw string from the user in case the parsing fails.
-    pub raw_mac: String,
-    pub raw_coord0: String,
-    pub raw_coord1: String,
+    pub error_messages: Vec<String>,
     pub floor_names: Vec<String>,
     pub id: Option<i32>,
-    pub error_messages: Vec<String>,
+    pub raw_coord0: String,
+    pub raw_coord1: String,
+    pub raw_mac: String,
     pub success_message: Option<String>,
 }
 
@@ -37,12 +37,12 @@ impl Data {
     fn new() -> Data {
         Data {
             beacon: Beacon::new(),
-            raw_mac: MacAddress::nil().to_hex_string(),
-            raw_coord0: "0".to_string(),
-            raw_coord1: "0".to_string(),
+            error_messages: Vec::new(),
             floor_names: Vec::new(),
             id: None,
-            error_messages: Vec::new(),
+            raw_coord0: "0".to_string(),
+            raw_coord1: "0".to_string(),
+            raw_mac: MacAddress::nil().to_hex_string(),
             success_message: None,
         }
     }
@@ -86,10 +86,10 @@ impl Data {
 }
 
 pub struct BeaconAddUpdate {
+    data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
-    data: Data,
 }
 
 #[derive(Clone, Default, PartialEq)]

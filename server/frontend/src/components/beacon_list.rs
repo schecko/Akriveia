@@ -1,12 +1,10 @@
-use yew::services::fetch::{ FetchService, FetchTask, };
-//use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use crate::util;
-//use std::time::Duration;
-use yew::format::Json;
-use super::value_button::ValueButton;
-use super::root;
 use common::*;
+use crate::util;
+use super::root;
+use super::value_button::ValueButton;
+use yew::format::Json;
+use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 pub enum Msg {
     ChangeRootPage(root::Page),
@@ -19,32 +17,17 @@ pub enum Msg {
 }
 
 pub struct BeaconList {
-    list: Vec<common::Beacon>,
-    //interval_service: Option<IntervalService>,
-    //interval_service_task: Option<IntervalTask>,
+    change_page: Option<Callback<root::Page>>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    list: Vec<common::Beacon>,
     self_link: ComponentLink<Self>,
-    change_page: Option<Callback<root::Page>>,
 }
 
 #[derive(Clone, Default, PartialEq)]
 pub struct BeaconListProps {
     pub change_page: Option<Callback<root::Page>>,
 }
-
-/*impl BeaconList {
-    fn start_service(&mut self) {
-        let mut interval_service = IntervalService::new();
-        self.interval_service_task = Some(interval_service.spawn(DIAGNOSTIC_POLLING_RATE, self.self_link.send_back(|_| Msg::RequestDiagnostics)));
-        self.interval_service = Some(interval_service);
-    }
-
-    fn end_service(&mut self) {
-        self.interval_service = None;
-        self.interval_service_task = None;
-    }
-}*/
 
 impl Component for BeaconList {
     type Message = Msg;
@@ -56,8 +39,6 @@ impl Component for BeaconList {
             fetch_service: FetchService::new(),
             list: Vec::new(),
             fetch_task: None,
-            //interval_service: None,
-            //interval_service_task: None,
             self_link: link,
             change_page: props.change_page,
         };
@@ -150,7 +131,7 @@ impl Renderable<BeaconList> for BeaconList {
                             display=Some("Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
-                            value={row.id}
+                            value=row.id
                         />
                     </td>
                 </tr>
