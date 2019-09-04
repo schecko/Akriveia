@@ -268,44 +268,63 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
                 <div/>
-                { "Mac Address: " }
-                <input
-                    type="text",
-                    value=&self.data.raw_mac,
-                    oninput=|e| Msg::InputMacAddress(e.value),
-                />
-                <div/>
-                { "Floor Name: " }
-                <select>
-                    { for floor_options }
-                </select>
-                <div/>
-                { "Name: " }
-                <input
-                    type="text",
-                    value=&self.data.beacon.name,
-                    oninput=|e| Msg::InputName(e.value),
-                />
-                <div/>
-                { "Coordinates: " }
-                <input
-                    type="text",
-                    value=&self.data.beacon.coordinates[0],
-                    oninput=|e| Msg::InputCoordinate(0, e.value),
-                />
-                <input
-                    type="text",
-                    value=&self.data.beacon.coordinates[1],
-                    oninput=|e| Msg::InputCoordinate(1, e.value),
-                />
-                <div/>
-                { "Note: " }
-                <textarea
-                    rows=5
-                    value=&self.data.beacon.note,
-                    oninput=|e| Msg::InputNote(e.value),
-                />
-                <div/>
+                <table>
+                    <tr>
+                        <td>{ "Mac Address: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_mac,
+                                oninput=|e| Msg::InputMacAddress(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Floor Name: " }</td>
+                        <td>
+                            <select>
+                                { for floor_options }
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Name: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.beacon.name,
+                                oninput=|e| Msg::InputName(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Coordinates: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.beacon.coordinates[0],
+                                oninput=|e| Msg::InputCoordinate(0, e.value),
+                            />
+                        </td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.beacon.coordinates[1],
+                                oninput=|e| Msg::InputCoordinate(1, e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Note: " }</td>
+                        <td>
+                            <textarea
+                                rows=5
+                                value=&self.data.beacon.note,
+                                oninput=|e| Msg::InputNote(e.value),
+                            />
+                        </td>
+                    </tr>
+                </table>
                 <button onclick=|_| Msg::RequestAddUpdateBeacon,>{ submit_name }</button>
                 { add_another_button }
             </>
