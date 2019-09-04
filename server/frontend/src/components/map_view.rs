@@ -1,17 +1,17 @@
 
+use common::*;
+use crate::util;
+use na;
+use std::collections::BTreeMap;
+use std::time::Duration;
 use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, Node, FillRule };
+use super::value_button::ValueButton;
+use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use crate::util;
-use std::time::Duration;
-use std::collections::BTreeMap;
-use yew::format::Json;
-use super::value_button::ValueButton;
-use na;
-use common::*;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -29,16 +29,16 @@ pub enum Msg {
 }
 
 pub struct MapViewComponent {
-    emergency: bool,
     context: CanvasRenderingContext2d,
+    emergency: bool,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     interval_service: Option<IntervalService>,
     interval_service_task: Option<IntervalTask>,
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
-    users: BTreeMap<MacAddress, Box<common::User>>,
     show_distance: Option<MacAddress>,
+    users: BTreeMap<MacAddress, Box<common::User>>,
 }
 
 impl MapViewComponent {
@@ -135,16 +135,16 @@ impl Component for MapViewComponent {
         let context = get_context(&canvas);
 
         let mut result = MapViewComponent {
-            emergency: props.emergency,
             context: context,
+            emergency: props.emergency,
             fetch_service: FetchService::new(),
             fetch_task: None,
             interval_service: None,
             interval_service_task: None,
             map_canvas: canvas,
-            users: BTreeMap::new(),
             self_link: link,
             show_distance: None,
+            users: BTreeMap::new(),
         };
 
         result.clear_map();

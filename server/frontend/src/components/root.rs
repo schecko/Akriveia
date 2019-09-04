@@ -12,17 +12,17 @@ use super::beacon_addupdate::BeaconAddUpdate;
 
 #[derive(PartialEq)]
 pub enum Page {
+    BeaconAddUpdate(Option<i32>),
+    BeaconList,
     Diagnostics,
     FrontPage,
     Login,
     Map,
-    BeaconList,
-    BeaconAddUpdate(Option<i32>),
 }
 
 pub struct RootComponent {
-    emergency: bool,
     current_page: Page,
+    emergency: bool,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
@@ -50,8 +50,8 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            emergency: false,
             current_page: Page::FrontPage,
+            emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
             link: link,
