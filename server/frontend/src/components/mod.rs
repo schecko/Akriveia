@@ -1,5 +1,5 @@
 
-pub mod beacon_add;
+pub mod beacon_addupdate;
 pub mod beacon_list;
 pub mod diagnostics;
 pub mod emergency_buttons;

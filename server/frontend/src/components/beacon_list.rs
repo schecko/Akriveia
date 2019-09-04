@@ -1,12 +1,12 @@
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::services::fetch::{ FetchService, FetchTask, };
 //use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use crate::util;
 //use std::time::Duration;
-use yew::format::{ Nothing, Json };
-use common::*;
+use yew::format::Json;
 use super::value_button::ValueButton;
 use super::root;
+use common::*;
 
 pub enum Msg {
     ChangeRootPage(root::Page),
@@ -116,7 +116,7 @@ impl Renderable<BeaconList> for BeaconList {
                     <td>{ &row.note }</td>
                     <td>
                         <ValueButton<i32>
-                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconUpdate(value)),
+                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
                             value={row.id}
                         />

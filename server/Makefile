@@ -5,7 +5,7 @@ RELEASE_ARGS = --release
 FRONTEND_ARGS =  -p frontend --target wasm32-unknown-unknown
 BACKEND_ARGS = -p backend
 
-all: run-back
+all: build-front build-back
 
 SOURCE_CARGO=source ~/.cargo/env
 
@@ -23,6 +23,14 @@ deploy: build-front build-back
 run-back:
 	$(SOURCE_CARGO) && cargo web deploy $(FRONTEND_ARGS) $(RELEASE_ARGS)
 	$(SOURCE_CARGO) && cargo run $(BACKEND_ARGS)
+
+run: run-back
+r: run-back
+
+back: build-back
+front: build-front
+b: build-back
+f: build-front
 
 # start the debug server, independant of the backend.
 run-front:

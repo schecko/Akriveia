@@ -1,11 +1,11 @@
 
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use crate::util;
 use std::time::Duration;
-use yew::format::{ Nothing, Json };
 use std::collections::{ VecDeque, BTreeSet };
+use yew::format::Json;
 use super::value_button::ValueButton;
 use common::*;
 

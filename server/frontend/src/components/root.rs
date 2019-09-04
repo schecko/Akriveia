@@ -1,14 +1,14 @@
 
 use common::*;
 use crate::util;
-use yew::format::{ Nothing, Json };
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::format::Json;
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
 use super::beacon_list::BeaconList;
-use super::beacon_add::BeaconAdd;
+use super::beacon_addupdate::BeaconAddUpdate;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -17,8 +17,7 @@ pub enum Page {
     Login,
     Map,
     BeaconList,
-    BeaconAdd,
-    BeaconUpdate(i32),
+    BeaconAddUpdate(Option<i32>),
 }
 
 pub struct RootComponent {
@@ -180,21 +179,12 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
-            Page::BeaconAdd => {
-               html! {
-                    <div>
-                        <h>{ "Add Beacon" }</h>
-                        { self.navigation() }
-                        <BeaconAdd/>
-                    </div>
-                }
-            }
-            Page::BeaconUpdate(id) => {
+            Page::BeaconAddUpdate(id) => {
                html! {
                     <div>
                         <h>{ "Update Beacon" }</h>
                         { self.navigation() }
-                        <BeaconUpdate
+                        <BeaconAddUpdate
                             id=id,
                         />
                     </div>
@@ -223,7 +213,18 @@ impl RootComponent {
                     // TODO CSS for navigation bar
                     <option disabled=true,>{ "Beacon Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "Beacon List" }</option>
-                    <option onclick=|_| Msg::ChangePage(Page::BeaconAdd), disabled={self.current_page == Page::BeaconAdd},>{ "Add Beacon" }</option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::BeaconAddUpdate {..} => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "Add Beacon" }
+                    </option>
                 </select>
             </div>
         }

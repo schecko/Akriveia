@@ -1,14 +1,14 @@
 
 use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, Node, FillRule };
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use crate::util;
 use std::time::Duration;
-use yew::format::{ Nothing, Json };
 use std::collections::BTreeMap;
+use yew::format::Json;
 use super::value_button::ValueButton;
 use na;
 use common::*;
