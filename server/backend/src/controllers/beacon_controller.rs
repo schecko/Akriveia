@@ -41,8 +41,17 @@ pub fn get_beacon(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> i
 
 pub fn get_beacons(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let _ = state.lock().unwrap();
-    // TODO fill in
-    ok(HttpResponse::Ok().json(vec![common::Beacon::new()]))
+    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+        .and_then(move |client| {
+            beacon::select_beacons(client)
+        })
+        .map_err(|postgres_err| {
+            // TODO can this be better?
+            error::ErrorBadRequest(postgres_err)
+        })
+        .and_then(|(_client, beacons)| {
+            HttpResponse::Ok().json(beacons)
+        })
 }
 
 // new beacon
