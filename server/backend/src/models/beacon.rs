@@ -25,6 +25,7 @@ fn row_to_beacon(row: Row) -> Beacon {
 }
 
 pub fn select_beacons(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+    // TODO paging
     client
         .prepare("
             SELECT * FROM runtime.beacons
