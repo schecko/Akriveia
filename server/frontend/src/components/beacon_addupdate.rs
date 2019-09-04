@@ -87,6 +87,7 @@ impl Component for BeaconAddUpdate {
             },
             Msg::RequestAddUpdateBeacon => {
                 self.data.error_messages = Vec::new();
+                self.data.success_message = None;
 
                 let success = match MacAddress::parse_str(&self.data.raw_mac) {
                     Ok(m) => {
@@ -132,11 +133,13 @@ impl Component for BeaconAddUpdate {
                             Log!("returned beacon is {:?}", result);
                             self.data.success_message = Some("successfully updated beacon".to_string());
                             self.data.beacon = result;
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to update beacon, reason: {}", e));
                         }
-                        _ => { }
                     }
                 } else {
-                    Log!("response - failed to update beacon");
+                    self.data.error_messages.push("failed to update beacon".to_string());
                 }
             },
             Msg::ResponseAddBeacon(response) => {
@@ -149,11 +152,13 @@ impl Component for BeaconAddUpdate {
                             self.data.beacon = result;
                             self.data.id = Some(self.data.beacon.id);
                             self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to add beacon, reason: {}", e));
                         }
-                        _ => { }
                     }
                 } else {
-                    Log!("response - failed to update beacon");
+                    self.data.error_messages.push("failed to add beacon".to_string());
                 }
             },
         }

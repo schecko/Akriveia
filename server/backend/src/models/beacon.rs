@@ -112,15 +112,14 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
     client
         .prepare_typed("
             UPDATE runtime.beacons
-            SET (
-                mac_address = $1
-                coordinates = $2
+            SET
+                mac_address = $1,
+                coordinates = $2,
                 map_id = $3,
                 name = $4,
                 note = $5
-            ) WHERE (
+             WHERE
                 id = $6
-            )
             RETURNING *
         ", &[
             Type::MACADDR,
