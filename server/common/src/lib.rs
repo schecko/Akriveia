@@ -98,13 +98,36 @@ pub struct UserBeaconSourceLocations {
     pub distance_to_tag: f64,
 }
 
+#[derive(Copy, Debug, Clone, Serialize, Deserialize)]
+pub enum UserType {
+    Admin,
+    FirstResponder,
+    Employee,
+}
+
+impl From<i32> for UserType {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => UserType::Admin,
+            1 => UserType::FirstResponder,
+            _ => UserType::Employee,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
-    //floor: String,
     pub id: i32,
+    pub coordinates: na::Vector2<f64>,
+    pub emergency_contact: i32,
+    pub employee_id: String,
     pub last_active: SystemTime,
-    pub location: na::Vector2<f64>,
-    pub tag_mac: MacAddress,
+    pub mac_address: MacAddress,
+    pub map_id: i32,
+    pub name: String,
+    pub note: String,
+    pub phone_number: String,
+    pub utype: UserType,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
@@ -114,9 +137,17 @@ impl User {
     pub fn new() -> User {
         User {
             id: -1,
+            coordinates: na::Vector2::new(0.0, 0.0),
+            emergency_contact: -1,
+            employee_id: String::new(),
             last_active: UNIX_EPOCH,
-            location: na::Vector2::new(0.0, 0.0),
-            tag_mac: MacAddress::nil(),
+            mac_address: MacAddress::nil(),
+            map_id: -1,
+            name: String::new(),
+            note: String::new(),
+            phone_number: String::new(),
+            utype: UserType::Employee,
+
             beacon_sources: Vec::new(),
         }
     }

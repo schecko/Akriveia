@@ -36,13 +36,13 @@ const SCHEMA: [&str; 22] = [
         emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
         id_tag INTEGER,
-        last_seen timestamp NOT NULL,
+        last_active TIMESTAMP NOT NULL,
         mac_address MACADDR,
         map_id INTEGER REFERENCES runtime.maps(id),
         name VARCHAR(256) UNIQUE,
         note VARCHAR(1024),
         phone_number VARCHAR(20),
-        type INTEGER NOT NULL
+        utype INTEGER NOT NULL
     );",
     "CREATE TABLE runtime.beacons (
         id SERIAL PRIMARY KEY,

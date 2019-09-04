@@ -1,8 +1,11 @@
 
-use actix_web::{ Error, web, HttpRequest, HttpResponse, };
+use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
+use common::*;
 use crate::AkriveiaState;
 use crate::data_processor::OutUserData;
-use futures::{ future::ok, Future, };
+use crate::db_utils;
+use crate::models::user;
+use futures::{ future::ok, Future, future::Either, };
 use std::sync::*;
 
 pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
@@ -20,61 +23,113 @@ pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest)
         }})
 }
 
-pub fn get_user(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
-    let id = req.match_info().get("id");
-    match id {
-        Some(_user_id) => {
-            ok(HttpResponse::Ok().json(common::User::new()))
+pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    let id_string_out = req.match_info().get("id");
+    match id_string_out {
+        Some(id_string) => {
+            match id_string.parse::<i32>() {
+                Ok(id) => {
+                    Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                        .and_then(move |client| {
+                            user::select_user(client, id)
+                        })
+                        .map_err(|postgres_err| {
+                            // TODO can this be better?
+                            error::ErrorBadRequest(postgres_err)
+                        })
+                        .and_then(|(_client, user)| {
+                            match user {
+                                Some(u) => HttpResponse::Ok().json(u),
+                                None => HttpResponse::NotFound().finish(),
+                            }
+                        })
+                    )
+                },
+                _ => {
+                    Either::B(ok(HttpResponse::NotFound().finish()))
+                }
+            }
         },
-        None => {
-            ok(HttpResponse::NotFound().finish())
+        _ => {
+            Either::B(ok(HttpResponse::NotFound().finish()))
         }
     }
 }
 
-pub fn get_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
-    ok(HttpResponse::Ok().json(vec![common::User::new()]))
+pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+        .and_then(move |client| {
+            user::select_users(client)
+        })
+        .map_err(|postgres_err| {
+            // TODO can this be better?
+            error::ErrorBadRequest(postgres_err)
+        })
+        .and_then(|(_client, users)| {
+            HttpResponse::Ok().json(users)
+        })
 }
 
 // new user
-pub fn post_user(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
-    let id = req.match_info().get("id");
-    match id {
-        Some(_user_id) => {
-            ok(HttpResponse::Ok().json(common::User::new()))
-        },
-        None => {
-            ok(HttpResponse::NotFound().finish())
-        }
-    }
+pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<User>) -> impl Future<Item=HttpResponse, Error=Error> {
+    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+        .and_then(move |client| {
+            user::insert_user(client, payload.0)
+        })
+        .map_err(|postgres_err| {
+            error::ErrorBadRequest(postgres_err)
+        })
+        .and_then(|(_client, user)| {
+            match user {
+                Some(u) => HttpResponse::Ok().json(u),
+                None => HttpResponse::NotFound().finish(),
+            }
+        })
 }
 
 // update user
-pub fn put_user(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
-    let id = req.match_info().get("id");
-    match id {
-        Some(_user_id) => {
-            ok(HttpResponse::Ok().json(common::User::new()))
-        },
-        None => {
-            ok(HttpResponse::NotFound().finish())
-        }
-    }
+pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<User>) -> impl Future<Item=HttpResponse, Error=Error> {
+    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+        .and_then(move |client| {
+            user::update_user(client, payload.0)
+        })
+        .map_err(|postgres_err| {
+            error::ErrorBadRequest(postgres_err)
+        })
+        .and_then(|(_client, user)| {
+            match user {
+                Some(u) => HttpResponse::Ok().json(u),
+                None => HttpResponse::NotFound().finish(),
+            }
+        })
 }
 
-pub fn delete_user(state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let _ = state.lock().unwrap();
-    let id = req.match_info().get("id");
-    match id {
-        Some(_user_id) => {
-            ok(HttpResponse::Ok().json(common::User::new()))
+pub fn delete_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    let id_string_out = req.match_info().get("id");
+    match id_string_out {
+        Some(id_string) => {
+            match id_string.parse::<i32>() {
+                Ok(id) => {
+                    Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                        .and_then(move |client| {
+                            user::delete_user(client, id)
+                        })
+                        .map_err(|postgres_err| {
+                            // TODO can this be better?
+                            error::ErrorBadRequest(postgres_err)
+                        })
+                        .and_then(|_client| {
+                            HttpResponse::Ok().finish()
+                        })
+                    )
+                },
+                _ => {
+                    Either::B(ok(HttpResponse::NotFound().finish()))
+                }
+            }
         },
-        None => {
-            ok(HttpResponse::NotFound().finish())
+        _ => {
+            Either::B(ok(HttpResponse::NotFound().finish()))
         }
     }
 }

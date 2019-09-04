@@ -159,15 +159,15 @@ impl Handler<DPMessage> for DataProcessor {
                             match self.users.get_mut(&tag_data.tag_mac) {
                                 Some(user_ref) => {
                                     user_ref.beacon_sources = beacon_sources;
-                                    user_ref.location = new_tag_location;
+                                    user_ref.coordinates = new_tag_location;
                                 },
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
                                     let mut user = common::User::new();
-                                    user.tag_mac = tag_data.tag_mac.clone();
+                                    user.mac_address = tag_data.tag_mac.clone();
                                     user.beacon_sources = beacon_sources;
-                                    user.location = new_tag_location;
+                                    user.coordinates = new_tag_location;
                                     self.users.insert(tag_data.tag_mac.clone(), user);
                                 }
                             }
