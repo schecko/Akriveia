@@ -7,6 +7,7 @@ use common::*;
 pub enum Msg {
     AddAnotherBeacon,
     InputName(String),
+    InputCoordinate(usize, String),
     InputMacAddress(String),
     InputFloorName(String),
     InputNote(String),
@@ -21,7 +22,11 @@ pub enum Msg {
 // a "new" method for a component.
 struct Data {
     pub beacon: common::Beacon,
+    // the mac address needs to be parsed (and validated) as a mac address.
+    // keep the raw string from the user in case the parsing fails.
     pub raw_mac: String,
+    pub raw_coord0: String,
+    pub raw_coord1: String,
     pub floor_names: Vec<String>,
     pub id: Option<i32>,
     pub error_messages: Vec<String>,
@@ -33,11 +38,50 @@ impl Data {
         Data {
             beacon: Beacon::new(),
             raw_mac: MacAddress::nil().to_hex_string(),
+            raw_coord0: "0".to_string(),
+            raw_coord1: "0".to_string(),
             floor_names: Vec::new(),
             id: None,
             error_messages: Vec::new(),
             success_message: None,
         }
+    }
+
+    fn validate(&mut self) -> bool {
+        let mut success = match MacAddress::parse_str(&self.raw_mac) {
+            Ok(m) => {
+                self.beacon.mac_address = m;
+                true
+            },
+            Err(e) => {
+                self.error_messages.push(format!("failed to parse mac address: {}", e));
+                false
+            },
+        };
+
+        success = success && match self.raw_coord0.parse::<f64>() {
+            Ok(coord) => {
+                self.beacon.coordinates[0] = coord;
+                true
+            },
+            Err(e) => {
+                self.error_messages.push(format!("failed to parse x coordinate: {}", e));
+                false
+            },
+        };
+
+        success = success && match self.raw_coord1.parse::<f64>() {
+            Ok(coord) => {
+                self.beacon.coordinates[1] = coord;
+                true
+            },
+            Err(e) => {
+                self.error_messages.push(format!("failed to parse y coordinate: {}", e));
+                false
+            },
+        };
+
+        success
     }
 }
 
@@ -85,20 +129,18 @@ impl Component for BeaconAddUpdate {
             Msg::InputMacAddress(mac) => {
                 self.data.raw_mac = mac;
             },
+            Msg::InputCoordinate(index, value) => {
+                match index {
+                    0 => { self.data.raw_coord0 = value },
+                    1 => { self.data.raw_coord1 = value },
+                    _ => panic!("invalid coordinate index specified"),
+                };
+            },
             Msg::RequestAddUpdateBeacon => {
                 self.data.error_messages = Vec::new();
                 self.data.success_message = None;
 
-                let success = match MacAddress::parse_str(&self.data.raw_mac) {
-                    Ok(m) => {
-                        self.data.beacon.mac_address = m;
-                        true
-                    },
-                    Err(e) => {
-                        self.data.error_messages.push(format!("failed to parse mac address: {}", e));
-                        false
-                    },
-                };
+                let success = self.data.validate();
 
                 match self.data.id {
                     Some(id) if success => {
@@ -243,6 +285,18 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                     type="text",
                     value=&self.data.beacon.name,
                     oninput=|e| Msg::InputName(e.value),
+                />
+                <div/>
+                { "Coordinates: " }
+                <input
+                    type="text",
+                    value=&self.data.beacon.coordinates[0],
+                    oninput=|e| Msg::InputCoordinate(0, e.value),
+                />
+                <input
+                    type="text",
+                    value=&self.data.beacon.coordinates[1],
+                    oninput=|e| Msg::InputCoordinate(1, e.value),
                 />
                 <div/>
                 { "Note: " }
