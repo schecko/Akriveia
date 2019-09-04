@@ -74,7 +74,7 @@ fn main() -> std::io::Result<()> {
 
     let state = AkriveiaState::new();
 
-    let insert = db_utils::default_connect()
+    let _insert = db_utils::default_connect()
         .and_then(|client| {
             println!("inserting");
             models::beacon::insert_beacon(client, common::Beacon::new())
@@ -85,8 +85,7 @@ fn main() -> std::io::Result<()> {
         .map_err(|e| {
             println!("db error {:?}", e);
         });
-
-    tokio::run(insert);
+    //tokio::run(insert);
 
     // start the webserver
     HttpServer::new(move || {

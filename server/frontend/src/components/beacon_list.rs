@@ -11,9 +11,11 @@ use common::*;
 pub enum Msg {
     ChangeRootPage(root::Page),
 
+    RequestDeleteBeacon(i32),
     RequestGetBeacons,
 
     ResponseGetBeacons(util::Response<Vec<common::Beacon>>),
+    ResponseDeleteBeacon(util::Response<Vec<common::Beacon>>),
 }
 
 pub struct BeaconList {
@@ -72,6 +74,14 @@ impl Component for BeaconList {
                     Msg::ResponseGetBeacons
                 );
             },
+            Msg::RequestDeleteBeacon(id) => {
+                self.fetch_task = delete_request!(
+                    self.fetch_service,
+                    &beacon_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseDeleteBeacon
+                );
+            },
             Msg::ResponseGetBeacons(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -83,8 +93,23 @@ impl Component for BeaconList {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to request diagnostics");
+                    Log!("response - failed to obtain beacon list");
                 }
+            },
+            Msg::ResponseDeleteBeacon(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(_list) => {
+                            Log!("successfully deleted beacon");
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to delete beacon");
+                }
+                // now that the beacon is deleted, get the updated list
+                self.self_link.send_self(Msg::RequestGetBeacons);
             },
             Msg::ChangeRootPage(page) => {
                 self.change_page.as_mut().unwrap().emit(page);
@@ -116,7 +141,14 @@ impl Renderable<BeaconList> for BeaconList {
                     <td>{ &row.note }</td>
                     <td>
                         <ValueButton<i32>
+                            display=Some("Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
+                            border=false,
+                            value={row.id}
+                        />
+                        <ValueButton<i32>
+                            display=Some("Delete".to_string()),
+                            on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
                             value={row.id}
                         />
@@ -127,13 +159,15 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
+                <p>{ "Beacon List" }</p>
                 <table>
                 <tr>
-                    <td>{ "mac" }</td>
-                    <td>{ "coordinates" }</td>
-                    <td>{ "floor" }</td>
-                    <td>{ "name" }</td>
-                    <td>{ "note" }</td>
+                    <td>{ "Mac" }</td>
+                    <td>{ "Coordinates" }</td>
+                    <td>{ "Floor" }</td>
+                    <td>{ "Name" }</td>
+                    <td>{ "Note" }</td>
+                    <td>{ "Actions" }</td>
                 </tr>
                 { for rows }
                 </table>

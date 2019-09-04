@@ -100,3 +100,32 @@ macro_rules! get_request {
         };
     };
 }
+
+macro_rules! delete_request {
+    ($fetch_service:expr, $url:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
+        match yew::services::fetch::Request::delete($url)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .body(yew::format::Nothing)
+        {
+            Ok(req) => {
+                $success();
+                Some($fetch_service.fetch(req, $link.send_back($msg)))
+            },
+            Err(e) => {
+                $error(e);
+                None
+            },
+        };
+    };
+    ($fetch_service:expr, $url:expr, $link:expr, $msg:expr) => {
+        match yew::services::fetch::Request::delete($url)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .body(yew::format::Nothing)
+        {
+            Ok(req) => Some($fetch_service.fetch(req, $link.send_back($msg))),
+            Err(_) => None,
+        };
+    };
+}

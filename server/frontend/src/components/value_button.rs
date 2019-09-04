@@ -6,6 +6,7 @@ pub enum Msg {
 }
 
 pub struct ValueButton<T> {
+    pub display: Option<String>,
     pub value: T,
     pub on_click: Option<Callback<T>>,
     pub disabled: bool,
@@ -18,6 +19,7 @@ pub struct ValueButtonProps<T> {
     pub on_click: Option<Callback<T>>,
     pub disabled: bool,
     pub border: bool,
+    pub display: Option<String>,
 }
 
 impl <T: 'static> Component for ValueButton<T>
@@ -32,6 +34,7 @@ impl <T: 'static> Component for ValueButton<T>
             on_click: props.on_click,
             disabled: props.disabled,
             border: props.border,
+            display: props.display,
         }
     }
 
@@ -62,11 +65,11 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
         html! {
             <>
                 <button
-                    disabled={self.disabled}
+                    disabled={self.disabled},
                     onclick=|_| Msg::Click,
                     class={cls},
                 >
-                     { &self.value }
+                     { self.display.as_ref().unwrap_or(&self.value.to_string()) }
                 </button>
             </>
         }

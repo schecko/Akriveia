@@ -171,7 +171,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::BeaconList => {
                html! {
                     <div>
-                        <h>{ "BeaconList" }</h>
+                        <h>{ "Beacon" }</h>
                         { self.navigation() }
                         <BeaconList
                             change_page=|page| Msg::ChangePage(page),
@@ -182,7 +182,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::BeaconAddUpdate(id) => {
                html! {
                     <div>
-                        <h>{ "Update Beacon" }</h>
+                        <h>{ "Beacon" }</h>
                         { self.navigation() }
                         <BeaconAddUpdate
                             id=id,
