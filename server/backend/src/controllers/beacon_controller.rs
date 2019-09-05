@@ -2,38 +2,46 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::beacon;
-use futures::{ Stream, IntoFuture, };
-use crate::models::map;
 use futures::{ future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use std::sync::*;
 
-pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let id_string_out = req.match_info().get("id");
-    match id_string_out {
-        Some(id_string) => {
-            match id_string.parse::<i32>() {
-                Ok(id) => {
-                    Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
-                        .and_then(move |client| {
-                            beacon::select_beacon(client, id)
-                        })
-                        .map_err(|postgres_err| {
-                            // TODO can this be better?
-                            error::ErrorBadRequest(postgres_err)
-                        })
-                        .and_then(|(_client, beacon)| {
-                            match beacon {
-                                Some(b) => HttpResponse::Ok().json(b),
-                                None => HttpResponse::NotFound().finish(),
+#[derive(Deserialize)]
+pub struct GetParams {
+    prefetch: Option<bool>,
+}
+
+
+pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
+    let prefetch = params.prefetch.unwrap_or(false);
+    match id {
+        Ok(id) if id != -1 => {
+            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                .and_then(move |client| {
+                    if prefetch {
+                        Either::A(beacon::select_beacon(client, id))
+                    } else {
+                        Either::B(beacon::select_beacon_prefetch(client, id))
+                    }
+                })
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
+                .and_then(|(_client, beacon_and_map)| {
+                    match beacon_and_map {
+                        Some((beacon, opt_map)) => {
+                            match opt_map {
+                                Some(map) => HttpResponse::Ok().json(Some((beacon, Some(map)))),
+                                None => HttpResponse::Ok().json(Some(beacon)),
                             }
-                        })
-                    )
-                },
-                _ => {
-                    Either::B(ok(HttpResponse::NotFound().finish()))
-                }
-            }
+
+                        },
+                        None => HttpResponse::NotFound().finish(),
+                    }
+                })
+            )
         },
         _ => {
             Either::B(ok(HttpResponse::NotFound().finish()))
@@ -41,42 +49,15 @@ pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> 
     }
 }
 
-#[derive(Deserialize)]
-pub struct GetBeaconsParams {
-    prefetch: Option<bool>,
-}
-
-pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetBeaconsParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let prefetch = params.prefetch.unwrap_or(false);
+    let connect = db_utils::connect(db_utils::DEFAULT_CONNECTION);
 
     if prefetch {
         Either::A(
-            db_utils::connect(db_utils::DEFAULT_CONNECTION)
-                .and_then(move |mut client| {
-                    client
-                        .prepare("
-                            SELECT *
-                            FROM runtime.maps AS map, runtime.beacons AS beacon
-                            WHERE map.m_id = beacon.b_map_id
-                        ")
-                        .and_then(move |statement| {
-                            client
-                                .query(&statement, &[])
-                                .collect()
-                                .into_future()
-                                .map(|rows| -> (tokio_postgres::Client, Vec<(common::Beacon, common::Map)>) {
-                                    (
-                                        client,
-                                        rows
-                                            .into_iter()
-                                            // this works because the row conversion functions only
-                                            // look for entries specific to the object they are
-                                            // converting for, and the keys are all unique.
-                                            .map(|row| (beacon::row_to_beacon(&row), map::row_to_map(&row)))
-                                            .collect()
-                                    )
-                                })
-                        })
+            connect
+                .and_then(move |client| {
+                    beacon::select_beacons_prefetch(client)
                 })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
@@ -88,7 +69,7 @@ pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, p
         )
     } else {
         Either::B(
-            db_utils::connect(db_utils::DEFAULT_CONNECTION)
+            connect
                 .and_then(move |client| {
                     beacon::select_beacons(client)
                 })
