@@ -98,55 +98,36 @@ pub struct UserBeaconSourceLocations {
     pub distance_to_tag: f64,
 }
 
-#[derive(Copy, Debug, Clone, Serialize, Deserialize)]
-pub enum UserType {
-    Admin,
-    FirstResponder,
-    Employee,
-}
-
-impl From<i32> for UserType {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => UserType::Admin,
-            1 => UserType::FirstResponder,
-            _ => UserType::Employee,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
+pub struct TrackedUser {
     pub id: i32,
     pub coordinates: na::Vector2<f64>,
-    pub emergency_contact: i32,
-    pub employee_id: String,
+    pub emergency_contact: Option<i32>,
+    pub employee_id: Option<String>,
     pub last_active: SystemTime,
     pub mac_address: MacAddress,
-    pub map_id: i32,
+    pub map_id: Option<i32>,
     pub name: String,
-    pub note: String,
-    pub phone_number: String,
-    pub utype: UserType,
+    pub note: Option<String>,
+    pub phone_number: Option<String>,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
 }
 
-impl User {
-    pub fn new() -> User {
-        User {
+impl TrackedUser {
+    pub fn new() -> TrackedUser {
+        TrackedUser {
             id: -1,
             coordinates: na::Vector2::new(0.0, 0.0),
-            emergency_contact: -1,
-            employee_id: String::new(),
+            emergency_contact: None,
+            employee_id: None,
             last_active: UNIX_EPOCH,
             mac_address: MacAddress::nil(),
-            map_id: -1,
+            map_id: None,
             name: String::new(),
-            note: String::new(),
-            phone_number: String::new(),
-            utype: UserType::Employee,
+            note: None,
+            phone_number: None,
 
             beacon_sources: Vec::new(),
         }

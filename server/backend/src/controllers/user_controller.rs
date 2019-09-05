@@ -71,7 +71,7 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
 }
 
 // new user
-pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<User>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<TrackedUser>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             user::insert_user(client, payload.0)
@@ -88,7 +88,7 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
 }
 
 // update user
-pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<User>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<TrackedUser>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             user::update_user(client, payload.0)

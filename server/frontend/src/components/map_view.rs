@@ -25,7 +25,7 @@ pub enum Msg {
 
     RequestRealtimeUser,
 
-    ResponseRealtimeUser(util::Response<Vec<common::User>>),
+    ResponseRealtimeUser(util::Response<Vec<common::TrackedUser>>),
 }
 
 pub struct MapViewComponent {
@@ -38,7 +38,7 @@ pub struct MapViewComponent {
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<MacAddress>,
-    users: BTreeMap<MacAddress, Box<common::User>>,
+    users: BTreeMap<MacAddress, Box<common::TrackedUser>>,
 }
 
 impl MapViewComponent {

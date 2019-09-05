@@ -24,7 +24,7 @@ pub struct DataProcessor {
     // this tree maps tag mac addresses to users
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
-    users: BTreeMap<MacAddress, common::User>
+    users: BTreeMap<MacAddress, common::TrackedUser>
 }
 
 impl DataProcessor {
@@ -164,7 +164,7 @@ impl Handler<DPMessage> for DataProcessor {
                                 None => {
                                     // TODO this should probably eventually be an error if the user
                                     // is missing, but for now just make the user instead
-                                    let mut user = common::User::new();
+                                    let mut user = common::TrackedUser::new();
                                     user.mac_address = tag_data.tag_mac.clone();
                                     user.beacon_sources = beacon_sources;
                                     user.coordinates = new_tag_location;
@@ -199,11 +199,11 @@ impl Handler<DPMessage> for DataProcessor {
 pub struct OutUserData { }
 
 impl Message for OutUserData {
-    type Result = Result<Vec<common::User>, io::Error>;
+    type Result = Result<Vec<common::TrackedUser>, io::Error>;
 }
 
 impl Handler<OutUserData> for DataProcessor {
-    type Result = Result<Vec<common::User>, io::Error>;
+    type Result = Result<Vec<common::TrackedUser>, io::Error>;
 
     fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
         Ok(self.users.values().cloned().collect())

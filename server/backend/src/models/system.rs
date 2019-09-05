@@ -32,10 +32,9 @@ const SCHEMA: [&str; 22] = [
     );",
     "CREATE TABLE runtime.users (
         id SERIAL PRIMARY KEY,
-        coordinates DOUBLE PRECISION[2] NOT NULL,
+        coordinates DOUBLE PRECISION[2],
         emergency_contact INTEGER REFERENCES runtime.users(id),
         employee_id VARCHAR(256),
-        id_tag INTEGER,
         last_active TIMESTAMP NOT NULL,
         mac_address MACADDR,
         map_id INTEGER REFERENCES runtime.maps(id),

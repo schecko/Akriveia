@@ -5,8 +5,8 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 
-fn row_to_user(row: Row) -> User {
-    let mut entry = User::new();
+fn row_to_user(row: Row) -> TrackedUser {
+    let mut entry = TrackedUser::new();
     for (i, column) in row.columns().iter().enumerate() {
         match column.name() {
             "id" => entry.id = row.get(i),
@@ -22,14 +22,13 @@ fn row_to_user(row: Row) -> User {
             "name" => entry.name = row.get(i),
             "note" => entry.note = row.get(i),
             "phone_number" => entry.phone_number = row.get(i),
-            "utype" => entry.utype = UserType::from(row.get::<usize, i32>(i)),
             unhandled => { panic!("unhandled beacon column {}", unhandled); },
         }
     }
     entry
 }
 
-pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<User>), Error=tokio_postgres::Error> {
+pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<TrackedUser>), Error=tokio_postgres::Error> {
     // TODO paging
     client
         .prepare("
@@ -46,7 +45,7 @@ pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tok
         })
 }
 
-pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<User>), Error=tokio_postgres::Error> {
+pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
             SELECT * FROM runtime.users
@@ -69,7 +68,7 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
 }
 
 #[allow(dead_code)]
-pub fn select_user_by_name(mut client: tokio_postgres::Client, name: String) -> impl Future<Item=(tokio_postgres::Client, Option<User>), Error=tokio_postgres::Error> {
+pub fn select_user_by_name(mut client: tokio_postgres::Client, name: String) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
             SELECT * FROM runtime.users
@@ -91,7 +90,7 @@ pub fn select_user_by_name(mut client: tokio_postgres::Client, name: String) -> 
         })
 }
 
-pub fn insert_user(mut client: tokio_postgres::Client, user: User) -> impl Future<Item=(tokio_postgres::Client, Option<User>), Error=tokio_postgres::Error> {
+pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             INSERT INTO runtime.users (
@@ -133,7 +132,6 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: User) -> impl Futur
                     &user.name,
                     &user.note,
                     &user.phone_number,
-                    &(user.utype as i32)
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -148,7 +146,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: User) -> impl Futur
         })
 }
 
-pub fn update_user(mut client: tokio_postgres::Client, user: User) -> impl Future<Item=(tokio_postgres::Client, Option<User>), Error=tokio_postgres::Error> {
+pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.users
@@ -192,7 +190,6 @@ pub fn update_user(mut client: tokio_postgres::Client, user: User) -> impl Futur
                     &user.name,
                     &user.note,
                     &user.phone_number,
-                    &(user.utype as i32),
                     &user.id,
                 ])
                 .into_future()
