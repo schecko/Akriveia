@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 22] = [
+const SCHEMA: [&str; 23] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -40,8 +40,7 @@ const SCHEMA: [&str; 22] = [
         map_id INTEGER REFERENCES runtime.maps(id),
         name VARCHAR(256) UNIQUE,
         note VARCHAR(1024),
-        phone_number VARCHAR(20),
-        utype INTEGER NOT NULL
+        phone_number VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
         id SERIAL PRIMARY KEY,
@@ -83,6 +82,10 @@ const SCHEMA: [&str; 22] = [
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "INSERT INTO system.networks(mac_address, host_beacon_udp, host_webserver, ip, name)
             VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
+    ",
+    // TODO remove after implementing frontend
+    "INSERT INTO runtime.users(id, name, last_active, coordinates, mac_address)
+            VALUES(0, 'test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
     ",
 ];
 
