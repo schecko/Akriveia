@@ -2,9 +2,9 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::beacon;
+use futures::{ Stream, IntoFuture, };
 use crate::models::map;
 use futures::{ future::ok, Future, future::Either, };
-use itertools::Itertools;
 use serde_derive::{ Deserialize, };
 use std::sync::*;
 
@@ -49,46 +49,53 @@ pub struct GetBeaconsParams {
 pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetBeaconsParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let prefetch = params.prefetch.unwrap_or(false);
 
-    let get_beacons = db_utils::connect(db_utils::DEFAULT_CONNECTION)
-        .and_then(move |client| {
-            beacon::select_beacons(client)
-        });
-
     if prefetch {
+        println!("prefetch is true");
         Either::A(
-            get_beacons
-                .and_then(|(client, beacons)| {
-                    println!("success 1");
-                    let map_ids: Vec<i32> = beacons
-                        .iter()
-                        .map(|beacon| beacon.map_id.unwrap_or(-1))
-                        .filter(|&id| id == -1)
-                        .unique()
-                        .collect();
-
-                    map::select_maps_by_id(client, map_ids)
-                        .map(|(client, maps)| {
-                            (client, beacons, maps)
+            db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                .and_then(move |mut client| {
+                    client
+                        .prepare("
+                            SELECT *
+                            FROM runtime.maps AS map, runtime.beacons AS beacon
+                            WHERE map.m_id = beacon.b_map_id
+                        ")
+                        .and_then(move |statement| {
+                            client
+                                .query(&statement, &[])
+                                .collect()
+                                .into_future()
+                                .map(|rows| -> (tokio_postgres::Client, Vec<(common::Beacon, common::Map)>) {
+                                    (
+                                        client,
+                                        rows
+                                            .into_iter()
+                                            .map(|row| (beacon::row_to_beacon(&row), map::row_to_map(&row)))
+                                            .collect()
+                                    )
+                                })
                         })
                 })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
                     error::ErrorBadRequest(postgres_err)
                 })
-                .and_then(|(_client, beacons, maps)| {
-                    println!("success 3");
-                    HttpResponse::Ok().json((beacons, maps))
+                .and_then(|(_client, beacons_and_maps)| {
+                    HttpResponse::Ok().json(beacons_and_maps)
                 })
         )
     } else {
         Either::B(
-            get_beacons
+            db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                .and_then(move |client| {
+                    beacon::select_beacons(client)
+                })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
                     error::ErrorBadRequest(postgres_err)
                 })
-                .and_then(|(_client, beacons_and_maps)| {
-                    HttpResponse::Ok().json(beacons_and_maps)
+                .and_then(|(_client, beacons)| {
+                    HttpResponse::Ok().json(beacons)
                 })
         )
     }

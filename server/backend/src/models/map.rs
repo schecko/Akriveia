@@ -5,20 +5,21 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 
-fn row_to_map(row: Row) -> Map {
+pub fn row_to_map(row: &Row) -> Map {
     let mut entry = Map::new();
     for (i, column) in row.columns().iter().enumerate() {
         match column.name() {
-            "id" => entry.id = row.get(i),
-            "blueprint" => panic!("blueprint data not handled yet"),
-            "bounds" => {
+            "m_id" => entry.id = row.get(i),
+            "m_blueprint" => {}, //panic!("blueprint data not handled yet"),
+            "m_bounds" => {
                 let bounds: Vec<f64> = row.get(i);
                 entry.bounds = na::Vector2::new(bounds[0], bounds[1]);
             }
-            "scale" => entry.scale = row.get(i),
-            "name" => entry.name = row.get(i),
-            "note" => entry.note = row.get(i),
-            unhandled => { panic!("unhandled beacon column {}", unhandled); },
+            "m_scale" => entry.scale = row.get(i),
+            "m_name" => entry.name = row.get(i),
+            "m_note" => entry.note = row.get(i),
+            unhandled if unhandled.starts_with("m_") => { panic!("unhandled beacon column {}", unhandled); },
+            _ => {},
         }
     }
     entry
@@ -36,7 +37,7 @@ pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(toki
                 .collect()
                 .into_future()
                 .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_map(row)).collect())
+                    (client, rows.into_iter().map(|row| row_to_map(&row)).collect())
                 })
         })
 }
@@ -45,7 +46,7 @@ pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
     client
         .prepare("
             SELECT * FROM runtime.maps
-            WHERE id = $1::INTEGER
+            WHERE m_id = $1::INTEGER
         ")
         .and_then(move |statement| {
             client
@@ -56,49 +57,7 @@ pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_map(r))),
-                        _ => (client, None),
-                    }
-                })
-        })
-}
-
-pub fn select_maps_by_id(mut client: tokio_postgres::Client, ids: Vec<i32>) -> impl Future<Item=(tokio_postgres::Client, Vec<Map>), Error=tokio_postgres::Error> {
-    client
-        .prepare_typed("
-            SELECT * FROM runtime.maps
-            WHERE id IN $1
-        ", &[
-            Type::INT4_ARRAY,
-        ])
-        .and_then(move |statement| {
-            client
-                .query(&statement, &[&ids])
-                .collect()
-                .into_future()
-                .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_map(row)).collect())
-                })
-        })
-}
-
-#[allow(dead_code)]
-pub fn select_map_by_name(mut client: tokio_postgres::Client, name: String) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
-    client
-        .prepare("
-            SELECT * FROM runtime.maps
-            WHERE mac_address = $1::VARCHAR(256)
-        ")
-        .and_then(move |statement| {
-            client
-                .query(&statement, &[&name])
-                .into_future()
-                .map_err(|err| {
-                    err.0
-                })
-                .map(|(row, _next)| {
-                    match row {
-                        Some(r) => (client, Some(row_to_map(r))),
+                        Some(r) => (client, Some(row_to_map(&r))),
                         _ => (client, None),
                     }
                 })
@@ -109,10 +68,10 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
     client
         .prepare_typed("
             INSERT INTO runtime.maps (
-                bounds,
-                name,
-                note,
-                scale,
+                m_bounds,
+                m_name,
+                m_note,
+                m_scale,
             )
             VALUES( $1, $2, $3, $4 )
             RETURNING *
@@ -137,7 +96,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_map(r))),
+                        Some(r) => (client, Some(row_to_map(&r))),
                         _ => (client, None),
                     }
                 })
@@ -149,12 +108,12 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
         .prepare_typed("
             UPDATE runtime.maps
             SET
-                bounds = $1,
-                name = $2,
-                note = $3,
-                scale = $4,
+                m_bounds = $1,
+                m_name = $2,
+                m_note = $3,
+                m_scale = $4,
              WHERE
-                id = $5
+                m_id = $5
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -179,7 +138,7 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_map(r))),
+                        Some(r) => (client, Some(row_to_map(&r))),
                         _ => (client, None),
                     }
                 })
@@ -191,7 +150,7 @@ pub fn delete_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
         .prepare_typed("
             DELETE FROM runtime.maps
             WHERE (
-                id = $1
+                m_id = $1
             )
         ", &[
             Type::INT4,

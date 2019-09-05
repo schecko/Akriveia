@@ -5,22 +5,23 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 
-fn row_to_beacon(row: Row) -> Beacon {
+pub fn row_to_beacon(row: &Row) -> Beacon {
     let mut b = Beacon::new();
     for (i, column) in row.columns().iter().enumerate() {
         println!("column: {:?}", column);
         match column.name() {
-            "id" => b.id = row.get(i),
-            "mac_address" => b.mac_address = row.get(i),
-            "ip" => b.ip = row.get(i),
-            "coordinates" => {
+            "b_id" => b.id = row.get(i),
+            "b_mac_address" => b.mac_address = row.get(i),
+            "b_ip" => b.ip = row.get(i),
+            "b_coordinates" => {
                 let coordinates: Vec<f64> = row.get(i);
                 b.coordinates = na::Vector2::new(coordinates[0], coordinates[1]);
             }
-            "map_id" => b.map_id = row.get(i),
-            "name" => b.name = row.get(i),
-            "note" => b.note = row.get(i),
-            unhandled => { panic!("unhandled beacon column {}", unhandled); },
+            "b_map_id" => b.map_id = row.get(i),
+            "b_name" => b.name = row.get(i),
+            "b_note" => b.note = row.get(i),
+            unhandled if unhandled.starts_with("b_") => { panic!("unhandled beacon column {}", unhandled); },
+            _ => {},
         }
     }
     b
@@ -38,7 +39,7 @@ pub fn select_beacons(mut client: tokio_postgres::Client) -> impl Future<Item=(t
                 .collect()
                 .into_future()
                 .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_beacon(row)).collect())
+                    (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
                 })
         })
 }
@@ -47,7 +48,7 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
     client
         .prepare("
             SELECT * FROM runtime.beacons
-            WHERE id = $1::INTEGER
+            WHERE b_id = $1::INTEGER
         ")
         .and_then(move |statement| {
             client
@@ -58,7 +59,7 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_beacon(r))),
+                        Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),
                     }
                 })
@@ -70,7 +71,7 @@ pub fn select_beacon_by_mac(mut client: tokio_postgres::Client, mac_address: Str
     client
         .prepare("
             SELECT * FROM runtime.beacons
-            WHERE mac_address = $1::MACADDR
+            WHERE b_mac_address = $1::MACADDR
         ")
         .and_then(move |statement| {
             client
@@ -81,7 +82,7 @@ pub fn select_beacon_by_mac(mut client: tokio_postgres::Client, mac_address: Str
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_beacon(r))),
+                        Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),
                     }
                 })
@@ -92,11 +93,11 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
     client
         .prepare_typed("
             INSERT INTO runtime.beacons (
-                mac_address,
-                coordinates,
-                map_id,
-                name,
-                note
+                b_mac_address,
+                b_coordinates,
+                b_map_id,
+                b_name,
+                b_note
             )
             VALUES( $1, $2, $3, $4, $5 )
             RETURNING *
@@ -123,7 +124,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_beacon(r))),
+                        Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),
                     }
                 })
@@ -135,13 +136,13 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         .prepare_typed("
             UPDATE runtime.beacons
             SET
-                mac_address = $1,
-                coordinates = $2,
-                map_id = $3,
-                name = $4,
-                note = $5
+                b_mac_address = $1,
+                b_coordinates = $2,
+                b_map_id = $3,
+                b_name = $4,
+                b_note = $5
              WHERE
-                id = $6
+                b_id = $6
             RETURNING *
         ", &[
             Type::MACADDR,
@@ -168,7 +169,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_beacon(r))),
+                        Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),
                     }
                 })
@@ -180,7 +181,7 @@ pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         .prepare_typed("
             DELETE FROM runtime.beacons
             WHERE (
-                id = $1
+                b_id = $1
             )
         ", &[
             Type::INT4,

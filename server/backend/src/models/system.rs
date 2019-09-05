@@ -23,41 +23,41 @@ const SCHEMA: [&str; 27] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
-        id SERIAL PRIMARY KEY,
-        blueprint BYTEA,
-        bounds DOUBLE PRECISION[2] NOT NULL,
-        name VARCHAR(256) UNIQUE,
-        scale DOUBLE PRECISION,
-        note VARCHAR(1024)
+        m_id SERIAL PRIMARY KEY,
+        m_blueprint BYTEA,
+        m_bounds DOUBLE PRECISION[2] NOT NULL,
+        m_name VARCHAR(256) UNIQUE,
+        m_scale DOUBLE PRECISION,
+        m_note VARCHAR(1024)
     );",
     "CREATE TABLE runtime.users (
-        id SERIAL PRIMARY KEY,
-        coordinates DOUBLE PRECISION[2],
-        emergency_contact INTEGER REFERENCES runtime.users(id),
-        employee_id VARCHAR(256),
-        last_active TIMESTAMP NOT NULL,
-        mac_address MACADDR,
-        map_id INTEGER REFERENCES runtime.maps(id),
-        name VARCHAR(256) UNIQUE,
-        note VARCHAR(1024),
-        phone_number VARCHAR(20)
+        u_id SERIAL PRIMARY KEY,
+        u_coordinates DOUBLE PRECISION[2],
+        u_emergency_contact INTEGER REFERENCES runtime.users(u_id),
+        u_employee_id VARCHAR(256),
+        u_last_active TIMESTAMP NOT NULL,
+        u_mac_address MACADDR,
+        u_map_id INTEGER REFERENCES runtime.maps(m_id),
+        u_name VARCHAR(256) UNIQUE,
+        u_note VARCHAR(1024),
+        u_phone_number VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
-        id SERIAL PRIMARY KEY,
-        mac_address MACADDR UNIQUE,
-        ip INET UNIQUE,
-        coordinates DOUBLE PRECISION[2] NOT NULL,
-        map_id INTEGER REFERENCES runtime.maps(id),
-        name VARCHAR(255) UNIQUE,
-        note VARCHAR(1024)
+        b_id SERIAL PRIMARY KEY,
+        b_mac_address MACADDR UNIQUE,
+        b_ip INET UNIQUE,
+        b_coordinates DOUBLE PRECISION[2] NOT NULL,
+        b_map_id INTEGER REFERENCES runtime.maps(m_id),
+        b_name VARCHAR(255) UNIQUE,
+        b_note VARCHAR(1024)
     );",
     "CREATE TABLE system.networks (
-        id SERIAL PRIMARY KEY,
-        mac_address MACADDR,
-        host_beacon_udp BOOLEAN NOT NULL,
-        host_webserver BOOLEAN NOT NULL,
-        ip INET,
-        name VARCHAR(255) UNIQUE
+        n_id SERIAL PRIMARY KEY,
+        n_mac_address MACADDR,
+        n_host_beacon_udp BOOLEAN NOT NULL,
+        n_host_webserver BOOLEAN NOT NULL,
+        n_ip INET,
+        n_name VARCHAR(255) UNIQUE
     )",
 
     // create roles and users
@@ -80,23 +80,23 @@ const SCHEMA: [&str; 27] = [
     "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "INSERT INTO system.networks(mac_address, host_beacon_udp, host_webserver, ip, name)
+    "INSERT INTO system.networks(n_mac_address, n_host_beacon_udp, n_host_webserver, n_ip, n_name)
             VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
     ",
     // TODO remove after implementing frontend
-    "INSERT INTO runtime.users(name, last_active, coordinates, mac_address)
+    "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
             VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
     ",
-    "INSERT INTO runtime.maps(id, bounds, name, scale)
+    "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 4, 4 ], 'test_map', 0.01)
     ",
-    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
             VALUES(100, '00:00:00:00:00:01', '0.0.0.1', ARRAY [ 0, 0 ], 69, 'origin_beacon')
     ",
-    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
             VALUES(130, '00:00:00:00:00:02', '0.0.0.2', ARRAY [ 3, 0 ], 69, 'top_left')
     ",
-    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
             VALUES(103, '00:00:00:00:00:03', '0.0.0.3', ARRAY [ 0, 3 ], 69, 'bottom_right')
     ",
 ];
