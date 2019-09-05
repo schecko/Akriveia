@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 23] = [
+const SCHEMA: [&str; 27] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -84,8 +84,20 @@ const SCHEMA: [&str; 23] = [
             VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
     ",
     // TODO remove after implementing frontend
-    "INSERT INTO runtime.users(id, name, last_active, coordinates, mac_address)
-            VALUES(0, 'test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
+    "INSERT INTO runtime.users(name, last_active, coordinates, mac_address)
+            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
+    ",
+    "INSERT INTO runtime.maps(id, bounds, name, scale)
+            VALUES(69, ARRAY [ 4, 4 ], 'test_map', 0.01)
+    ",
+    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+            VALUES(100, '00:00:00:00:00:01', '0.0.0.1', ARRAY [ 0, 0 ], 69, 'origin_beacon')
+    ",
+    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+            VALUES(130, '00:00:00:00:00:02', '0.0.0.2', ARRAY [ 3, 0 ], 69, 'top_left')
+    ",
+    "INSERT INTO runtime.beacons(id, mac_address, ip, coordinates, map_id, name)
+            VALUES(103, '00:00:00:00:00:03', '0.0.0.3', ARRAY [ 0, 3 ], 69, 'bottom_right')
     ",
 ];
 

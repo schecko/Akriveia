@@ -2,9 +2,10 @@ extern crate serde_derive;
 extern crate nalgebra as na;
 extern crate eui48;
 
-use serde_derive::{ Deserialize, Serialize };
-use std::time::{ SystemTime, UNIX_EPOCH };
+use serde_derive::{ Deserialize, Serialize, };
+use std::time::{ SystemTime, UNIX_EPOCH, };
 pub use eui48::MacAddress;
+use std::net::{ IpAddr, Ipv4Addr, };
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
@@ -118,7 +119,7 @@ pub struct TrackedUser {
 impl TrackedUser {
     pub fn new() -> TrackedUser {
         TrackedUser {
-            id: -1,
+            id: -1, // primary key
             coordinates: na::Vector2::new(0.0, 0.0),
             emergency_contact: None,
             employee_id: None,
@@ -136,34 +137,36 @@ impl TrackedUser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub id: i32,
-    pub mac_address: MacAddress,
+    pub id: i32, // primary key
     pub coordinates: na::Vector2<f64>,
-    pub map_id: Option<String>,
+    pub ip: IpAddr,
+    pub mac_address: MacAddress,
+    pub map_id: Option<i32>,
     pub name: String,
-    pub note: String,
+    pub note: Option<String>,
 }
 
 impl Beacon {
     pub fn new() -> Beacon {
         Beacon {
             id: -1,
-            mac_address: MacAddress::nil(),
             coordinates: na::Vector2::new(0.0, 0.0),
+            ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            mac_address: MacAddress::nil(),
             map_id: None,
-            name: "".to_string(),
-            note: "".to_string(),
+            name: String::new(),
+            note: None,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
-    pub id: i32,
+    pub id: i32, // primary key
     pub blueprint: Vec<u8>,
     pub bounds: na::Vector2<f64>,
     pub name: String,
-    pub note: String,
+    pub note: Option<String>,
     pub scale: f64,
 }
 
@@ -173,8 +176,8 @@ impl Map {
             id: -1,
             blueprint: Vec::new(),
             bounds: na::Vector2::new(0.0, 0.0),
-            name: "".to_string(),
-            note: "".to_string(),
+            name: String::new(),
+            note: None,
             scale: 1.0,
         }
     }

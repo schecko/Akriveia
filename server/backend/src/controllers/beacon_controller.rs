@@ -2,7 +2,10 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::beacon;
+use crate::models::map;
 use futures::{ future::ok, Future, future::Either, };
+use itertools::Itertools;
+use serde_derive::{ Deserialize, };
 use std::sync::*;
 
 pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
@@ -38,18 +41,57 @@ pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> 
     }
 }
 
-pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+#[derive(Deserialize)]
+pub struct GetBeaconsParams {
+    prefetch: Option<bool>,
+}
+
+pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetBeaconsParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let prefetch = params.prefetch.unwrap_or(false);
+
+    let get_beacons = db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             beacon::select_beacons(client)
-        })
-        .map_err(|postgres_err| {
-            // TODO can this be better?
-            error::ErrorBadRequest(postgres_err)
-        })
-        .and_then(|(_client, beacons)| {
-            HttpResponse::Ok().json(beacons)
-        })
+        });
+
+    if prefetch {
+        Either::A(
+            get_beacons
+                .and_then(|(client, beacons)| {
+                    println!("success 1");
+                    let map_ids: Vec<i32> = beacons
+                        .iter()
+                        .map(|beacon| beacon.map_id.unwrap_or(-1))
+                        .filter(|&id| id == -1)
+                        .unique()
+                        .collect();
+
+                    map::select_maps_by_id(client, map_ids)
+                        .map(|(client, maps)| {
+                            (client, beacons, maps)
+                        })
+                })
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
+                .and_then(|(_client, beacons, maps)| {
+                    println!("success 3");
+                    HttpResponse::Ok().json((beacons, maps))
+                })
+        )
+    } else {
+        Either::B(
+            get_beacons
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
+                .and_then(|(_client, beacons_and_maps)| {
+                    HttpResponse::Ok().json(beacons_and_maps)
+                })
+        )
+    }
 }
 
 // new beacon

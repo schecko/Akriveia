@@ -12,15 +12,16 @@ pub enum Msg {
     RequestDeleteBeacon(i32),
     RequestGetBeacons,
 
-    ResponseGetBeacons(util::Response<Vec<common::Beacon>>),
-    ResponseDeleteBeacon(util::Response<Vec<common::Beacon>>),
+    ResponseGetBeacons(util::Response<(Vec<Beacon>, Vec<Map>)>),
+    ResponseDeleteBeacon(util::Response<Vec<()>>),
 }
 
 pub struct BeaconList {
     change_page: Option<Callback<root::Page>>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    list: Vec<common::Beacon>,
+    beacon_list: Vec<Beacon>,
+    map_list: Vec<Map>,
     self_link: ComponentLink<Self>,
 }
 
@@ -37,7 +38,8 @@ impl Component for BeaconList {
         link.send_self(Msg::RequestGetBeacons);
         let result = BeaconList {
             fetch_service: FetchService::new(),
-            list: Vec::new(),
+            beacon_list: Vec::new(),
+            map_list: Vec::new(),
             fetch_task: None,
             self_link: link,
             change_page: props.change_page,
@@ -50,7 +52,7 @@ impl Component for BeaconList {
             Msg::RequestGetBeacons => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &beacons_url(),
+                    &format!("{}?prefetch=true", beacons_url()),
                     self.self_link,
                     Msg::ResponseGetBeacons
                 );
@@ -67,9 +69,9 @@ impl Component for BeaconList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(list) => {
-                            Log!("list is: {:?}", list);
-                            self.list = list;
+                        Ok((beacons, maps)) => {
+                            self.beacon_list = beacons;
+                            self.map_list = maps;
                         }
                         _ => { }
                     }
@@ -107,31 +109,30 @@ impl Component for BeaconList {
 
 impl Renderable<BeaconList> for BeaconList {
     fn view(&self) -> Html<Self> {
-        let mut rows = self.list.iter().map(|row| {
-            let map_id = match &row.map_id {
-                Some(id) => id,
-                None => "",
-            };
+        let empty_map = Map::new();
+
+        let mut rows = self.beacon_list.iter().map(|beacon| {
+            let map = self.map_list.iter().find(|map| map.id == beacon.map_id.unwrap_or(-1)).unwrap_or(&empty_map);
 
             html! {
                 <tr>
-                    <td>{ &row.mac_address.to_hex_string() }</td>
-                    <td>{ format!("{},{}", &row.coordinates.x, &row.coordinates.y) }</td>
-                    <td>{ map_id }</td>
-                    <td>{ &row.name }</td>
-                    <td>{ &row.note }</td>
+                    <td>{ &beacon.mac_address.to_hex_string() }</td>
+                    <td>{ format!("{},{}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
+                    <td>{ &map.name }</td>
+                    <td>{ &beacon.name }</td>
+                    <td>{ beacon.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
                             display=Some("Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
-                            value={row.id}
+                            value={beacon.id}
                         />
                         <ValueButton<i32>
                             display=Some("Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
-                            value=row.id
+                            value=beacon.id
                         />
                     </td>
                 </tr>

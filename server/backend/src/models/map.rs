@@ -63,6 +63,25 @@ pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
         })
 }
 
+pub fn select_maps_by_id(mut client: tokio_postgres::Client, ids: Vec<i32>) -> impl Future<Item=(tokio_postgres::Client, Vec<Map>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.maps
+            WHERE id IN $1
+        ", &[
+            Type::INT4_ARRAY,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&ids])
+                .collect()
+                .into_future()
+                .map(|rows| {
+                    (client, rows.into_iter().map(|row| row_to_map(row)).collect())
+                })
+        })
+}
+
 #[allow(dead_code)]
 pub fn select_map_by_name(mut client: tokio_postgres::Client, name: String) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
     client

@@ -8,9 +8,11 @@ use tokio_postgres::types::Type;
 fn row_to_beacon(row: Row) -> Beacon {
     let mut b = Beacon::new();
     for (i, column) in row.columns().iter().enumerate() {
+        println!("column: {:?}", column);
         match column.name() {
             "id" => b.id = row.get(i),
             "mac_address" => b.mac_address = row.get(i),
+            "ip" => b.ip = row.get(i),
             "coordinates" => {
                 let coordinates: Vec<f64> = row.get(i);
                 b.coordinates = na::Vector2::new(coordinates[0], coordinates[1]);
