@@ -12,7 +12,7 @@ pub enum Msg {
     RequestDeleteBeacon(i32),
     RequestGetBeacons,
 
-    ResponseGetBeacons(util::Response<(Vec<Beacon>, Vec<Map>)>),
+    ResponseGetBeacons(util::Response<Vec<(Beacon, Map)>>),
     ResponseDeleteBeacon(util::Response<Vec<()>>),
 }
 
@@ -20,8 +20,7 @@ pub struct BeaconList {
     change_page: Option<Callback<root::Page>>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    beacon_list: Vec<Beacon>,
-    map_list: Vec<Map>,
+    list: Vec<(Beacon, Map)>,
     self_link: ComponentLink<Self>,
 }
 
@@ -38,8 +37,7 @@ impl Component for BeaconList {
         link.send_self(Msg::RequestGetBeacons);
         let result = BeaconList {
             fetch_service: FetchService::new(),
-            beacon_list: Vec::new(),
-            map_list: Vec::new(),
+            list: Vec::new(),
             fetch_task: None,
             self_link: link,
             change_page: props.change_page,
@@ -69,9 +67,8 @@ impl Component for BeaconList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok((beacons, maps)) => {
-                            self.beacon_list = beacons;
-                            self.map_list = maps;
+                        Ok(beacons_and_maps) => {
+                            self.list = beacons_and_maps;
                         }
                         _ => { }
                     }
@@ -109,11 +106,7 @@ impl Component for BeaconList {
 
 impl Renderable<BeaconList> for BeaconList {
     fn view(&self) -> Html<Self> {
-        let empty_map = Map::new();
-
-        let mut rows = self.beacon_list.iter().map(|beacon| {
-            let map = self.map_list.iter().find(|map| map.id == beacon.map_id.unwrap_or(-1)).unwrap_or(&empty_map);
-
+        let mut rows = self.list.iter().map(|(beacon, map)| {
             html! {
                 <tr>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>

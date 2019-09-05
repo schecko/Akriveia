@@ -50,7 +50,6 @@ pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, p
     let prefetch = params.prefetch.unwrap_or(false);
 
     if prefetch {
-        println!("prefetch is true");
         Either::A(
             db_utils::connect(db_utils::DEFAULT_CONNECTION)
                 .and_then(move |mut client| {
@@ -70,6 +69,9 @@ pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, p
                                         client,
                                         rows
                                             .into_iter()
+                                            // this works because the row conversion functions only
+                                            // look for entries specific to the object they are
+                                            // converting for, and the keys are all unique.
                                             .map(|row| (beacon::row_to_beacon(&row), map::row_to_map(&row)))
                                             .collect()
                                     )

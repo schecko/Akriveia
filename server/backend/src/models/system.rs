@@ -47,7 +47,7 @@ const SCHEMA: [&str; 27] = [
         b_mac_address MACADDR UNIQUE,
         b_ip INET UNIQUE,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
-        b_map_id INTEGER REFERENCES runtime.maps(m_id),
+        b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024)
     );",
