@@ -243,27 +243,19 @@ mod tests {
     use super::*;
     use crate::db_utils;
     use tokio::runtime::current_thread::Runtime;
-    // NOTE: unsafe modification of this static is alright,
-    // because these backend tests MUST be executed on a single thread.
-    static mut ID_GEN: i32 = 1000;
 
     #[test]
-    fn test_insert() {
+    fn insert() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
-                println!("hello");
                 // a beacon must point to a valid map
                 map::insert_map(client, map)
             })
@@ -281,17 +273,13 @@ mod tests {
     }
 
     #[test]
-    fn test_delete() {
+    fn delete() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
 
         let task = db_utils::default_connect()
@@ -316,19 +304,14 @@ mod tests {
     }
 
     #[test]
-    fn test_update() {
+    fn update() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
-
         let mut updated_beacon = beacon.clone();
         updated_beacon.name = "hello".to_string();
 
@@ -342,7 +325,9 @@ mod tests {
                 insert_beacon(client, beacon)
             })
             .and_then(|(client, opt_beacon)| {
-                updated_beacon.map_id = opt_beacon.unwrap().map_id;
+                let b = opt_beacon.unwrap();
+                updated_beacon.map_id = b.map_id;
+                updated_beacon.id = b.id;
                 update_beacon(client, updated_beacon)
             })
             .map(|(_client, _beacon)| {
@@ -355,21 +340,14 @@ mod tests {
     }
 
     #[test]
-    fn test_select() {
+    fn select() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
-
-        let mut updated_beacon = beacon.clone();
-        updated_beacon.name = "hello".to_string();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -393,21 +371,14 @@ mod tests {
     }
 
     #[test]
-    fn test_select_prefetch() {
+    fn select_prefetch() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
-
-        let mut updated_beacon = beacon.clone();
-        updated_beacon.name = "hello".to_string();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -431,21 +402,14 @@ mod tests {
     }
 
     #[test]
-    fn test_select_many() {
+    fn select_many() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
-
-        let mut updated_beacon = beacon.clone();
-        updated_beacon.name = "hello".to_string();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -469,21 +433,14 @@ mod tests {
     }
 
     #[test]
-    fn test_select_many_prefetch() {
+    fn select_many_prefetch() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let map = Map::new();
 
         let mut beacon = Beacon::new();
-        unsafe {
-            beacon.id = ID_GEN;
-            ID_GEN += 1;
-        }
         beacon.name = "hello_test".to_string();
-
-        let mut updated_beacon = beacon.clone();
-        updated_beacon.name = "hello".to_string();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
