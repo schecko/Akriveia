@@ -74,7 +74,7 @@ fn main() -> std::io::Result<()> {
 
     let state = AkriveiaState::new();
 
-    let insert = db_utils::default_connect()
+    let _insert = db_utils::default_connect()
         .and_then(|client| {
             println!("inserting");
             models::beacon::insert_beacon(client, common::Beacon::new())
@@ -85,8 +85,7 @@ fn main() -> std::io::Result<()> {
         .map_err(|e| {
             println!("db error {:?}", e);
         });
-
-    tokio::run(insert);
+    //tokio::run(insert);
 
     // start the webserver
     HttpServer::new(move || {
@@ -114,8 +113,11 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacon_url("{id}"))
                     .route(web::get().to_async(beacon_controller::get_beacon))
                     .route(web::put().to_async(beacon_controller::put_beacon))
-                    .route(web::post().to_async(beacon_controller::post_beacon))
                     .route(web::delete().to_async(beacon_controller::delete_beacon))
+            )
+            .service(
+                web::resource(&beacon_url(""))
+                    .route(web::post().to_async(beacon_controller::post_beacon))
             )
             .service(
                 web::resource(&users_url())

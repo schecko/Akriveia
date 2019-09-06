@@ -1,15 +1,19 @@
 
 use common::*;
 use crate::util;
-use yew::format::{ Nothing, Json };
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use yew::format::Json;
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
+use super::beacon_list::BeaconList;
+use super::beacon_addupdate::BeaconAddUpdate;
 
 #[derive(PartialEq)]
 pub enum Page {
+    BeaconAddUpdate(Option<i32>),
+    BeaconList,
     Diagnostics,
     FrontPage,
     Login,
@@ -17,8 +21,8 @@ pub enum Page {
 }
 
 pub struct RootComponent {
-    emergency: bool,
     current_page: Page,
+    emergency: bool,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
@@ -46,8 +50,8 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            emergency: false,
             current_page: Page::FrontPage,
+            emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
             link: link,
@@ -164,6 +168,28 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::BeaconList => {
+               html! {
+                    <div>
+                        <h>{ "Beacon" }</h>
+                        { self.navigation() }
+                        <BeaconList
+                            change_page=|page| Msg::ChangePage(page),
+                        />
+                    </div>
+                }
+            }
+            Page::BeaconAddUpdate(id) => {
+               html! {
+                    <div>
+                        <h>{ "Beacon" }</h>
+                        { self.navigation() }
+                        <BeaconAddUpdate
+                            id=id,
+                        />
+                    </div>
+                }
+            }
             Page::FrontPage => {
                 html! {
                     <div>
@@ -183,6 +209,23 @@ impl RootComponent {
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
+                <select>
+                    // TODO CSS for navigation bar
+                    <option disabled=true,>{ "Beacon Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "Beacon List" }</option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::BeaconAddUpdate {..} => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "Add Beacon" }
+                    </option>
+                </select>
             </div>
         }
 

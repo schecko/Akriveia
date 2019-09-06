@@ -1,13 +1,13 @@
 
-use yew::services::fetch::{ FetchService, FetchTask, Request, };
+use common::*;
+use crate::util;
+use std::collections::{ VecDeque, BTreeSet };
+use std::time::Duration;
+use super::value_button::ValueButton;
+use yew::format::Json;
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use crate::util;
-use std::time::Duration;
-use yew::format::{ Nothing, Json };
-use std::collections::{ VecDeque, BTreeSet };
-use super::value_button::ValueButton;
-use common::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -22,15 +22,15 @@ pub enum Msg {
 }
 
 pub struct Diagnostics {
-    emergency: bool,
+    active_beacons: BTreeSet<MacAddress>,
     diagnostic_data: VecDeque<common::TagData>,
-    interval_service: Option<IntervalService>,
-    interval_service_task: Option<IntervalTask>,
+    emergency: bool,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    self_link: ComponentLink<Diagnostics>,
-    active_beacons: BTreeSet<MacAddress>,
+    interval_service: Option<IntervalService>,
+    interval_service_task: Option<IntervalTask>,
     selected_beacons: BTreeSet<MacAddress>,
+    self_link: ComponentLink<Diagnostics>,
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -57,14 +57,14 @@ impl Component for Diagnostics {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut result = Diagnostics {
+            active_beacons: BTreeSet::new(),
+            diagnostic_data: VecDeque::new(),
             emergency: props.emergency,
             fetch_service: FetchService::new(),
-            diagnostic_data: VecDeque::new(),
-            active_beacons: BTreeSet::new(),
-            selected_beacons: BTreeSet::new(),
             fetch_task: None,
             interval_service: None,
             interval_service_task: None,
+            selected_beacons: BTreeSet::new(),
             self_link: link,
         };
 
@@ -138,7 +138,7 @@ impl Renderable<Diagnostics> for Diagnostics {
             let mut beacon_selections = self.active_beacons.iter().map(|b_mac| {
                 let set_border = self.selected_beacons.contains(b_mac);
                 html! {
-                    <ValueButton
+                    <ValueButton<String>
                         on_click=|value: String| Msg::ToggleBeaconSelected(MacAddress::parse_str(&value).unwrap()),
                         border=set_border,
                         value={b_mac.to_hex_string()}

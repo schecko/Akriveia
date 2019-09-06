@@ -5,24 +5,28 @@ pub enum Msg {
     Click,
 }
 
-pub struct ValueButton {
-    pub value: String,
-    pub on_click: Option<Callback<String>>,
+pub struct ValueButton<T> {
+    pub display: Option<String>,
+    pub value: T,
+    pub on_click: Option<Callback<T>>,
     pub disabled: bool,
     pub border: bool,
 }
 
 #[derive(Clone, PartialEq, Default)]
-pub struct ValueButtonProps {
-    pub value: String,
-    pub on_click: Option<Callback<String>>,
+pub struct ValueButtonProps<T> {
+    pub value: T,
+    pub on_click: Option<Callback<T>>,
     pub disabled: bool,
     pub border: bool,
+    pub display: Option<String>,
 }
 
-impl Component for ValueButton {
+impl <T: 'static> Component for ValueButton<T>
+    where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
+{
     type Message = Msg;
-    type Properties = ValueButtonProps;
+    type Properties = ValueButtonProps<T>;
 
     fn create(props: Self::Properties, mut _link: ComponentLink<Self>) -> Self {
         ValueButton {
@@ -30,6 +34,7 @@ impl Component for ValueButton {
             on_click: props.on_click,
             disabled: props.disabled,
             border: props.border,
+            display: props.display,
         }
     }
 
@@ -51,18 +56,20 @@ impl Component for ValueButton {
     }
 }
 
-impl Renderable<ValueButton> for ValueButton {
+impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
+    where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
+{
     fn view(&self) -> Html<Self> {
         let cls = if self.border { "bold_font" } else { "" };
 
         html! {
             <>
                 <button
-                    disabled={self.disabled}
+                    disabled={self.disabled},
                     onclick=|_| Msg::Click,
                     class={cls},
                 >
-                     { &self.value }
+                     { self.display.as_ref().unwrap_or(&self.value.to_string()) }
                 </button>
             </>
         }
