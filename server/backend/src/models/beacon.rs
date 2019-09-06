@@ -271,8 +271,42 @@ mod tests {
                 beacon.map_id = Some(map.unwrap().id);
                 insert_beacon(client, beacon)
             })
-            .map(|(_client, beacon)| {
-                println!("result is : {:?}", beacon);
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_delete() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, opt_beacon)| {
+                delete_beacon(client, opt_beacon.unwrap().id)
+            })
+            .map(|_client| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
@@ -300,7 +334,6 @@ mod tests {
 
         let task = db_utils::default_connect()
             .and_then(|client| {
-                println!("hello");
                 // a beacon must point to a valid map
                 map::insert_map(client, map)
             })
@@ -312,8 +345,159 @@ mod tests {
                 updated_beacon.map_id = opt_beacon.unwrap().map_id;
                 update_beacon(client, updated_beacon)
             })
-            .map(|(_client, beacon)| {
-                println!("result is : {:?}", beacon);
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_select() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let mut updated_beacon = beacon.clone();
+        updated_beacon.name = "hello".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, opt_beacon)| {
+                select_beacon(client, opt_beacon.unwrap().id)
+            })
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_select_prefetch() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let mut updated_beacon = beacon.clone();
+        updated_beacon.name = "hello".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, opt_beacon)| {
+                select_beacon_prefetch(client, opt_beacon.unwrap().id)
+            })
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_select_many() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let mut updated_beacon = beacon.clone();
+        updated_beacon.name = "hello".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, _opt_beacon)| {
+                select_beacons(client)
+            })
+            .map(|(_client, _beacons)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_select_many_prefetch() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let mut updated_beacon = beacon.clone();
+        updated_beacon.name = "hello".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, _opt_beacon)| {
+                select_beacons_prefetch(client)
+            })
+            .map(|(_client, _beacons)| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
