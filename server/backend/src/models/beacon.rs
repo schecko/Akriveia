@@ -188,15 +188,15 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
-            Type::VARCHAR,
+            Type::INT4,
         ])
         .and_then(move |statement| {
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
                 .query(&statement, &[
                     &coords,
-                    &beacon.mac_address,
                     &beacon.ip,
+                    &beacon.mac_address,
                     &beacon.map_id,
                     &beacon.name,
                     &beacon.note,
@@ -236,4 +236,89 @@ pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
                     client
                 })
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db_utils;
+    use tokio::runtime::current_thread::Runtime;
+    // NOTE: unsafe modification of this static is alright,
+    // because these backend tests MUST be executed on a single thread.
+    static mut ID_GEN: i32 = 1000;
+
+    #[test]
+    fn test_insert() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                println!("hello");
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .map(|(_client, beacon)| {
+                println!("result is : {:?}", beacon);
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn test_update() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacon = Beacon::new();
+        unsafe {
+            beacon.id = ID_GEN;
+            ID_GEN += 1;
+        }
+        beacon.name = "hello_test".to_string();
+
+        let mut updated_beacon = beacon.clone();
+        updated_beacon.name = "hello".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                println!("hello");
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, opt_beacon)| {
+                updated_beacon.map_id = opt_beacon.unwrap().map_id;
+                update_beacon(client, updated_beacon)
+            })
+            .map(|(_client, beacon)| {
+                println!("result is : {:?}", beacon);
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
 }

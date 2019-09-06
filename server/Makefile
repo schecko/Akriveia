@@ -24,15 +24,19 @@ run-back:
 	$(SOURCE_CARGO) && cargo web deploy $(FRONTEND_ARGS) $(RELEASE_ARGS)
 	$(SOURCE_CARGO) && cargo run $(BACKEND_ARGS)
 
-run: run-back
-r: run-back
-
-back: build-back
-front: build-front
-b: build-back
-f: build-front
-
 # start the debug server, independant of the backend.
 run-front:
 	$(SOURCE_CARGO) && cargo web start $(FRONTEND_ARGS) $(RELEASE_ARGS) --auto-reload --host 0.0.0.0
+
+test:
+	$(SOURCE_CARGO) && cargo test $(BACKEND_ARGS) -- --test-threads=1
+
+back: build-back
+front: build-front
+run: run-back
+
+b: build-back
+f: build-front
+r: run-back
+t: test
 

@@ -71,7 +71,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_bounds,
                 m_name,
                 m_note,
-                m_scale,
+                m_scale
             )
             VALUES( $1, $2, $3, $4 )
             RETURNING *
