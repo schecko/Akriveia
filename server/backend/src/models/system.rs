@@ -35,7 +35,7 @@ const SCHEMA: [&str; 27] = [
         u_coordinates DOUBLE PRECISION[2],
         u_emergency_contact INTEGER REFERENCES runtime.users(u_id),
         u_employee_id VARCHAR(256),
-        u_last_active TIMESTAMP NOT NULL,
+        u_last_active TIMESTAMPTZ NOT NULL,
         u_mac_address MACADDR,
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
