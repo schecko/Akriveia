@@ -126,18 +126,20 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
     client
         .prepare_typed("
             INSERT INTO runtime.beacons (
-                b_mac_address,
                 b_coordinates,
+                b_ip,
+                b_mac_address,
                 b_map_id,
                 b_name,
                 b_note
             )
-            VALUES( $1, $2, $3, $4, $5 )
+            VALUES( $1, $2, $3, $4, $5, $6 )
             RETURNING *
         ", &[
-            Type::MACADDR,
             Type::FLOAT8_ARRAY,
-            Type::VARCHAR,
+            Type::INET,
+            Type::MACADDR,
+            Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
         ])
@@ -145,8 +147,9 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
                 .query(&statement, &[
-                    &beacon.mac_address,
                     &coords,
+                    &beacon.ip,
+                    &beacon.mac_address,
                     &beacon.map_id,
                     &beacon.name,
                     &beacon.note
@@ -169,28 +172,31 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         .prepare_typed("
             UPDATE runtime.beacons
             SET
-                b_mac_address = $1,
-                b_coordinates = $2,
-                b_map_id = $3,
-                b_name = $4,
-                b_note = $5
+                b_coordinates = $1,
+                b_ip = $2,
+                b_mac_address = $3,
+                b_map_id = $4,
+                b_name = $5,
+                b_note = $6
              WHERE
-                b_id = $6
+                b_id = $7
             RETURNING *
         ", &[
-            Type::MACADDR,
             Type::FLOAT8_ARRAY,
-            Type::VARCHAR,
-            Type::VARCHAR,
-            Type::VARCHAR,
+            Type::INET,
+            Type::MACADDR,
             Type::INT4,
+            Type::VARCHAR,
+            Type::VARCHAR,
+            Type::VARCHAR,
         ])
         .and_then(move |statement| {
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
                 .query(&statement, &[
-                    &beacon.mac_address,
                     &coords,
+                    &beacon.mac_address,
+                    &beacon.ip,
                     &beacon.map_id,
                     &beacon.name,
                     &beacon.note,

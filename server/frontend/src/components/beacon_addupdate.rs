@@ -184,6 +184,12 @@ impl Component for BeaconAddUpdate {
                     match body {
                         Ok(result) => {
                             Log!("returned avail maps is {:?}", result);
+                            // TODO add validation on the backend, and send decent messages to the
+                            // frontend when the map_id is not set.
+                            if self.data.beacon.map_id == None && result.len() > 0 {
+                                self.data.beacon.map_id = Some(result[0].id);
+                            }
+
                             self.data.avail_floors = result;
                         },
                         Err(e) => {
