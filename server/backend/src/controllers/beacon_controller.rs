@@ -27,6 +27,7 @@ pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, par
                 })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
+                    println!("faill {:?}", postgres_err);
                     error::ErrorBadRequest(postgres_err)
                 })
                 .and_then(|(_client, beacon_and_map)| {
@@ -108,6 +109,7 @@ pub fn put_beacon(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pa
             beacon::update_beacon(client, payload.0)
         })
         .map_err(|postgres_err| {
+            println!("faill {:?}", postgres_err);
             error::ErrorBadRequest(postgres_err)
         })
         .and_then(|(_client, beacon)| {

@@ -14,10 +14,12 @@ pub enum Msg {
 
     RequestAddUpdateBeacon,
     RequestGetAvailMaps,
+    RequestGetBeacon(i32),
 
-    ResponseUpdateBeacon(util::Response<Beacon>),
-    ResponseGetAvailMaps(util::Response<Vec<Map>>),
     ResponseAddBeacon(util::Response<Beacon>),
+    ResponseGetAvailMaps(util::Response<Vec<Map>>),
+    ResponseGetBeacon(util::Response<Option<(Beacon, Option<Map>)>>),
+    ResponseUpdateBeacon(util::Response<Beacon>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -105,6 +107,9 @@ impl Component for BeaconAddUpdate {
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetAvailMaps);
+        if let Some(id) = props.id {
+            link.send_self(Msg::RequestGetBeacon(id));
+        }
         let mut result = BeaconAddUpdate {
             data: Data::new(),
             fetch_service: FetchService::new(),
@@ -134,8 +139,8 @@ impl Component for BeaconAddUpdate {
             },
             Msg::InputCoordinate(index, value) => {
                 match index {
-                    0 => { self.data.raw_coord0 = value },
-                    1 => { self.data.raw_coord1 = value },
+                    0 => { self.data.raw_coord0 = value; },
+                    1 => { self.data.raw_coord1 = value; },
                     _ => panic!("invalid coordinate index specified"),
                 };
             },
@@ -145,6 +150,14 @@ impl Component for BeaconAddUpdate {
                     &maps_url(),
                     self.self_link,
                     Msg::ResponseGetAvailMaps
+                );
+            },
+            Msg::RequestGetBeacon(id) => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &beacon_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetBeacon
                 );
             },
             Msg::RequestAddUpdateBeacon => {
@@ -217,6 +230,25 @@ impl Component for BeaconAddUpdate {
                     self.data.error_messages.push("failed to update beacon".to_string());
                 }
             },
+            Msg::ResponseGetBeacon(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            Log!("returned beacon is {:?}", result);
+                            self.data.beacon = result.unwrap_or((Beacon::new(), None)).0;
+                            self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
+                            self.data.raw_coord0 = self.data.beacon.coordinates[0].to_string();
+                            self.data.raw_coord1 = self.data.beacon.coordinates[1].to_string();
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to find beacon, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.data.error_messages.push("failed to find beacon".to_string());
+                }
+            },
             Msg::ResponseAddBeacon(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -260,6 +292,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             Some(id) => id,
             None => -1,
         };
+        Log!("chosen floor {}", chosen_floor_id);
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
@@ -272,6 +305,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
         };
 
         let mut floor_options = self.data.avail_floors.iter().cloned().map(|floor| {
+            Log!("floor option: {}", floor.id);
             let floor_id = floor.id;
             html! {
                 <option
@@ -337,14 +371,14 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.beacon.coordinates[0],
+                                value=&self.data.raw_coord0,
                                 oninput=|e| Msg::InputCoordinate(0, e.value),
                             />
                         </td>
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.beacon.coordinates[1],
+                                value=&self.data.raw_coord1,
                                 oninput=|e| Msg::InputCoordinate(1, e.value),
                             />
                         </td>
