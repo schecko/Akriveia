@@ -93,6 +93,8 @@ pub struct BeaconAddUpdate {
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    // TODO more robust way of handling concurrent requests
+    get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
 }
 
@@ -114,6 +116,7 @@ impl Component for BeaconAddUpdate {
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
+            get_fetch_task: None,
             self_link: link,
         };
         result.data.id = props.id;
@@ -124,6 +127,7 @@ impl Component for BeaconAddUpdate {
         match msg {
             Msg::AddAnotherBeacon => {
                 self.data = Data::new();
+                self.self_link.send_self(Msg::RequestGetAvailMaps);
             }
             Msg::InputName(name) => {
                 self.data.beacon.name = name;
@@ -153,7 +157,7 @@ impl Component for BeaconAddUpdate {
                 );
             },
             Msg::RequestGetBeacon(id) => {
-                self.fetch_task = get_request!(
+                self.get_fetch_task = get_request!(
                     self.fetch_service,
                     &beacon_url(&id.to_string()),
                     self.self_link,
@@ -196,7 +200,6 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned avail maps is {:?}", result);
                             // TODO add validation on the backend, and send decent messages to the
                             // frontend when the map_id is not set.
                             if self.data.beacon.map_id == None && result.len() > 0 {
@@ -218,7 +221,6 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
                             self.data.success_message = Some("successfully updated beacon".to_string());
                             self.data.beacon = result;
                         },
@@ -235,7 +237,6 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
                             self.data.beacon = result.unwrap_or((Beacon::new(), None)).0;
                             self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
                             self.data.raw_coord0 = self.data.beacon.coordinates[0].to_string();
@@ -254,7 +255,6 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
                             self.data.success_message = Some("successfully added beacon".to_string());
                             self.data.beacon = result;
                             self.data.id = Some(self.data.beacon.id);
@@ -292,7 +292,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             Some(id) => id,
             None => -1,
         };
-        Log!("chosen floor {}", chosen_floor_id);
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
@@ -305,7 +304,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
         };
 
         let mut floor_options = self.data.avail_floors.iter().cloned().map(|floor| {
-            Log!("floor option: {}", floor.id);
             let floor_id = floor.id;
             html! {
                 <option
