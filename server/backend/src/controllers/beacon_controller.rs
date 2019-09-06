@@ -119,28 +119,21 @@ pub fn put_beacon(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pa
 }
 
 pub fn delete_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let id_string_out = req.match_info().get("id");
-    match id_string_out {
-        Some(id_string) => {
-            match id_string.parse::<i32>() {
-                Ok(id) => {
-                    Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
-                        .and_then(move |client| {
-                            beacon::delete_beacon(client, id)
-                        })
-                        .map_err(|postgres_err| {
-                            // TODO can this be better?
-                            error::ErrorBadRequest(postgres_err)
-                        })
-                        .and_then(|_client| {
-                            HttpResponse::Ok().finish()
-                        })
-                    )
-                },
-                _ => {
-                    Either::B(ok(HttpResponse::NotFound().finish()))
-                }
-            }
+    let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
+    match id {
+        Ok(id) if id != -1 => {
+            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+                .and_then(move |client| {
+                    beacon::delete_beacon(client, id)
+                })
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
+                .and_then(|_client| {
+                    HttpResponse::Ok().finish()
+                })
+            )
         },
         _ => {
             Either::B(ok(HttpResponse::NotFound().finish()))
