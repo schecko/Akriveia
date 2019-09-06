@@ -25,7 +25,7 @@ pub enum Msg {
 
     RequestRealtimeUser,
 
-    ResponseRealtimeUser(util::Response<Vec<common::User>>),
+    ResponseRealtimeUser(util::Response<Vec<common::TrackedUser>>),
 }
 
 pub struct MapViewComponent {
@@ -38,7 +38,7 @@ pub struct MapViewComponent {
     map_canvas: CanvasElement,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<MacAddress>,
-    users: BTreeMap<MacAddress, Box<common::User>>,
+    users: BTreeMap<MacAddress, Box<common::TrackedUser>>,
 }
 
 impl MapViewComponent {
@@ -160,8 +160,8 @@ impl Component for MapViewComponent {
                 self.context.save();
                 for (_tag_mac, user) in self.users.iter() {
                     let user_pos = screen_space(
-                        user.location.x as f64 * MAP_SCALE,
-                        user.location.y as f64 * MAP_SCALE,
+                        user.coordinates.x as f64 * MAP_SCALE,
+                        user.coordinates.y as f64 * MAP_SCALE,
                     );
 
                     for beacon_source in &user.beacon_sources {
@@ -174,7 +174,7 @@ impl Component for MapViewComponent {
                         self.context.set_fill_style_color("#000000FF");
                         self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
                         match &self.show_distance {
-                            Some(tag_mac) if tag_mac == &user.tag_mac => {
+                            Some(tag_mac) if tag_mac == &user.mac_address => {
                                 self.context.set_fill_style_color("#00000034");
                                 self.context.begin_path();
                                 self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * MAP_SCALE, 0.0, std::f64::consts::PI * 2.0, true);
@@ -219,12 +219,12 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     if let Ok(data) = body {
                         for user in data.iter() {
-                            match self.users.get_mut(&user.tag_mac) {
+                            match self.users.get_mut(&user.mac_address) {
                                 Some(local_user_data) => {
                                     **local_user_data = user.clone();
                                 },
                                 None => {
-                                    self.users.insert(user.tag_mac.clone(), Box::new(user.clone()));
+                                    self.users.insert(user.mac_address.clone(), Box::new(user.clone()));
                                 }
 
                             }

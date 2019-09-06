@@ -2,9 +2,10 @@ extern crate serde_derive;
 extern crate nalgebra as na;
 extern crate eui48;
 
-use serde_derive::{ Deserialize, Serialize };
-use std::time::{ SystemTime, UNIX_EPOCH };
+use serde_derive::{ Deserialize, Serialize, };
+use std::time::{ SystemTime, UNIX_EPOCH, };
 pub use eui48::MacAddress;
+use std::net::{ IpAddr, Ipv4Addr, };
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
@@ -99,24 +100,36 @@ pub struct UserBeaconSourceLocations {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
-    //floor: String,
+pub struct TrackedUser {
     pub id: i32,
+    pub coordinates: na::Vector2<f64>,
+    pub emergency_contact: Option<i32>,
+    pub employee_id: Option<String>,
     pub last_active: SystemTime,
-    pub location: na::Vector2<f64>,
-    pub tag_mac: MacAddress,
+    pub mac_address: MacAddress,
+    pub map_id: Option<i32>,
+    pub name: String,
+    pub note: Option<String>,
+    pub phone_number: Option<String>,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
 }
 
-impl User {
-    pub fn new() -> User {
-        User {
-            id: -1,
+impl TrackedUser {
+    pub fn new() -> TrackedUser {
+        TrackedUser {
+            id: -1, // primary key
+            coordinates: na::Vector2::new(0.0, 0.0),
+            emergency_contact: None,
+            employee_id: None,
             last_active: UNIX_EPOCH,
-            location: na::Vector2::new(0.0, 0.0),
-            tag_mac: MacAddress::nil(),
+            mac_address: MacAddress::nil(),
+            map_id: None,
+            name: String::new(),
+            note: None,
+            phone_number: None,
+
             beacon_sources: Vec::new(),
         }
     }
@@ -124,43 +137,47 @@ impl User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub id: i32,
-    pub mac_address: MacAddress,
+    pub id: i32, // primary key
     pub coordinates: na::Vector2<f64>,
-    pub map_id: Option<String>,
+    pub ip: IpAddr,
+    pub mac_address: MacAddress,
+    pub map_id: Option<i32>,
     pub name: String,
-    pub note: String,
+    pub note: Option<String>,
 }
 
 impl Beacon {
     pub fn new() -> Beacon {
         Beacon {
             id: -1,
-            mac_address: MacAddress::nil(),
             coordinates: na::Vector2::new(0.0, 0.0),
+            ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            mac_address: MacAddress::nil(),
             map_id: None,
-            name: "unknown".to_string(),
-            note: "".to_string(),
+            name: String::new(),
+            note: None,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Map {
-    pub floor_id: String,
+    pub id: i32, // primary key
     pub blueprint: Vec<u8>,
-    pub blueprint_bounds: na::Vector2<i32>,
+    pub bounds: na::Vector2<f64>,
     pub name: String,
+    pub note: Option<String>,
     pub scale: f64,
 }
 
 impl Map {
-    pub fn new(floor_id: String) -> Map {
+    pub fn new() -> Map {
         Map {
-            floor_id,
+            id: -1,
             blueprint: Vec::new(),
-            blueprint_bounds: na::Vector2::new(0, 0),
-            name: "unknown".to_string(),
+            bounds: na::Vector2::new(0.0, 0.0),
+            name: String::new(),
+            note: None,
             scale: 1.0,
         }
     }

@@ -7,25 +7,27 @@ use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 pub enum Msg {
     AddAnotherBeacon,
     InputCoordinate(usize, String),
-    InputFloorName(String),
+    InputFloorName(i32),
     InputMacAddress(String),
     InputName(String),
     InputNote(String),
 
     RequestAddUpdateBeacon,
+    RequestGetAvailMaps,
 
-    ResponseUpdateBeacon(util::Response<common::Beacon>),
-    ResponseAddBeacon(util::Response<common::Beacon>),
+    ResponseUpdateBeacon(util::Response<Beacon>),
+    ResponseGetAvailMaps(util::Response<Vec<Map>>),
+    ResponseAddBeacon(util::Response<Beacon>),
 }
 
 // keep all of the transient data together, since its not easy to create
 // a "new" method for a component.
 struct Data {
-    pub beacon: common::Beacon,
+    pub beacon: Beacon,
     // the mac address needs to be parsed (and validated) as a mac address.
     // keep the raw string from the user in case the parsing fails.
     pub error_messages: Vec<String>,
-    pub floor_names: Vec<String>,
+    pub avail_floors: Vec<Map>,
     pub id: Option<i32>,
     pub raw_coord0: String,
     pub raw_coord1: String,
@@ -38,7 +40,7 @@ impl Data {
         Data {
             beacon: Beacon::new(),
             error_messages: Vec::new(),
-            floor_names: Vec::new(),
+            avail_floors: Vec::new(),
             id: None,
             raw_coord0: "0".to_string(),
             raw_coord1: "0".to_string(),
@@ -101,7 +103,8 @@ impl Component for BeaconAddUpdate {
     type Message = Msg;
     type Properties = BeaconAddUpdateProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        link.send_self(Msg::RequestGetAvailMaps);
         let mut result = BeaconAddUpdate {
             data: Data::new(),
             fetch_service: FetchService::new(),
@@ -120,11 +123,11 @@ impl Component for BeaconAddUpdate {
             Msg::InputName(name) => {
                 self.data.beacon.name = name;
             },
-            Msg::InputFloorName(name) => {
-                self.data.beacon.map_id = Some(name);
+            Msg::InputFloorName(map_id) => {
+                self.data.beacon.map_id = Some(map_id);
             },
             Msg::InputNote(note) => {
-                self.data.beacon.note = note;
+                self.data.beacon.note = Some(note);
             },
             Msg::InputMacAddress(mac) => {
                 self.data.raw_mac = mac;
@@ -135,6 +138,14 @@ impl Component for BeaconAddUpdate {
                     1 => { self.data.raw_coord1 = value },
                     _ => panic!("invalid coordinate index specified"),
                 };
+            },
+            Msg::RequestGetAvailMaps => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &maps_url(),
+                    self.self_link,
+                    Msg::ResponseGetAvailMaps
+                );
             },
             Msg::RequestAddUpdateBeacon => {
                 self.data.error_messages = Vec::new();
@@ -165,6 +176,22 @@ impl Component for BeaconAddUpdate {
                         );
                     }
                     _ => {},
+                }
+            },
+            Msg::ResponseGetAvailMaps(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            Log!("returned avail maps is {:?}", result);
+                            self.data.avail_floors = result;
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.data.error_messages.push("failed to obtain available floors list".to_string());
                 }
             },
             Msg::ResponseUpdateBeacon(response) => {
@@ -223,9 +250,9 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             Some(_id) => "Beacon Update",
             None => "Beacon Add",
         };
-        let floor_name = match &self.data.beacon.map_id {
-            Some(name) => name,
-            None => "Unset",
+        let chosen_floor_id = match self.data.beacon.map_id {
+            Some(id) => id,
+            None => -1,
         };
         let add_another_button = match &self.data.id {
             Some(_) => {
@@ -238,14 +265,14 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             },
         };
 
-        let mut floor_options = self.data.floor_names.iter().cloned().map(|floor| {
-            let clone = floor.to_string();
+        let mut floor_options = self.data.avail_floors.iter().cloned().map(|floor| {
+            let floor_id = floor.id;
             html! {
                 <option
-                    onclick=|_| Msg::InputFloorName(clone.clone()),
-                    disabled={ floor == floor_name },
+                    onclick=|_| Msg::InputFloorName(floor_id),
+                    disabled={ floor_id == chosen_floor_id },
                 >
-                    { floor }
+                    { &floor.name }
                 </option>
             }
         });
@@ -255,6 +282,8 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                 <p>{msg}</p>
             }
         });
+
+        let note = self.data.beacon.note.clone().unwrap_or(String::new());
 
         html! {
             <>
@@ -318,8 +347,8 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         <td>{ "Note: " }</td>
                         <td>
                             <textarea
-                                rows=5
-                                value=&self.data.beacon.note,
+                                rows=5,
+                                value=note,
                                 oninput=|e| Msg::InputNote(e.value),
                             />
                         </td>
