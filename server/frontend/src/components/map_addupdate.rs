@@ -7,6 +7,7 @@ use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 pub enum Msg {
     AddAnotherMap,
     InputBound(usize, String),
+    InputScale(String),
     InputName(String),
     InputNote(String),
 
@@ -28,6 +29,7 @@ struct Data {
     pub attached_beacons: Vec<Beacon>,
     pub id: Option<i32>,
     pub raw_bounds: [String; 2],
+    pub raw_scale: String,
     pub success_message: Option<String>,
 }
 
@@ -39,6 +41,7 @@ impl Data {
             attached_beacons: Vec::new(),
             id: None,
             raw_bounds: ["0".to_string(), "0".to_string()],
+            raw_scale: "1".to_string(),
             success_message: None,
         }
     }
@@ -62,6 +65,17 @@ impl Data {
             },
             Err(e) => {
                 self.error_messages.push(format!("failed to parse y coordinate: {}", e));
+                false
+            },
+        };
+
+        success = success && match self.raw_scale.parse::<f64>() {
+            Ok(scale) => {
+                self.map.scale = scale;
+                true
+            },
+            Err(e) => {
+                self.error_messages.push(format!("failed to parse scale: {}", e));
                 false
             },
         };
@@ -116,6 +130,9 @@ impl Component for MapAddUpdate {
             },
             Msg::InputBound(index, value) => {
                 self.data.raw_bounds[index] = value;
+            },
+            Msg::InputScale(value) => {
+                self.data.raw_scale = value;
             },
             Msg::RequestGetBeaconsForMap(id) => {
                 self.fetch_task = get_request!(
@@ -203,6 +220,7 @@ impl Component for MapAddUpdate {
                             self.data.map = result.unwrap_or(Map::new());
                             self.data.raw_bounds[0] = self.data.map.bounds[0].to_string();
                             self.data.raw_bounds[1] = self.data.map.bounds[1].to_string();
+                            self.data.raw_scale = self.data.map.scale.to_string();
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find map, reason: {}", e));
@@ -317,6 +335,16 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 type="text",
                                 value=&self.data.raw_bounds[1],
                                 oninput=|e| Msg::InputBound(1, e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Scale: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_scale,
+                                oninput=|e| Msg::InputScale(e.value),
                             />
                         </td>
                     </tr>

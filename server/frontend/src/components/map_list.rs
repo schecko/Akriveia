@@ -109,8 +109,9 @@ impl Renderable<MapList> for MapList {
         let mut rows = self.list.iter().map(|map| {
             html! {
                 <tr>
-                    <td>{ format!("{},{}", &map.bounds.x, &map.bounds.y) }</td>
                     <td>{ &map.name }</td>
+                    <td>{ format!("{},{}", &map.bounds.x, &map.bounds.y) }</td>
+                    <td>{ map.scale }</td>
                     <td>{ map.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
@@ -135,8 +136,9 @@ impl Renderable<MapList> for MapList {
                 <p>{ "Map List" }</p>
                 <table>
                 <tr>
-                    <td>{ "Bounds" }</td>
                     <td>{ "Name" }</td>
+                    <td>{ "Bounds" }</td>
+                    <td>{ "Scale" }</td>
                     <td>{ "Note" }</td>
                     <td>{ "Actions" }</td>
                 </tr>
