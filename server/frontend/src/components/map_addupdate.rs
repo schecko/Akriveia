@@ -85,10 +85,12 @@ impl Data {
 }
 
 pub struct MapAddUpdate {
+    context: CanvasRenderingContext2d,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
+    map_canvas: CanvasElement,
     self_link: ComponentLink<Self>,
 }
 
@@ -253,6 +255,10 @@ impl Component for MapAddUpdate {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.id = props.opt_id;
+        if let Some(id) = props.opt_id {
+            link.send_self(Msg::RequestGetMap(id));
+            link.send_self(Msg::RequestGetBeaconsForMap(id));
+        }
         true
     }
 }

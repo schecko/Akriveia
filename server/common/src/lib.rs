@@ -168,7 +168,8 @@ impl Beacon {
 pub struct Map {
     pub id: i32, // primary key
     pub blueprint: Vec<u8>,
-    pub bounds: na::Vector2<f64>,
+    pub canvas_size: na::Vector2<u32>, // in pixels
+    pub blueprint_size: na::Vector2<f64>, // in meters
     pub name: String,
     pub note: Option<String>,
     pub scale: f64,
@@ -179,7 +180,8 @@ impl Map {
         Map {
             id: -1,
             blueprint: Vec::new(),
-            bounds: na::Vector2::new(0.0, 0.0),
+            canvas_size: na::Vector2::new(0, 0),
+            blueprint_size: na::Vector2::new(0.0, 0.0),
             name: String::new(),
             note: None,
             scale: 1.0,
