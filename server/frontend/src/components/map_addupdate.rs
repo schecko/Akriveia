@@ -27,8 +27,7 @@ struct Data {
     pub error_messages: Vec<String>,
     pub attached_beacons: Vec<Beacon>,
     pub id: Option<i32>,
-    pub raw_bound0: String,
-    pub raw_bound1: String,
+    pub raw_bounds: [String; 2],
     pub success_message: Option<String>,
 }
 
@@ -39,27 +38,15 @@ impl Data {
             error_messages: Vec::new(),
             attached_beacons: Vec::new(),
             id: None,
-            raw_bound0: "0".to_string(),
-            raw_bound1: "0".to_string(),
+            raw_bounds: ["0".to_string(), "0".to_string()],
             success_message: None,
         }
     }
 
-    /*fn validate(&mut self) -> bool {
-        let mut success = match MacAddress::parse_str(&self.raw_mac) {
-            Ok(m) => {
-                self.beacon.mac_address = m;
-                true
-            },
-            Err(e) => {
-                self.error_messages.push(format!("failed to parse mac address: {}", e));
-                false
-            },
-        };
-
-        success = success && match self.raw_coord0.parse::<f64>() {
+    fn validate(&mut self) -> bool {
+        let mut success = match self.raw_bounds[0].parse::<f64>() {
             Ok(coord) => {
-                self.beacon.coordinates[0] = coord;
+                self.map.bounds[0] = coord;
                 true
             },
             Err(e) => {
@@ -68,9 +55,9 @@ impl Data {
             },
         };
 
-        success = success && match self.raw_coord1.parse::<f64>() {
+        success = success && match self.raw_bounds[1].parse::<f64>() {
             Ok(coord) => {
-                self.beacon.coordinates[1] = coord;
+                self.map.bounds[1] = coord;
                 true
             },
             Err(e) => {
@@ -80,7 +67,7 @@ impl Data {
         };
 
         success
-    }*/
+    }
 }
 
 pub struct MapAddUpdate {
@@ -128,11 +115,7 @@ impl Component for MapAddUpdate {
                 self.data.map.note = Some(note);
             },
             Msg::InputBound(index, value) => {
-                match index {
-                    0 => { self.data.raw_bound0 = value; },
-                    1 => { self.data.raw_bound1 = value; },
-                    _ => panic!("invalid coordinate index specified"),
-                };
+                self.data.raw_bounds[index] = value;
             },
             Msg::RequestGetBeaconsForMap(id) => {
                 self.fetch_task = get_request!(
@@ -154,10 +137,10 @@ impl Component for MapAddUpdate {
                 self.data.error_messages = Vec::new();
                 self.data.success_message = None;
 
-                //let success = self.data.validate();
+                let success = self.data.validate();
 
                 match self.data.id {
-                    Some(id) => {
+                    Some(id) if success => {
                         //ensure the id does not mismatch.
                         self.data.map.id = id;
 
@@ -169,7 +152,7 @@ impl Component for MapAddUpdate {
                             Msg::ResponseUpdateMap
                         );
                     },
-                    None => {
+                    None if success => {
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &map_url(""),
@@ -178,6 +161,7 @@ impl Component for MapAddUpdate {
                             Msg::ResponseAddMap
                         );
                     },
+                    _ => { }
                 }
             },
             Msg::ResponseGetBeaconsForMap(response) => {
@@ -217,8 +201,8 @@ impl Component for MapAddUpdate {
                     match body {
                         Ok(result) => {
                             self.data.map = result.unwrap_or(Map::new());
-                            self.data.raw_bound0 = self.data.map.bounds[0].to_string();
-                            self.data.raw_bound1 = self.data.map.bounds[1].to_string();
+                            self.data.raw_bounds[0] = self.data.map.bounds[0].to_string();
+                            self.data.raw_bounds[1] = self.data.map.bounds[1].to_string();
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find map, reason: {}", e));
@@ -324,14 +308,14 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.raw_bound0,
+                                value=&self.data.raw_bounds[0],
                                 oninput=|e| Msg::InputBound(0, e.value),
                             />
                         </td>
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.raw_bound1,
+                                value=&self.data.raw_bounds[1],
                                 oninput=|e| Msg::InputBound(1, e.value),
                             />
                         </td>
