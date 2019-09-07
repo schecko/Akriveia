@@ -14,6 +14,9 @@ pub fn beacon_url(id: &str) -> String {
 pub fn beacons_url() -> String {
     return String::from("/beacons");
 }
+pub fn beacons_for_map_url(id: &str) -> String {
+    return format!("/map/{}/beacons", id);
+}
 
 pub fn user_url(id: &str) -> String {
     return format!("/user/{}", id);

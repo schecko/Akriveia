@@ -135,6 +135,10 @@ fn main() -> std::io::Result<()> {
                     .route(web::get().to_async(map_controller::get_maps))
             )
             .service(
+                web::resource(&beacons_for_map_url("{id}"))
+                    .route(web::get().to_async(beacon_controller::get_beacons_for_map))
+            )
+            .service(
                 web::resource(&map_url("{id}"))
                     .route(web::get().to_async(map_controller::get_map))
                     .route(web::put().to_async(map_controller::put_map))
