@@ -3,6 +3,10 @@ use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use stdweb::web::{ CanvasRenderingContext2d, Node, };
+use stdweb::web::html_element::CanvasElement;
+use crate::canvas;
+use yew::virtual_dom::vnode::VNode;
 
 pub enum Msg {
     AddAnotherMap,
@@ -47,7 +51,7 @@ impl Data {
     }
 
     fn validate(&mut self) -> bool {
-        let mut success = match self.raw_bounds[0].parse::<f64>() {
+        let mut success = match self.raw_bounds[0].parse::<i32>() {
             Ok(coord) => {
                 self.map.bounds[0] = coord;
                 true
@@ -58,7 +62,7 @@ impl Data {
             },
         };
 
-        success = success && match self.raw_bounds[1].parse::<f64>() {
+        success = success && match self.raw_bounds[1].parse::<i32>() {
             Ok(coord) => {
                 self.map.bounds[1] = coord;
                 true
@@ -85,12 +89,12 @@ impl Data {
 }
 
 pub struct MapAddUpdate {
+    canvas: CanvasElement,
     context: CanvasRenderingContext2d,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
-    map_canvas: CanvasElement,
     self_link: ComponentLink<Self>,
 }
 
@@ -108,7 +112,12 @@ impl Component for MapAddUpdate {
             link.send_self(Msg::RequestGetMap(id));
             link.send_self(Msg::RequestGetBeaconsForMap(id));
         }
+        let canvas = canvas::make_canvas("addupdate_canvas");
+        let context = canvas::get_context(&canvas);
+
         let mut result = MapAddUpdate {
+            canvas,
+            context,
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -223,6 +232,8 @@ impl Component for MapAddUpdate {
                             self.data.raw_bounds[0] = self.data.map.bounds[0].to_string();
                             self.data.raw_bounds[1] = self.data.map.bounds[1].to_string();
                             self.data.raw_scale = self.data.map.scale.to_string();
+
+                            canvas::reset_canvas(&self.canvas, &self.context, &self.data.map);
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find map, reason: {}", e));
@@ -256,8 +267,8 @@ impl Component for MapAddUpdate {
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.id = props.opt_id;
         if let Some(id) = props.opt_id {
-            link.send_self(Msg::RequestGetMap(id));
-            link.send_self(Msg::RequestGetBeaconsForMap(id));
+            self.self_link.send_self(Msg::RequestGetMap(id));
+            self.self_link.send_self(Msg::RequestGetBeaconsForMap(id));
         }
         true
     }
@@ -367,6 +378,9 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                 </table>
                 <button onclick=|_| Msg::RequestAddUpdateMap,>{ submit_name }</button>
                 { add_another_map }
+                <div>
+                    { VNode::VRef(Node::from(self.canvas.to_owned()).to_owned()) }
+                </div>
             </>
         }
     }

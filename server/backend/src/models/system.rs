@@ -25,7 +25,7 @@ const SCHEMA: [&str; 27] = [
     "CREATE TABLE runtime.maps (
         m_id SERIAL PRIMARY KEY,
         m_blueprint BYTEA,
-        m_bounds DOUBLE PRECISION[2] NOT NULL,
+        m_bounds INTEGER[2] NOT NULL CHECK (0 <= all(m_bounds)),
         m_name VARCHAR(256) UNIQUE,
         m_scale DOUBLE PRECISION,
         m_note VARCHAR(1024)
