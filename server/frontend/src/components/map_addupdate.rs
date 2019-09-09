@@ -15,9 +15,9 @@ pub enum Msg {
     InputName(String),
     InputNote(String),
 
-    StartBeaconPlacement(i32),
-    EndBeaconPlacement,
-    InputBeaconLocation(i32, na::Vector2<f64>),
+    ToggleBeaconPlacement(i32),
+    //EndBeaconPlacement,
+    //InputBeaconLocation(i32, na::Vector2<f64>),
 
 
     RequestAddUpdateMap,
@@ -40,6 +40,7 @@ struct Data {
     pub raw_bounds: [String; 2],
     pub raw_scale: String,
     pub success_message: Option<String>,
+    pub current_beacon: Option<i32>,
 }
 
 impl Data {
@@ -52,7 +53,7 @@ impl Data {
             raw_bounds: ["0".to_string(), "0".to_string()],
             raw_scale: "1".to_string(),
             success_message: None,
-            current_beacon: Option<i32>,
+            current_beacon: None,
         }
     }
 
@@ -162,15 +163,37 @@ impl Component for MapAddUpdate {
             Msg::InputScale(value) => {
                 self.data.raw_scale = value;
             },
-            Msg::StartBeaconPlacement(beacon_id) => {
+            Msg::ToggleBeaconPlacement(beacon_id) => {
+                match self.data.current_beacon {
+                    Some(_id) => {
+                        self.data.current_beacon = None;
+                    }
+                    None => {
+                        self.data.current_beacon = Some(beacon_id);
+                    },
+                }
+            },
+            /*Msg::InputBeaconLocation(beacon_id, _location) => {
                 self.data.current_beacon = Some(beacon_id);
             },
-            Msg::InputBeaconLocation(beacon_id, location) => {
-                self.data.current_beacon = Some(beacon_id);
-            },
-            Msg::EndBeaconPlacement(value) => {
+            Msg::EndBeaconPlacement => {
+                /*let id = self.data.current_beacon.unwrap();
+                self.attached_beacons.iter().find(|beacon| beacon.id == id) {
+                    Some(beacon) => {
+                        self.fetch_task = put_request!(
+                            self.fetch_service,
+                            &beacon_url(&self.current_beacon.unwrap().to_string()),
+                            beacon,
+                            self.self_link,
+                            Msg::ResponseUpdateMap
+                        );
+                    },
+                    _ => {
+                        Log!("invalid current beacon");
+                    },
+                }*/
                 self.data.current_beacon = None;
-            },
+            },*/
             Msg::RequestGetBeaconsForMap(id) => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
@@ -326,14 +349,24 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
             },
         };
 
-        let mut attached_beacons = self.data.attached_beacons.iter().cloned().map(|beacon| {
+        let mut beacon_placement_rows = self.data.attached_beacons.iter().cloned().map(|beacon| {
+            let beacon_id = beacon.id;
+            let this_beacon_selected = match self.data.current_beacon {
+                Some(id) => id == beacon_id,
+                _ => false,
+            };
+
             html! {
-                <option
-                    onclick=|_| Msg::StartPlacement(beacon.id),
-                    disabled={ floor_id == chosen_floor_id },
-                >
-                    { &beacon.name }
-                </option>
+                <td>
+                    <tr>
+                        <option
+                            onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
+                            class={ if this_beacon_selected { "bold_font" } else { "" } },
+                        >
+                            { &beacon.name }
+                        </option>
+                    </tr>
+                </td>
             }
         });
 
@@ -407,6 +440,9 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     </tr>
                 </table>
                 <p>{ "Beacon Placement" }</p>
+                <table>
+                    { for beacon_placement_rows }
+                </table>
                 <div>
                     { VNode::VRef(Node::from(self.canvas.to_owned()).to_owned()) }
                 </div>
