@@ -1,12 +1,12 @@
 use common::*;
+use crate::canvas::Canvas;
 use crate::util;
+use stdweb::web::event::{ ClickEvent, };
+use stdweb::web::{ Node, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-use stdweb::web::{ CanvasRenderingContext2d, Node, };
-use stdweb::web::html_element::CanvasElement;
-use crate::canvas;
 use yew::virtual_dom::vnode::VNode;
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 pub enum Msg {
     AddAnotherMap,
@@ -16,8 +16,8 @@ pub enum Msg {
     InputNote(String),
 
     ToggleBeaconPlacement(i32),
-    //EndBeaconPlacement,
-    //InputBeaconLocation(i32, na::Vector2<f64>),
+    CanvasClick(ClickEvent),
+    //InputBeaconLocation(na::Vector2<f64>),
 
 
     RequestAddUpdateMap,
@@ -101,8 +101,7 @@ enum PageMode {
 }
 
 pub struct MapAddUpdate {
-    canvas: CanvasElement,
-    context: CanvasRenderingContext2d,
+    canvas: Canvas,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
@@ -127,13 +126,12 @@ impl Component for MapAddUpdate {
             link.send_self(Msg::RequestGetBeaconsForMap(id));
             mode = PageMode::Update;
         }
-        let canvas = canvas::make_canvas("addupdate_canvas");
-        let context = canvas::get_context(&canvas);
+        let data = Data::new();
 
+        let click_callback = link.send_back(|event| Msg::CanvasClick(event));
         let mut result = MapAddUpdate {
-            canvas,
-            context,
-            data: Data::new(),
+            canvas: Canvas::new("addupdate_canvas", click_callback),
+            data,
             fetch_service: FetchService::new(),
             fetch_task: None,
             get_fetch_task: None,
@@ -141,7 +139,10 @@ impl Component for MapAddUpdate {
             self_link: link,
         };
 
-        canvas::reset_canvas(&result.canvas, &result.context, &result.data.map);
+        result.canvas.reset_canvas(&result.data.map);
+            /*Log!("click event: {} {}", event.client_x(), event.client_y());
+            Log!("click bound: {} {}", canvas_bound.get_left(), canvas_bound.get_top());
+        });*/
         result.data.id = props.opt_id;
         result
     }
@@ -165,18 +166,43 @@ impl Component for MapAddUpdate {
             },
             Msg::ToggleBeaconPlacement(beacon_id) => {
                 match self.data.current_beacon {
-                    Some(_id) => {
+                    Some(id) if beacon_id == id => {
                         self.data.current_beacon = None;
                     }
-                    None => {
+                    _ => {
                         self.data.current_beacon = Some(beacon_id);
                     },
                 }
             },
-            /*Msg::InputBeaconLocation(beacon_id, _location) => {
-                self.data.current_beacon = Some(beacon_id);
+            Msg::CanvasClick(_event) => {
+                Log!("hello");
             },
-            Msg::EndBeaconPlacement => {
+            /*Msg::InputBeaconLocation(location) => {
+                match self.data.current_beacon {
+                    Some(id) => {
+                        match self.data.attached_beacons.iter().position(|beacon| beacon.id == id) {
+                            Some(index) => {
+                                self.data.attached_beacons[index].coordinates = location;
+                                //beacon.coordinates = location;
+                                /*self.fetch_task = put_request!(
+                                    self.fetch_service,
+                                    &beacon_url(&self.current_beacon.unwrap().to_string()),
+                                    beacon,
+                                    self.self_link,
+                                    Msg::ResponseUpdateMap
+                                );*/
+                            },
+                            _ => {
+                                Log!("invalid current beacon");
+                            },
+                        }
+                    },
+                    _ => {
+                        Log!("ignoring input location because a beacon has not been selected");
+                    }
+                }
+            },*/
+            /*Msg::EndBeaconPlacement => {
                 /*let id = self.data.current_beacon.unwrap();
                 self.attached_beacons.iter().find(|beacon| beacon.id == id) {
                     Some(beacon) => {
@@ -271,7 +297,7 @@ impl Component for MapAddUpdate {
                 } else {
                     self.data.error_messages.push("failed to update map".to_string());
                 }
-                canvas::reset_canvas(&self.canvas, &self.context, &self.data.map);
+                self.canvas.reset_canvas(&self.data.map);
             },
             Msg::ResponseGetMap(response) => {
                 let (meta, Json(body)) = response.into_parts();
@@ -290,7 +316,7 @@ impl Component for MapAddUpdate {
                 } else {
                     self.data.error_messages.push("failed to find map".to_string());
                 }
-                canvas::reset_canvas(&self.canvas, &self.context, &self.data.map);
+                self.canvas.reset_canvas(&self.data.map);
             },
             Msg::ResponseAddMap(response) => {
                 let (meta, Json(body)) = response.into_parts();
@@ -308,7 +334,7 @@ impl Component for MapAddUpdate {
                 } else {
                     self.data.error_messages.push("failed to add map".to_string());
                 }
-                canvas::reset_canvas(&self.canvas, &self.context, &self.data.map);
+                self.canvas.reset_canvas(&self.data.map);
             },
         }
         true
@@ -357,16 +383,19 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
             };
 
             html! {
-                <td>
-                    <tr>
-                        <option
+                <tr>
+                    <td>
+                        <button
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
                             class={ if this_beacon_selected { "bold_font" } else { "" } },
                         >
                             { &beacon.name }
-                        </option>
-                    </tr>
-                </td>
+                        </button>
+                    </td>
+                    <td>
+                        { &beacon.coordinates.to_string() }
+                    </td>
+                </tr>
             }
         });
 
@@ -444,7 +473,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     { for beacon_placement_rows }
                 </table>
                 <div>
-                    { VNode::VRef(Node::from(self.canvas.to_owned()).to_owned()) }
+                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
                 </div>
                 <button onclick=|_| Msg::RequestAddUpdateMap,>{ submit_name }</button>
                 { add_another_map }
