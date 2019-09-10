@@ -88,7 +88,7 @@ const SCHEMA: [&str; 27] = [
             VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
     ",
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
-            VALUES(69, ARRAY [ 800, 400 ], 'test_map', 200)
+            VALUES(69, ARRAY [ 400, 400 ], 'test_map', 100)
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
             VALUES(100, '00:00:00:00:00:01', '0.0.0.1', ARRAY [ 0, 0 ], 69, 'origin_beacon')

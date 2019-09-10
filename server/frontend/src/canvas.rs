@@ -3,7 +3,7 @@ use stdweb::traits::*;
 use na;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{ CanvasRenderingContext2d, };
+use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
 use yew::prelude::*;
 
 pub struct Canvas {
@@ -46,7 +46,7 @@ impl Canvas {
         }
     }
 
-    pub fn reset_canvas(&mut self, map: &Map) {
+    pub fn reset(&mut self, map: &Map) {
         self.canvas.set_width(map.bounds[0] as u32);
         self.canvas.set_height(map.bounds[1] as u32);
 
@@ -88,5 +88,22 @@ impl Canvas {
             let pos = screen_space(&map, text_adjustment, i as f64 * map.scale + text_adjustment);
             self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
         }
+    }
+
+    pub fn draw_beacons(&mut self, map: &Map, beacons: &Vec<Beacon>) {
+        self.context.save();
+        for beacon in beacons {
+            let beacon_loc = screen_space(
+                &map,
+                beacon.coordinates.x * map.scale,
+                beacon.coordinates.y * map.scale,
+            );
+            Log!("beacon is : {} {}", beacon_loc.x, beacon_loc.y);
+            self.context.set_fill_style_color("#0000FFFF");
+            self.context.begin_path();
+            self.context.arc(beacon_loc.x, beacon_loc.y, 20.0, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.fill(FillRule::NonZero);
+        }
+        self.context.restore();
     }
 }
