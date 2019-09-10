@@ -2,6 +2,7 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AkriveiaState;
+// What does the OutUserData stuct do?
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
@@ -56,6 +57,7 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
         })
         .map_err(|postgres_err| {
             // TODO can this be better?
+            // More specific error message (UserRequestError)
             error::ErrorBadRequest(postgres_err)
         })
         .and_then(|(_client, users)| {
