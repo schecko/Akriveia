@@ -6,21 +6,23 @@ use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
 
 pub enum Msg {
     AddAnotherUser,
-    //InputMacAddress(String),
+    // Refers to ID tag MAC address
+    InputMacAddress(String),
+    // Does there need to be coordinates as well? (Yes)
+    InputCoordinate(usize, usize),
     InputName(String),
-    InputAdress(String),
-    InputJobTitle(String),
+    InputAddress(String),
+    // Do we include employee ID #?
     InputFloorName(i32),
-    InputDepartment(String),
+    InputPhone(String),
     InputMobilePhone(String),
     InputEmergencyContact(String),
-    InputEmergencyPhone(String),
     InputNote(String),
 
     RequestAddUpdateUser,
     RequestGetAvailMaps,
 
-    // check util if it has function for User
+    // Response holds HTTP response from HTTP request
     ResponseUpdateUser(util::Response<User>),
     ResponseGetAvailMaps(util::Response<Vec<Map>>),
     ResponseAddUser(util::Response<User>),
@@ -29,14 +31,25 @@ pub enum Msg {
 // keep all of the transient data together, since its not easy to create
 // a "new" method for a component.
 struct Data {
-    pub user: User,
-    // the mac address needs to be parsed (and validated) as a mac address.
-    // keep the raw string from the user in case the parsing fails.
+    // Where do you get the type User?
+    pub user: TrackedUser,
     pub error_messages: Vec<String>,
     pub avail_floors: Vec<Map>,
+    // What's the difference b/w str (string slice) and String?
+    
+    //--- Employee Info ---//
+    pub name: String,
+    pub address: String,
+    pub coordinates: Vec<usize, usize>,
+    pub phone: String,
+    pub mobile_phone: String,
+    pub emergency_contact: String,
+    pub note: String, // Is this note needed?
+    // --- Employee Info ----//
+
+    // What ID is this? Why is it an option? 
     pub id: Option<i32>,
-    pub raw_coord0: String,
-    pub raw_coord1: String,
+    // This should be the ID tag Mac address
     pub raw_mac: String,
     pub success_message: Option<String>,
 }
@@ -44,21 +57,34 @@ struct Data {
 impl Data {
     fn new() -> Data {
         Data {
-            user: User::new(),
+            user: TrackedUser::new(),
             error_messages: Vec::new(),
             avail_floors: Vec::new(),
+            // Do you input a blank string
+            name: String::new();
+            address: String::new();
+            job_title: String::new();
+            employee_id: String::new();
+            department: String::new();
+            phone: String::new();
+            mobile_phone: String::new();
+            emergency_name: String::new();
+            emergency_phone: String::new();
+            emergency_relations: String::new();
+            note: String::new();
+
             id: None,
-            raw_coord0: "0".to_string(),
-            raw_coord1: "0".to_string(),
             raw_mac: MacAddress::nil().to_hex_string(),
             success_message: None,
         }
     }
 
+    // How do we validate that the user data is valid?
+    // Check raw Mac address of the ID tag
     fn validate(&mut self) -> bool {
         let mut success = match MacAddress::parse_str(&self.raw_mac) {
             Ok(m) => {
-                self.beacon.mac_address = m;
+                self.user.mac_address = m;
                 true
             },
             Err(e) => {
@@ -66,33 +92,14 @@ impl Data {
                 false
             },
         };
-
-        success = success && match self.raw_coord0.parse::<f64>() {
-            Ok(coord) => {
-                self.beacon.coordinates[0] = coord;
-                true
-            },
-            Err(e) => {
-                self.error_messages.push(format!("failed to parse x coordinate: {}", e));
-                false
-            },
-        };
-
-        success = success && match self.raw_coord1.parse::<f64>() {
-            Ok(coord) => {
-                self.beacon.coordinates[1] = coord;
-                true
-            },
-            Err(e) => {
-                self.error_messages.push(format!("failed to parse y coordinate: {}", e));
-                false
-            },
-        };
+        
+        // What else do we need to validate?
 
         success
     }
 }
 
+// What does fetch_service/task and self_link do?
 pub struct UserAddUpdate {
     data: Data,
     fetch_service: FetchService,
@@ -126,24 +133,44 @@ impl Component for UserAddUpdate {
             Msg::AddAnotherUser => {
                 self.data = Data::new();
             }
-            Msg::InputName(name) => {
-                self.data.user.name = name;
-            },
-            Msg::InputFloorName(map_id) => {
-                self.data.user.map_id = Some(map_id);
-            },
-            Msg::InputNote(note) => {
-                self.data.user.note = Some(note);
-            },
             Msg::InputMacAddress(mac) => {
                 self.data.raw_mac = mac;
             },
-            Msg::InputCoordinate(index, value) => {
-                match index {
-                    0 => { self.data.raw_coord0 = value },
-                    1 => { self.data.raw_coord1 = value },
-                    _ => panic!("invalid coordinate index specified"),
-                };
+            Msg::InputName(name) => {
+                self.data.user.name = name;
+            },
+            Msg::InputAddress(name) => {
+                self.data.user.address;
+            },
+            Msg::InputJobTitle(job_title) => {
+                self.data.user.job_title;
+            }
+            Msg::InputEmployeeID(employee_id) => {
+                self.data.user.job_title;
+            }
+            Msg::InputFloorName(map_id) => {
+                self.data.user.map_id = Some(map_id);
+            },
+            Msg::InputDepartment(department) => {
+                self.data.user.department;
+            }
+            Msg::InputPhone(phone) => {
+                self.data.user.phone;
+            }
+            Msg::InputMobilePhone(mobile_phone) => {
+                self.data.user.mobile_phone;
+            }
+            Msg::InputEmergencyName(emergency_name) => {
+                self.data.user.emergency_name;
+            }
+            Msg::InputEmergencyPhone(emergency_phone) => {
+                self.data.user.emergency_phone;
+            }
+            Msg::InputRelations(emergency_relations) => {
+                self.data.user.emergency_relations;
+            }
+            Msg::InputNote(note) => {
+                self.data.user.note = Some(note);
             },
             Msg::RequestGetAvailMaps => {
                 self.fetch_task = get_request!(
@@ -153,21 +180,24 @@ impl Component for UserAddUpdate {
                     Msg::ResponseGetAvailMaps
                 );
             },
-            Msg::RequestAddUpdateBeacon => {
+            Msg::RequestAddUpdateUser => {
                 self.data.error_messages = Vec::new();
                 self.data.success_message = None;
 
+                // Do we need to validate the data?
                 let success = self.data.validate();
 
                 match self.data.id {
                     Some(id) if success => {
-                        //ensure the beacon id does not mismatch.
-                        self.data.beacon.id = id;
+                        //Ensure the beacon id does not mismatch.
+                        // Where do we compare the list of user ID tags?
+                        self.data.user.id = id;
 
                         self.fetch_task = put_request!(
                             self.fetch_service,
-                            &beacon_url(&self.data.beacon.id.to_string()),
-                            self.data.beacon,
+                            &user_url(&self.data.user.id.to_string()),
+                            //&beacon_url(&self.data.beacon.id.to_string()),
+                            self.data.user,
                             self.self_link,
                             Msg::ResponseUpdateBeacon
                         );
@@ -175,10 +205,11 @@ impl Component for UserAddUpdate {
                     None if success => {
                         self.fetch_task = post_request!(
                             self.fetch_service,
-                            &beacon_url(""),
+                            &user_url(""),
+                            //&beacon_url(""),
                             self.data.beacon,
                             self.self_link,
-                            Msg::ResponseAddBeacon
+                            Msg::ResponseAddUser
                         );
                     }
                     _ => {},
@@ -200,40 +231,40 @@ impl Component for UserAddUpdate {
                     self.data.error_messages.push("failed to obtain available floors list".to_string());
                 }
             },
-            Msg::ResponseUpdateBeacon(response) => {
+            Msg::ResponseUpdateUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
-                            self.data.success_message = Some("successfully updated beacon".to_string());
-                            self.data.beacon = result;
+                            Log!("returned user is {:?}", result);
+                            self.data.success_message = Some("successfully updated user".to_string());
+                            self.data.user = result;
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to update beacon, reason: {}", e));
+                            self.data.error_messages.push(format!("failed to update user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to update beacon".to_string());
+                    self.data.error_messages.push("failed to update user".to_string());
                 }
             },
-            Msg::ResponseAddBeacon(response) => {
+            Msg::ResponseAddUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
                             Log!("returned beacon is {:?}", result);
-                            self.data.success_message = Some("successfully added beacon".to_string());
-                            self.data.beacon = result;
-                            self.data.id = Some(self.data.beacon.id);
-                            self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
+                            self.data.success_message = Some("successfully added user".to_string());
+                            self.data.user = result;
+                            self.data.id = Some(self.data.user.id);
+                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to add beacon, reason: {}", e));
+                            self.data.error_messages.push(format!("failed to add user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add beacon".to_string());
+                    self.data.error_messages.push("failed to add user".to_string());
                 }
             },
         }
@@ -246,24 +277,26 @@ impl Component for UserAddUpdate {
     }
 }
 
-impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
+// The front-end layout in HTML
+impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
         let submit_name = match self.data.id {
-            Some(_id) => "Update Beacon",
-            None => "Add Beacon",
+            Some(_id) => "Update User",
+            None => "Add User",
         };
         let title_name = match self.data.id {
-            Some(_id) => "Beacon Update",
-            None => "Beacon Add",
+            Some(_id) => "User Update",
+            None => "User Add",
         };
-        let chosen_floor_id = match self.data.beacon.map_id {
+        // Users ID tag doesn't have a fixed floor
+        let chosen_floor_id = match self.data.user.map_id {
             Some(id) => id,
             None => -1,
         };
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
-                    <button onclick=|_| Msg::AddAnotherBeacon,>{ "Add Another" }</button>
+                    <button onclick=|_| Msg::AddAnotherUser,>{ "Add Another" }</button>
                 }
             },
             None => {
@@ -289,7 +322,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             }
         });
 
-        let note = self.data.beacon.note.clone().unwrap_or(String::new());
+        let note = self.data.user.note.clone().unwrap_or(String::new());
 
         html! {
             <>
@@ -327,25 +360,8 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.beacon.name,
+                                value=&self.data.user.name,
                                 oninput=|e| Msg::InputName(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Coordinates: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.beacon.coordinates[0],
-                                oninput=|e| Msg::InputCoordinate(0, e.value),
-                            />
-                        </td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.beacon.coordinates[1],
-                                oninput=|e| Msg::InputCoordinate(1, e.value),
                             />
                         </td>
                     </tr>
