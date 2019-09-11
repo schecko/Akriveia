@@ -130,7 +130,7 @@ impl TrackedUser {
             map_id: None,
             name: String::new(),
             note: None,
-            work_number: None,
+            work_phone: None,
             mobile_phone: None,
 
             beacon_sources: Vec::new(),

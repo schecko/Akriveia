@@ -21,8 +21,9 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
-            "u_phone_number" => entry.phone_number = row.get(i),
-            unhandled if unhandled.starts_with("u_") => { panic!("unhandled beacon column {}", unhandled); },
+            "u_work_phone" => entry.work_phone = row.get(i);
+            "u_mobile_phone" => entry.mobile_phone = row.get(i),
+            unhandled if unhandled.starts_with("u_") => { panic!("unhandled user column {}", unhandled); },
             _ => {},
         }
     }
@@ -80,7 +81,8 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_map_id,
                 u_name,
                 u_note,
-                u_phone_number
+                u_work_phone,
+                u_mobile_phone,
             )
             VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
             RETURNING *
@@ -91,6 +93,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::TIMESTAMPTZ,
             Type::MACADDR,
             Type::INT4,
+            Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -107,7 +110,8 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.phone_number,
+                    &user.work_phone,
+                    &user.mobile_phone,
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -135,7 +139,8 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_map_id = $6,
                 u_name = $7,
                 u_note = $8,
-                u_phone_number = $9
+                u_work_phone = $9
+                u_mobile_phone = $10
              WHERE
                 u_id = $10
             RETURNING *
@@ -146,6 +151,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::TIMESTAMPTZ,
             Type::MACADDR,
             Type::INT4,
+            Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -163,7 +169,8 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.phone_number,
+                    &user.work_phone,
+                    &user.mobile_phone,
                     &user.id,
                 ])
                 .into_future()
