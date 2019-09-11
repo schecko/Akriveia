@@ -196,9 +196,11 @@ impl Handler<DPMessage> for DataProcessor {
     }
 }
 
+// What does this struct do?
 pub struct OutUserData { }
 
 impl Message for OutUserData {
+    // How come there is one message for Result?
     type Result = Result<Vec<common::TrackedUser>, io::Error>;
 }
 
