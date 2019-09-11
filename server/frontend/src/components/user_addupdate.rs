@@ -8,10 +8,7 @@ pub enum Msg {
     AddAnotherUser,
     // Refers to ID tag MAC address
     InputMacAddress(String),
-    // Does there need to be coordinates as well? (Yes)
-    InputCoordinate(usize, usize),
     InputName(String),
-    InputAddress(String),
     // Do we include employee ID #?
     InputFloorName(i32),
     InputPhone(String),
@@ -33,16 +30,18 @@ pub enum Msg {
 struct Data {
     // Where do you get the type User?
     pub user: TrackedUser,
+    pub emergency_user: Option<TrackerUser>,
     pub error_messages: Vec<String>,
     pub avail_floors: Vec<Map>,
     // What's the difference b/w str (string slice) and String?
 
     pub name: String,
     pub employee_id: Option<String>,
-    pub coordinates: Vec<usize, usize>,
+    // User does not need to change coordinates
+    //pub coordinates: Vec<usize, usize>,
     pub work_phone: Option<String>,
-    pub emergency_contact: Option<i32>, // Would that reference to the User ID?
     pub mobile_phone: Option<String>,
+    pub emergency_contact: Option<i32>, // Would that reference to the User ID?
     pub note: String, // Is this note needed?
     // --- Employee Info ----//
 
@@ -57,16 +56,16 @@ impl Data {
     fn new() -> Data {
         Data {
             user: TrackedUser::new(),
+            emergency_user: TrackedUser::new(),
             error_messages: Vec::new(),
             avail_floors: Vec::new(),
             // Do you input a blank string
             name: String::new();
-            work_phone: String::new();
-            mobile_phone: String::new();
-            emergency_name: String::new();
-            emergency_phone: String::new();
-            emergency_relations: String::new();
-            note: String::new();
+            employee_id: None;
+            work_phone: None;
+            mobile_phone: None;
+            emergency_contact: None;
+            note: None;
 
             id: None,
             raw_mac: MacAddress::nil().to_hex_string(),
@@ -88,8 +87,8 @@ impl Data {
             },
         };
         
-        // What else do we need to validate?
-
+        // How do you validate emergency contact ID? Make sure it's i32?
+        // Do we have to check all the user ID to find if there is an emergency contact id?
         success
     }
 }
@@ -134,36 +133,22 @@ impl Component for UserAddUpdate {
             Msg::InputName(name) => {
                 self.data.user.name = name;
             },
-            Msg::InputAddress(name) => {
-                self.data.user.address;
-            },
-            Msg::InputJobTitle(job_title) => {
-                self.data.user.job_title;
-            }
             Msg::InputEmployeeID(employee_id) => {
-                self.data.user.job_title;
-            }
+                self.data.user.employee_id = employee_id;
+            },
             Msg::InputFloorName(map_id) => {
                 self.data.user.map_id = Some(map_id);
             },
-            Msg::InputDepartment(department) => {
-                self.data.user.department;
-            }
-            Msg::InputPhone(phone) => {
-                self.data.user.phone;
-            }
+            Msg::InputPhone(work_phone) => {
+                self.data.user.work_phone = work_phone;
+            },
             Msg::InputMobilePhone(mobile_phone) => {
-                self.data.user.mobile_phone;
-            }
-            Msg::InputEmergencyName(emergency_name) => {
-                self.data.user.emergency_name;
-            }
-            Msg::InputEmergencyPhone(emergency_phone) => {
-                self.data.user.emergency_phone;
-            }
-            Msg::InputRelations(emergency_relations) => {
-                self.data.user.emergency_relations;
-            }
+                self.data.user.mobile_phone = mobile_phone;
+            },
+            Msg::InputEmergencyContact(emergency_contact) => {
+                // Should this be checked to see if emergency_contact is a valid ID
+                self.data.user.emergency_contact = emergency_contact;
+            },
             Msg::InputNote(note) => {
                 self.data.user.note = Some(note);
             },
@@ -184,7 +169,7 @@ impl Component for UserAddUpdate {
 
                 match self.data.id {
                     Some(id) if success => {
-                        //Ensure the beacon id does not mismatch.
+                        // Ensure the beacon id does not mismatch.
                         // Where do we compare the list of user ID tags?
                         self.data.user.id = id;
 
