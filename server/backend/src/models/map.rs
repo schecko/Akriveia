@@ -71,7 +71,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_bounds,
                 m_name,
                 m_note,
-                m_scale,
+                m_scale
             )
             VALUES( $1, $2, $3, $4 )
             RETURNING *
@@ -111,7 +111,7 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_bounds = $1,
                 m_name = $2,
                 m_note = $3,
-                m_scale = $4,
+                m_scale = $4
              WHERE
                 m_id = $5
             RETURNING *
@@ -166,4 +166,130 @@ pub fn delete_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
                     client
                 })
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db_utils;
+    use tokio::runtime::current_thread::Runtime;
+
+    #[test]
+    fn insert() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .map(|(_client, _opt_map)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert map");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn update() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+        let mut updated_map = map.clone();
+        updated_map.name = "map_1".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                updated_map.id = opt_map.unwrap().id;
+                update_map(client, updated_map)
+            })
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                select_map(client, opt_map.unwrap().id)
+            })
+            .map(|(_client, _opt_map)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_many() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, _opt_map)| {
+                select_maps(client)
+            })
+            .map(|(_client, _maps)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn delete() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                delete_map(client, opt_map.unwrap().id)
+            })
+            .map(|_client| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
 }

@@ -14,10 +14,12 @@ pub enum Msg {
 
     RequestAddUpdateBeacon,
     RequestGetAvailMaps,
+    RequestGetBeacon(i32),
 
-    ResponseUpdateBeacon(util::Response<Beacon>),
-    ResponseGetAvailMaps(util::Response<Vec<Map>>),
     ResponseAddBeacon(util::Response<Beacon>),
+    ResponseGetAvailMaps(util::Response<Vec<Map>>),
+    ResponseGetBeacon(util::Response<Option<(Beacon, Option<Map>)>>),
+    ResponseUpdateBeacon(util::Response<Beacon>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -91,6 +93,8 @@ pub struct BeaconAddUpdate {
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    // TODO more robust way of handling concurrent requests
+    get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
 }
 
@@ -105,10 +109,14 @@ impl Component for BeaconAddUpdate {
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetAvailMaps);
+        if let Some(id) = props.id {
+            link.send_self(Msg::RequestGetBeacon(id));
+        }
         let mut result = BeaconAddUpdate {
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
+            get_fetch_task: None,
             self_link: link,
         };
         result.data.id = props.id;
@@ -119,6 +127,7 @@ impl Component for BeaconAddUpdate {
         match msg {
             Msg::AddAnotherBeacon => {
                 self.data = Data::new();
+                self.self_link.send_self(Msg::RequestGetAvailMaps);
             }
             Msg::InputName(name) => {
                 self.data.beacon.name = name;
@@ -134,8 +143,8 @@ impl Component for BeaconAddUpdate {
             },
             Msg::InputCoordinate(index, value) => {
                 match index {
-                    0 => { self.data.raw_coord0 = value },
-                    1 => { self.data.raw_coord1 = value },
+                    0 => { self.data.raw_coord0 = value; },
+                    1 => { self.data.raw_coord1 = value; },
                     _ => panic!("invalid coordinate index specified"),
                 };
             },
@@ -145,6 +154,14 @@ impl Component for BeaconAddUpdate {
                     &maps_url(),
                     self.self_link,
                     Msg::ResponseGetAvailMaps
+                );
+            },
+            Msg::RequestGetBeacon(id) => {
+                self.get_fetch_task = get_request!(
+                    self.fetch_service,
+                    &beacon_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetBeacon
                 );
             },
             Msg::RequestAddUpdateBeacon => {
@@ -183,7 +200,12 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned avail maps is {:?}", result);
+                            // TODO add validation on the backend, and send decent messages to the
+                            // frontend when the map_id is not set.
+                            if self.data.beacon.map_id == None && result.len() > 0 {
+                                self.data.beacon.map_id = Some(result[0].id);
+                            }
+
                             self.data.avail_floors = result;
                         },
                         Err(e) => {
@@ -199,7 +221,6 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
                             self.data.success_message = Some("successfully updated beacon".to_string());
                             self.data.beacon = result;
                         },
@@ -211,12 +232,29 @@ impl Component for BeaconAddUpdate {
                     self.data.error_messages.push("failed to update beacon".to_string());
                 }
             },
+            Msg::ResponseGetBeacon(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            self.data.beacon = result.unwrap_or((Beacon::new(), None)).0;
+                            self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
+                            self.data.raw_coord0 = self.data.beacon.coordinates[0].to_string();
+                            self.data.raw_coord1 = self.data.beacon.coordinates[1].to_string();
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to find beacon, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.data.error_messages.push("failed to find beacon".to_string());
+                }
+            },
             Msg::ResponseAddBeacon(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
                             self.data.success_message = Some("successfully added beacon".to_string());
                             self.data.beacon = result;
                             self.data.id = Some(self.data.beacon.id);
@@ -331,14 +369,14 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.beacon.coordinates[0],
+                                value=&self.data.raw_coord0,
                                 oninput=|e| Msg::InputCoordinate(0, e.value),
                             />
                         </td>
                         <td>
                             <input
                                 type="text",
-                                value=&self.data.beacon.coordinates[1],
+                                value=&self.data.raw_coord1,
                                 oninput=|e| Msg::InputCoordinate(1, e.value),
                             />
                         </td>

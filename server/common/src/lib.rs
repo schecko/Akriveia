@@ -3,8 +3,9 @@ extern crate nalgebra as na;
 extern crate eui48;
 
 use serde_derive::{ Deserialize, Serialize, };
-use std::time::{ SystemTime, UNIX_EPOCH, };
 pub use eui48::MacAddress;
+pub use chrono::{ DateTime, Utc, };
+pub use chrono::offset::TimeZone;
 use std::net::{ IpAddr, Ipv4Addr, };
 
 pub fn beacon_url(id: &str) -> String {
@@ -105,7 +106,7 @@ pub struct TrackedUser {
     pub coordinates: na::Vector2<f64>,
     pub emergency_contact: Option<i32>,
     pub employee_id: Option<String>,
-    pub last_active: SystemTime,
+    pub last_active: DateTime<Utc>,
     pub mac_address: MacAddress,
     pub map_id: Option<i32>,
     pub name: String,
@@ -123,7 +124,7 @@ impl TrackedUser {
             coordinates: na::Vector2::new(0.0, 0.0),
             emergency_contact: None,
             employee_id: None,
-            last_active: UNIX_EPOCH,
+            last_active: Utc.timestamp(0, 0),
             mac_address: MacAddress::nil(),
             map_id: None,
             name: String::new(),

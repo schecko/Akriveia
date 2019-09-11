@@ -88,7 +88,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::FLOAT8_ARRAY,
             Type::INT4,
             Type::VARCHAR,
-            Type::ABSTIME,
+            Type::TIMESTAMPTZ,
             Type::MACADDR,
             Type::INT4,
             Type::VARCHAR,
@@ -135,15 +135,15 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_map_id = $6,
                 u_name = $7,
                 u_note = $8,
-                u_phone_number = $9,
+                u_phone_number = $9
              WHERE
-                u_id = $11
+                u_id = $10
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
             Type::INT4,
             Type::VARCHAR,
-            Type::ABSTIME,
+            Type::TIMESTAMPTZ,
             Type::MACADDR,
             Type::INT4,
             Type::VARCHAR,
@@ -201,3 +201,132 @@ pub fn delete_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
                 })
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db_utils;
+    use tokio::runtime::current_thread::Runtime;
+
+    #[test]
+    fn insert() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let user = TrackedUser::new();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .map(|(_client, _opt_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert map");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn update() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+        let mut updated_user = user.clone();
+        updated_user.name = "user_1".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                updated_user.id = opt_user.unwrap().id;
+                update_user(client, updated_user)
+            })
+            .map(|(_client, _user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                select_user(client, opt_user.unwrap().id)
+            })
+            .map(|(_client, _opt_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_many() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, _opt_user)| {
+                select_users(client)
+            })
+            .map(|(_client, _users)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn delete() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                delete_user(client, opt_user.unwrap().id)
+            })
+            .map(|_client| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+}
+
+
+
