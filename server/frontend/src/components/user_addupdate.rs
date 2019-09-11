@@ -13,7 +13,9 @@ pub enum Msg {
     InputFloorName(i32),
     InputPhone(String),
     InputMobilePhone(String),
-    InputEmergencyContact(String),
+    // Do you use a Option or not?
+    // Can you have an option as a message parameter?
+    EmergencyContact(Option<TrackedUser>),
     InputNote(String),
 
     RequestAddUpdateUser,
@@ -56,7 +58,7 @@ impl Data {
     fn new() -> Data {
         Data {
             user: TrackedUser::new(),
-            emergency_user: TrackedUser::new(),
+            emergency_user: None,
             error_messages: Vec::new(),
             avail_floors: Vec::new(),
             // Do you input a blank string
@@ -86,9 +88,8 @@ impl Data {
                 false
             },
         };
-        
-        // How do you validate emergency contact ID? Make sure it's i32?
-        // Do we have to check all the user ID to find if there is an emergency contact id?
+
+        // Don't need to validate the emergency contact since it can be NOne  
         success
     }
 }
@@ -145,9 +146,10 @@ impl Component for UserAddUpdate {
             Msg::InputMobilePhone(mobile_phone) => {
                 self.data.user.mobile_phone = mobile_phone;
             },
-            Msg::InputEmergencyContact(emergency_contact) => {
-                // Should this be checked to see if emergency_contact is a valid ID
-                self.data.user.emergency_contact = emergency_contact;
+            
+            // Set emergency_user = TrackedUser
+            Msg::EmergencyContact(emergency_contact) => {
+                  self.data.user.emergency_contact = none;
             },
             Msg::InputNote(note) => {
                 self.data.user.note = Some(note);
