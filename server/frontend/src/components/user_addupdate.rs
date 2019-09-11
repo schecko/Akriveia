@@ -36,14 +36,13 @@ struct Data {
     pub error_messages: Vec<String>,
     pub avail_floors: Vec<Map>,
     // What's the difference b/w str (string slice) and String?
-    
-    //--- Employee Info ---//
+
     pub name: String,
-    pub address: String,
+    pub employee_id: Option<String>,
     pub coordinates: Vec<usize, usize>,
-    pub phone: String,
-    pub mobile_phone: String,
-    pub emergency_contact: String,
+    pub work_phone: Option<String>,
+    pub emergency_contact: Option<i32>, // Would that reference to the User ID?
+    pub mobile_phone: Option<String>,
     pub note: String, // Is this note needed?
     // --- Employee Info ----//
 
@@ -62,11 +61,7 @@ impl Data {
             avail_floors: Vec::new(),
             // Do you input a blank string
             name: String::new();
-            address: String::new();
-            job_title: String::new();
-            employee_id: String::new();
-            department: String::new();
-            phone: String::new();
+            work_phone: String::new();
             mobile_phone: String::new();
             emergency_name: String::new();
             emergency_phone: String::new();
