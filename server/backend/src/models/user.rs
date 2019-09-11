@@ -21,7 +21,7 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
-            "u_work_phone" => entry.work_phone = row.get(i);
+            "u_work_phone" => entry.work_phone = row.get(i),
             "u_mobile_phone" => entry.mobile_phone = row.get(i),
             unhandled if unhandled.starts_with("u_") => { panic!("unhandled user column {}", unhandled); },
             _ => {},
