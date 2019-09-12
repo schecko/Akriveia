@@ -9,11 +9,15 @@ use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
 use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
+use super::user_list::UserList;
+use super::user_addupdate::UserAddUpdate;
 
 #[derive(PartialEq)]
 pub enum Page {
     BeaconAddUpdate(Option<i32>),
     BeaconList,
+    UserAddUpdate(Option<i32>),
+    UserList,
     Diagnostics,
     FrontPage,
     Login,
@@ -190,6 +194,28 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::UserList => {
+                html! {
+                    <div>
+                        <h>{ "User" }</h>
+                        {self.navigation() }
+                        <UserList
+                            change_page=|page| Msg::ChangePage(page),
+                            />
+                    </div>
+                }
+            }
+            Page::UserAddUpdate(id) => {
+                html! {
+                    <div>
+                        <h>{ "User" } </h>
+                        { self.navigation() }
+                        <UserAddUpdate
+                            id=id,
+                        />
+                    </div> 
+                }
+            }
             Page::FrontPage => {
                 html! {
                     <div>
@@ -224,6 +250,23 @@ impl RootComponent {
                         },
                     >
                         { "Add Beacon" }
+                    </option>
+                </select>
+                <select>
+                    // Adding User List
+                    <option disabled=true,>{ "User Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>{ "User List" } </option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::UserAddUpdate {..} => true,
+                                _=> false,
+                            }
+                        },
+                    >
+                        { "Add User" }
                     </option>
                 </select>
             </div>

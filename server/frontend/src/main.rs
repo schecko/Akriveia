@@ -1,6 +1,6 @@
 #![deny(warnings)]
 // yew uses a lot of macros...
-#![recursion_limit="512"]
+#![recursion_limit="1024"]
 
 extern crate yew;
 extern crate common;

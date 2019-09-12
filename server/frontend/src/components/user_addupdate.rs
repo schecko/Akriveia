@@ -10,21 +10,22 @@ pub enum Msg {
     InputMacAddress(String),
     InputName(String),
     // Do we include employee ID #?
-    InputFloorName(i32),
+    InputEmployeeID(String),
     InputPhone(String),
     InputMobilePhone(String),
+    InputNote(String),
     // Do you use a Option or not?
     // Can you have an option as a message parameter?
-    EmergencyContact(Option<TrackedUser>),
-    InputNote(String),
+    InputEmergencyName(String),
+    InputEmergencyEmployeeID(String),
+    InputEmergencyNote(String),
+    InputEmergencyPhone(String),
+    InputEmergencyMobilePhone(String),
 
     RequestAddUpdateUser,
-    RequestGetAvailMaps,
-
     // Response holds HTTP response from HTTP request
-    ResponseUpdateUser(util::Response<User>),
-    ResponseGetAvailMaps(util::Response<Vec<Map>>),
-    ResponseAddUser(util::Response<User>),
+    ResponseUpdateUser(util::Response<TrackedUser>),
+    ResponseAddUser(util::Response<TrackedUser>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -32,22 +33,10 @@ pub enum Msg {
 struct Data {
     // Where do you get the type User?
     pub user: TrackedUser,
-    pub emergency_user: Option<TrackerUser>,
+    pub emergency_user: Option<TrackedUser>,
     pub error_messages: Vec<String>,
-    pub avail_floors: Vec<Map>,
     // What's the difference b/w str (string slice) and String?
 
-    pub name: String,
-    pub employee_id: Option<String>,
-    // User does not need to change coordinates
-    //pub coordinates: Vec<usize, usize>,
-    pub work_phone: Option<String>,
-    pub mobile_phone: Option<String>,
-    pub emergency_contact: Option<i32>, // Would that reference to the User ID?
-    pub note: String, // Is this note needed?
-    // --- Employee Info ----//
-
-    // What ID is this? Why is it an option? 
     pub id: Option<i32>,
     // This should be the ID tag Mac address
     pub raw_mac: String,
@@ -60,15 +49,6 @@ impl Data {
             user: TrackedUser::new(),
             emergency_user: None,
             error_messages: Vec::new(),
-            avail_floors: Vec::new(),
-            // Do you input a blank string
-            name: String::new();
-            employee_id: None;
-            work_phone: None;
-            mobile_phone: None;
-            emergency_contact: None;
-            note: None;
-
             id: None,
             raw_mac: MacAddress::nil().to_hex_string(),
             success_message: None,
@@ -78,7 +58,7 @@ impl Data {
     // How do we validate that the user data is valid?
     // Check raw Mac address of the ID tag
     fn validate(&mut self) -> bool {
-        let mut success = match MacAddress::parse_str(&self.raw_mac) {
+        let success = match MacAddress::parse_str(&self.raw_mac) {
             Ok(m) => {
                 self.user.mac_address = m;
                 true
@@ -88,7 +68,6 @@ impl Data {
                 false
             },
         };
-
         // Don't need to validate the emergency contact since it can be NOne  
         success
     }
@@ -111,8 +90,8 @@ impl Component for UserAddUpdate {
     type Message = Msg;
     type Properties = UserAddUpdateProps;
 
-    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        link.send_self(Msg::RequestGetAvailMaps);
+    // mut link or
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut result = UserAddUpdate {
             data: Data::new(),
             fetch_service: FetchService::new(),
@@ -135,32 +114,82 @@ impl Component for UserAddUpdate {
                 self.data.user.name = name;
             },
             Msg::InputEmployeeID(employee_id) => {
-                self.data.user.employee_id = employee_id;
+                self.data.user.employee_id = Some(employee_id);
             },
-            Msg::InputFloorName(map_id) => {
-                self.data.user.map_id = Some(map_id);
-            },
-            Msg::InputPhone(work_phone) => {
-                self.data.user.work_phone = work_phone;
+            Msg::InputPhone(phone) => {
+                self.data.user.phone = Some(phone);
             },
             Msg::InputMobilePhone(mobile_phone) => {
-                self.data.user.mobile_phone = mobile_phone;
-            },
-            
-            // Set emergency_user = TrackedUser
-            Msg::EmergencyContact(emergency_contact) => {
-                  self.data.user.emergency_contact = none;
+                self.data.user.mobile_phone = Some(mobile_phone);
             },
             Msg::InputNote(note) => {
                 self.data.user.note = Some(note);
             },
-            Msg::RequestGetAvailMaps => {
-                self.fetch_task = get_request!(
-                    self.fetch_service,
-                    &maps_url(),
-                    self.self_link,
-                    Msg::ResponseGetAvailMaps
-                );
+            // Set emergency_user = TrackedUser
+            Msg::InputEmergencyName(emergency_name) => {
+                let emergency_user = &mut self.data.emergency_user.take();
+                match emergency_user {
+                    Some(emergency_user) => {
+                        emergency_user.name = emergency_name;
+                    }
+                    None => {
+                        let mut user = TrackedUser::new();
+                        user.name = emergency_name;
+                        *emergency_user = Some(user);
+                    }    
+                }
+            },
+            Msg::InputEmergencyEmployeeID(emergency_id) => {
+                let emergency_user = &mut self.data.emergency_user.take();
+                match emergency_user {
+                    Some(emergency_user) => {
+                        emergency_user.employee_id = Some(emergency_id);
+                    }
+                    None => {
+                        let mut user = TrackedUser::new();
+                        user.employee_id = Some(emergency_id);
+                        *emergency_user = Some(user);
+                    }
+                }
+            },
+            Msg::InputEmergencyNote(emergency_note) => {
+                let emergency_user = &mut self.data.emergency_user.take();
+                match emergency_user {
+                    Some( emergency_user) => {
+                        emergency_user.note = Some(emergency_note);
+                    }
+                    None => {
+                        let mut user = TrackedUser::new();
+                        user.note = Some(emergency_note);
+                        *emergency_user = Some(user);
+                    }
+                }
+            },
+            Msg::InputEmergencyPhone(emergency_phone) => {
+                let emergency_user = &mut self.data.emergency_user.take();
+                match emergency_user {
+                    Some(emergency_user) => {
+                        emergency_user.phone = Some(emergency_phone);
+                    }
+                    None => {
+                        let mut user = TrackedUser::new();
+                        user.phone = Some(emergency_phone);
+                        *emergency_user = Some(user);
+                    }
+                }
+            },
+            Msg::InputEmergencyMobilePhone(emergency_mobile) => {
+                let emergency_user = &mut self.data.emergency_user.take();
+                match emergency_user {
+                    Some(emergency_user) => {
+                        emergency_user.mobile_phone = Some(emergency_mobile);
+                    }
+                    None => {
+                        let mut user = TrackedUser::new();
+                        user.mobile_phone = Some(emergency_mobile);
+                        *emergency_user = Some(user);
+                    }
+                }
             },
             Msg::RequestAddUpdateUser => {
                 self.data.error_messages = Vec::new();
@@ -181,7 +210,7 @@ impl Component for UserAddUpdate {
                             //&beacon_url(&self.data.beacon.id.to_string()),
                             self.data.user,
                             self.self_link,
-                            Msg::ResponseUpdateBeacon
+                            Msg::ResponseUpdateUser
                         );
                     },
                     None if success => {
@@ -189,28 +218,12 @@ impl Component for UserAddUpdate {
                             self.fetch_service,
                             &user_url(""),
                             //&beacon_url(""),
-                            self.data.beacon,
+                            self.data.user,
                             self.self_link,
                             Msg::ResponseAddUser
                         );
                     }
                     _ => {},
-                }
-            },
-            Msg::ResponseGetAvailMaps(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            Log!("returned avail maps is {:?}", result);
-                            self.data.avail_floors = result;
-                        },
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.data.error_messages.push("failed to obtain available floors list".to_string());
                 }
             },
             Msg::ResponseUpdateUser(response) => {
@@ -270,11 +283,11 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             Some(_id) => "User Update",
             None => "User Add",
         };
-        // Users ID tag doesn't have a fixed floor
-        let chosen_floor_id = match self.data.user.map_id {
+        // Backend assigns the chosen floor to the user.map_id
+        /*let chosen_floor_id = match self.data.user.map_id {
             Some(id) => id,
             None => -1,
-        };
+        }; */
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
@@ -286,25 +299,21 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut floor_options = self.data.avail_floors.iter().cloned().map(|floor| {
-            let floor_id = floor.id;
-            html! {
-                <option
-                    onclick=|_| Msg::InputFloorName(floor_id),
-                    disabled={ floor_id == chosen_floor_id },
-                >
-                    { &floor.name }
-                </option>
-            }
-        });
-
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
                 <p>{msg}</p>
             }
         });
-
+        let employee_id = self.data.user.employee_id.clone().unwrap_or(String::new());
+        let phone = self.data.user.phone.clone().unwrap_or(String::new());
+        let mobile_phone = self.data.user.mobile_phone.clone().unwrap_or(String::new());
         let note = self.data.user.note.clone().unwrap_or(String::new());
+        
+        let emergency_name = self.data.emergency_user.unwrap_or(TrackedUser::new()).name.clone();
+        let emergency_employee_id = self.data.emergency_user.employee_id.clone().unwrap_or(String::new());
+        let emergency_phone = self.data.emergency_user.phone.clone().unwrap_or(String::new());
+        let emergency_employee_id = self.data.emergency_user.mobile_phone.clone().unwrap_or(String::new());
+        let emergency_note = self.data.emergency_user.note.clone().unwrap_or(String::new());
 
         html! {
             <>
@@ -320,24 +329,6 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 <div/>
                 <table>
                     <tr>
-                        <td>{ "Mac Address: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_mac,
-                                oninput=|e| Msg::InputMacAddress(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Floor Name: " }</td>
-                        <td>
-                            <select>
-                                { for floor_options }
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
                         <td>{ "Name: " }</td>
                         <td>
                             <input
@@ -348,6 +339,46 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         </td>
                     </tr>
                     <tr>
+                        <td>{ "Mac Address: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_mac,
+                                oninput=|e| Msg::InputMacAddress(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Employee ID: " }</td>
+                        <td>
+                            <input
+                                type="text"
+                                value=employee_id,
+                                oninput=|e| Msg::InputEmployeeID(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Phone: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = phone,
+                                oninput=|e| Msg::InputPhone(e.value)
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Mobile Phone: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = mobile_phone,
+                                oninput=|e| Msg::InputMobilePhone(e.value)
+                            />
+                        </td>
+                    </tr>                    
+                    <tr>
                         <td>{ "Note: " }</td>
                         <td>
                             <textarea
@@ -357,8 +388,60 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                             />
                         </td>
                     </tr>
+                    // Emergency Contact Information
+                    <tr> { "Emergency Contact Information"} </tr>
+                    <tr>
+                        <td>{ "Name: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = emergency_name,
+                                oninput=|e| Msg::InputEmergencyName(e.value)
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Employee ID: (if applicable) " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = emergency_employee_id,
+                                oninput=|e| Msg::InputEmergencyEmployeeID(e.value)
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Phone: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = emergency_phone,
+                                oninput=|e| Msg::InputEmergencyPhone(e.value)
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Mobile Phone " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value = emergency_mobile,
+                                oninput=|e| Msg::InputEmergencyMobilePhone(e.value)
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Note: " }</td>
+                        <td>
+                            <textarea
+                                rows=5,
+                                value = emergency_note,
+                                oninput=|e| Msg::InputEmergencyNote(e.value),
+                            />
+                        </td>
+                    </tr>
                 </table>
-                <button onclick=|_| Msg::RequestAddUpdateBeacon,>{ submit_name }</button>
+                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
                 { add_another_button }
             </>
         }
