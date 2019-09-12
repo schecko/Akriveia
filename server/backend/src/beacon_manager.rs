@@ -181,7 +181,7 @@ impl Handler<TagDataMessage> for BeaconManager {
     fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
         // find the beacons
         self.diagnostic_data.tag_data.push(msg.data.clone());
-        self.data_processor.do_send(DPMessage::LocationData(msg.data.clone()));
+        self.data_processor.do_send(InLocationData(msg.data.clone()));
         Ok(1)
     }
 }
