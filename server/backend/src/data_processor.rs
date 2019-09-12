@@ -6,6 +6,8 @@ use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
 use common::MacAddress;
 use futures::future::ok;
+//use actix::fut::FutureResult;
+use actix::fut;
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -145,9 +147,11 @@ impl Handler<InLocationData> for DataProcessor {
             common::DataType::RSSI(rssi) => rssi,
             common::DataType::TOF(tof) => tof,
         };
-        let fut = ok(()).into_actor(self);
-            /*.and_then(|_actor, _, _| {
-            });*/
+        let fut = ok(()).into_actor(self)
+            .and_then(|_result, _actor, _context| {
+                //ok(()).into_actor(actor)
+                fut::result(Ok(()))
+            });
 
         if self.tag_hash.contains_key(&tag_data.tag_mac) {
             if let Some(tag_entry) = self.tag_hash.get_mut(&tag_data.tag_mac) {
