@@ -111,6 +111,27 @@ pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> im
         })
 }
 
+pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAddress>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.beacons
+            WHERE b_id IN ($1, $2, $3)
+        ", &[
+            Type::MACADDR,
+            Type::MACADDR,
+            Type::MACADDR,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&macs[0], &macs[1], &macs[2]])
+                .collect()
+                .into_future()
+                .map(|rows| {
+                    (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
+                })
+        })
+}
+
 pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=tokio_postgres::Error> {
     // TODO paging
     client

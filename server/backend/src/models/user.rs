@@ -179,6 +179,39 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
+pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            UPDATE runtime.users
+            SET
+                u_coordinates = $1,
+             WHERE
+                u_mac_address = $2
+            RETURNING *
+        ", &[
+            Type::FLOAT8_ARRAY,
+            Type::MACADDR,
+        ])
+        .and_then(move |statement| {
+            let coordinates = vec![coords[0], coords[1]];
+            client
+                .query(&statement, &[
+                    &coordinates,
+                    &mac,
+                ])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_user(r))),
+                        _ => (client, None),
+                    }
+                })
+        })
+}
+
 pub fn delete_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
     client
         .prepare_typed("

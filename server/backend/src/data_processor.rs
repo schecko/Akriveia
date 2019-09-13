@@ -4,10 +4,11 @@ use actix_web::Result;
 use std::io;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use na;
+use crate::db_utils;
+use crate::models::beacon;
+use crate::models::user;
 use common::MacAddress;
-use futures::future::ok;
-//use actix::fut::FutureResult;
-//use actix::fut;
+use futures::future::{ ok, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -163,7 +164,7 @@ impl Handler<InLocationData> for DataProcessor {
             common::DataType::TOF(tof) => tof,
         };
 
-        let calc_fut = match self.tag_hash.get_mut(&tag_data.tag_mac) {
+        let opt_averages = match self.tag_hash.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
                 append_history(&mut tag_entry, rssi_value, &tag_data);
 
@@ -179,27 +180,10 @@ impl Handler<InLocationData> for DataProcessor {
                         }
                     }).collect();
 
-                    let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
-                    let beacons: Vec<common::Beacon> = vec![common::Beacon::new(); 3];
-                    let new_tag_location = Self::calc_trilaterate(&beacons, &averaged_data, &mut beacon_sources);
-                    // update the user information
-                    match self.users.get_mut(&tag_data.tag_mac) {
-                        Some(user_ref) => {
-                            user_ref.beacon_sources = beacon_sources;
-                            user_ref.coordinates = new_tag_location;
-                        },
-                        None => {
-                            // TODO this should probably eventually be an error if the user
-                            // is missing, but for now just make the user instead
-                            let mut user = common::TrackedUser::new();
-                            user.mac_address = tag_data.tag_mac.clone();
-                            user.beacon_sources = beacon_sources;
-                            user.coordinates = new_tag_location;
-                            self.users.insert(tag_data.tag_mac.clone(), user);
-                        }
-                    }
+                    Some(averaged_data)
+                } else {
+                    None
                 }
-                ok(())
             },
             None => {
                 // create new entry
@@ -212,19 +196,50 @@ impl Handler<InLocationData> for DataProcessor {
                 deque.push_back(rssi_value);
                 hash_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
                 self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
-                ok(())
+                None
             },
         };
 
-        let fut = ok(()).into_actor(self)
-            .and_then(move |_result, actor, _context| {
-                //ok(()).into_actor(actor)
-                calc_fut.into_actor(actor)
-                //fut::result(Ok(()))
-            });
+        let fut = match opt_averages {
+            Some(averages) => {
+                let beacon_macs: Vec<MacAddress>  = averages.iter().map(|tagdata| tagdata.beacon_mac).collect();
+                actix::fut::Either::A(db_utils::default_connect()
+                    .and_then(|client| {
+                        beacon::select_beacons_by_mac(client, beacon_macs)
+                    })
+                    .into_actor(self)
+                    .and_then(move |(client, beacons), actor, _context| {
+                        let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
+                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages, &mut beacon_sources);
+                        // update the user information
+                        match actor.users.get_mut(&averages[0].tag_mac) {
+                            Some(user_ref) => {
+                                user_ref.beacon_sources = beacon_sources;
+                                user_ref.coordinates = new_tag_location;
+                            },
+                            None => {
+                                // TODO this should probably eventually be an error if the user
+                                // is missing, but for now just make the user instead
+                                let mut user = common::TrackedUser::new();
+                                user.mac_address = averages[0].tag_mac.clone();
+                                user.beacon_sources = beacon_sources;
+                                user.coordinates = new_tag_location;
+                                actor.users.insert(averages[0].tag_mac.clone(), user);
+                            }
+                        }
+                        user::update_user_coords_by_mac(client, averages[0].tag_mac, new_tag_location)
+                            .map(|(_client, _opt_user)| {
+                            })
+                            .into_actor(actor)
+                    })
+                )
+            },
+            None => {
+                actix::fut::Either::B(ok(()).into_actor(self))
+            }
+        };
 
-
-        Box::new(fut)
+        Box::new(fut.map_err(|_postgres_err, _, _| { }))
     }
 }
 
