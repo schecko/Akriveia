@@ -7,18 +7,20 @@ use rand::Rng;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
-use common::MacAddress;
+use crate::models::user;
+use crate::db_utils;
+use common::*;
+use futures::future::ok;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
-const NUM_USERS: u32 = 5;
 const MIN_RSSI_DISTANCE: i64 = -82;
 const MAX_RSSI_DISTANCE: i64 = -50;
 
-pub fn dummy_beacon_thread(dummy_id: u32,
+pub fn dummy_beacon_thread(beacon: Beacon,
                            receive: mpsc::Receiver<BeaconCommand>,
                            beacon_manager: Addr<BeaconManager>)
 {
-    println!("starting dummy beacon {}", dummy_id);
+    println!("starting dummy beacon {}", &beacon.id);
 
     let mut rng = rand::thread_rng();
     loop {
@@ -41,23 +43,38 @@ pub fn dummy_beacon_thread(dummy_id: u32,
                 },
                 Err(mpsc::TryRecvError::Empty) => { } // do nothing, dont care
                 Err(mpsc::TryRecvError::Disconnected) => {
-                    println!("dummy {} was disconnected from manager", dummy_id);
+                    println!("dummy {} was disconnected from manager", &beacon.id);
                 },
                 _ => { },
             }
 
-            // start generating data
-            let user_number = rng.gen_range(0, NUM_USERS);
+            let beacon_manager_addr = beacon_manager.clone();
             let user_distance = rng.gen_range(MIN_RSSI_DISTANCE, MAX_RSSI_DISTANCE);
-            beacon_manager
-                .do_send( TagDataMessage {
-                    data: common::TagData {
-                        tag_name: format!("user_{}", user_number),
-                        tag_mac: MacAddress::from_bytes(&[0, 0, 0, 0, 0, user_number as u8]).unwrap(),
-                        tag_distance: common::DataType::RSSI(user_distance),
-                        beacon_mac: MacAddress::from_bytes(&[0, 0, 0, 0, 0, dummy_id as u8]).unwrap(),
+            let beacon_mac = beacon.mac_address.clone();
+
+            let data_gen_fut = db_utils::default_connect()
+                .and_then(|client| {
+                    user::select_user_random(client)
+                })
+                .and_then(move |(_client, opt_user)| {
+                    if let Some(user) = opt_user {
+                        beacon_manager_addr
+                            .do_send( TagDataMessage {
+                                data: common::TagData {
+                                    tag_name: user.name,
+                                    tag_mac: user.mac_address,
+                                    tag_distance: common::DataType::RSSI(user_distance),
+                                    beacon_mac: beacon_mac,
+                                }
+                            });
                     }
+                    ok(())
+                })
+                .map_err(|_err| {
                 });
+
+            tokio::run(data_gen_fut);
+
             thread::sleep(MESSAGE_INTERVAL);
         }
 
