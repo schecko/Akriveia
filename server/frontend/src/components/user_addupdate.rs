@@ -309,11 +309,12 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
         let mobile_phone = self.data.user.mobile_phone.clone().unwrap_or(String::new());
         let note = self.data.user.note.clone().unwrap_or(String::new());
         
-        let emergency_name = self.data.emergency_user.unwrap_or(TrackedUser::new()).name.clone();
-        let emergency_employee_id = self.data.emergency_user.employee_id.clone().unwrap_or(String::new());
-        let emergency_phone = self.data.emergency_user.phone.clone().unwrap_or(String::new());
-        let emergency_employee_id = self.data.emergency_user.mobile_phone.clone().unwrap_or(String::new());
-        let emergency_note = self.data.emergency_user.note.clone().unwrap_or(String::new());
+        let emergency_name = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name;
+        // Isn't this used in the html code?
+        let _emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).employee_id.unwrap_or(String::new());
+        let emergency_mobile = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).phone.unwrap_or(String::new());
+        let emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).mobile_phone.unwrap_or(String::new());
+        let emergency_note = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).note.unwrap_or(String::new());
 
         html! {
             <>
@@ -415,7 +416,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value = emergency_phone,
+                                value = emergency_mobile,
                                 oninput=|e| Msg::InputEmergencyPhone(e.value)
                             />
                         </td>

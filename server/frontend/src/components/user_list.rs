@@ -67,8 +67,8 @@ impl Component for UserList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(Users_and_maps) => {
-                            self.list = Users_and_maps;
+                        Ok(users_and_maps) => {
+                            self.list = users_and_maps;
                         }
                         _ => { }
                     }
