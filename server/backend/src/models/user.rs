@@ -84,7 +84,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_phone,
                 u_mobile_phone,
             )
-            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
+            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -142,7 +142,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_phone = $9
                 u_mobile_phone = $10
              WHERE
-                u_id = $10
+                u_id = $11
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
