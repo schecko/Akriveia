@@ -11,6 +11,8 @@ use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
 use super::user_list::UserList;
 use super::user_addupdate::UserAddUpdate;
+use super::map_list::MapList;
+use super::map_addupdate::MapAddUpdate;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -22,6 +24,8 @@ pub enum Page {
     FrontPage,
     Login,
     Map,
+    MapList,
+    MapAddUpdate(Option<i32>),
 }
 
 pub struct RootComponent {
@@ -214,6 +218,26 @@ impl Renderable<RootComponent> for RootComponent {
                             id=id,
                         />
                     </div> 
+            Page::MapList => {
+               html! {
+                    <div>
+                        <h>{ "Map" }</h>
+                        { self.navigation() }
+                        <MapList
+                            change_page=|page| Msg::ChangePage(page),
+                        />
+                    </div>
+                }
+            }
+            Page::MapAddUpdate(opt_id) => {
+               html! {
+                    <div>
+                        <h>{ "Map" }</h>
+                        { self.navigation() }
+                        <MapAddUpdate
+                            opt_id=opt_id,
+                        />
+                    </div>
                 }
             }
             Page::FrontPage => {
@@ -267,6 +291,20 @@ impl RootComponent {
                         },
                     >
                         { "Add User" }
+                    // TODO CSS for navigation bar
+                    <option disabled=true,>{ "Map Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::MapAddUpdate {..} => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "Add Map" }
                     </option>
                 </select>
             </div>

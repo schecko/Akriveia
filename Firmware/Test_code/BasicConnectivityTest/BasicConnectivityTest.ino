@@ -1,4 +1,4 @@
-g/*
+/*
  * Copyright (c) 2015 by Thomas Trojer <thomas@trojer.net>
  * Decawave DW1000 library for arduino.
  *
@@ -27,12 +27,18 @@ g/*
 #include <DW1000.h>
 
 // connection pins
-const uint8_t PIN_SCK = 18;
-const uint8_t PIN_MOSI = 23;
-const uint8_t PIN_MISO = 19;
-const uint8_t PIN_SS = 2;
-const uint8_t PIN_RST = 15;
-const uint8_t PIN_IRQ = 17;
+#if defined(ESP32)
+  const uint8_t PIN_SCK = 18;
+  const uint8_t PIN_MOSI = 23;
+  const uint8_t PIN_MISO = 19;
+  const uint8_t PIN_SS = 2;
+  const uint8_t PIN_RST = 15;
+  const uint8_t PIN_IRQ = 17;
+#else
+  const uint8_t PIN_RST = 9; // reset pin
+  const uint8_t PIN_IRQ = 2; // irq pin
+  const uint8_t PIN_SS = SS; // spi select pin
+#endif
 
 void setup() {
   // DEBUG monitoring
