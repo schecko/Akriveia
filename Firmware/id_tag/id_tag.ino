@@ -5,8 +5,18 @@
 #include <DW1000NgRanging.hpp>
 #include <DW1000NgRTLS.hpp>
 
+#if defined(ESP32)
+const uint8_t PIN_SCK = 18;
+const uint8_t PIN_MOSI = 23;
+const uint8_t PIN_MISO = 19;
+const uint8_t PIN_SS = 2;
+const uint8_t PIN_RST = 15;
+const uint8_t PIN_IRQ = 17;
+#else
+const uint8_t PIN_RST = 9; // reset pin
+const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
-const uint8_t PIN_RST = 9;
+#endif
 
 volatile uint32_t blink_rate = 200;
 
@@ -19,7 +29,7 @@ device_configuration_t DEFAULT_CONFIG = {
     SFDMode::STANDARD_SFD,
     Channel::CHANNEL_5,
     DataRate::RATE_850KBPS,
-    PulseFrequency::FREQ_16MHZ,
+    PulseFrequency::FREQ_64MHZ,
     PreambleLength::LEN_256,
     PreambleCode::CODE_3
 };
