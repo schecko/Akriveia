@@ -3,6 +3,7 @@ use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+// Remove after AddUser works
 
 pub enum Msg {
     AddAnotherUser,
@@ -23,9 +24,12 @@ pub enum Msg {
     InputEmergencyMobilePhone(String),
 
     RequestAddUpdateUser,
-    // Response holds HTTP response from HTTP request
-    ResponseUpdateUser(util::Response<TrackedUser>),
+    RequestGetUser(i32),
+    // Do we need the map for it as well? Probably not
+    // Response holds HTTP response from request
     ResponseAddUser(util::Response<TrackedUser>),
+    ResponseGetUser(util::Response<Option<TrackedUser>>),
+    ResponseUpdateUser(util::Response<TrackedUser>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -66,7 +70,7 @@ impl Data {
             Err(e) => {
                 self.error_messages.push(format!("failed to parse mac address: {}", e));
                 false
-            },
+            }
         };
         // Don't need to validate the emergency contact since it can be NOne  
         success
@@ -78,6 +82,7 @@ pub struct UserAddUpdate {
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
 }
 
@@ -91,11 +96,21 @@ impl Component for UserAddUpdate {
     type Properties = UserAddUpdateProps;
 
     // mut link or
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        // Perhaps I'm missing the command to fetch the user IDs
+        if let Some(id) = props.id {
+            link.send_self(Msg::RequestGetUser(id));
+        }
+
         let mut result = UserAddUpdate {
             data: Data::new(),
+            // what does these fetch services do?
+            // Assume: Call for requests to the web services endpoints
             fetch_service: FetchService::new(),
             fetch_task: None,
+            // What does get_fetch_task do?
+            // Is it to get the results of the fetch task?
+            get_fetch_task: None,
             self_link: link,
         };
         result.data.id = props.id;
@@ -155,7 +170,7 @@ impl Component for UserAddUpdate {
             Msg::InputEmergencyNote(emergency_note) => {
                 let emergency_user = &mut self.data.emergency_user.take();
                 match emergency_user {
-                    Some( emergency_user) => {
+                    Some(emergency_user) => {
                         emergency_user.note = Some(emergency_note);
                     }
                     None => {
@@ -204,16 +219,18 @@ impl Component for UserAddUpdate {
                         // Where do we compare the list of user ID tags?
                         self.data.user.id = id;
 
+                        self.data.error_messages.push("Found the id. Arrived before push request".to_string());
                         self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
-                            //&beacon_url(&self.data.beacon.id.to_string()),
                             self.data.user,
                             self.self_link,
                             Msg::ResponseUpdateUser
                         );
+                        self.data.error_messages.push("Should be a success".to_string());
                     },
                     None if success => {
+                        self.data.error_messages.push("New user. Sending the new post request".to_string());
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &user_url(""),
@@ -222,8 +239,68 @@ impl Component for UserAddUpdate {
                             self.self_link,
                             Msg::ResponseAddUser
                         );
+                        // Need to add emergency user too
+                        self.fetch_task = post_request!(
+                            self.fetch_service,
+                            &user_url(""),
+                            self.data.emergency_user,
+                            self.self_link,
+                            Msg::ResponseAddUser
+                        );
+                        self.data.error_messages.push("After the post_request. Should be finished".to_string());
                     }
-                    _ => {},
+                    _ => {
+                        self.data.error_messages.push("Other cases error in add/updating".to_string());
+                    },
+                }
+            },
+            Msg::RequestGetUser(id) => {
+                self.get_fetch_task = get_request! (
+                    self.fetch_service,
+                    &user_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetUser
+                    );
+            },
+            Msg::ResponseGetUser(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() { 
+                    match body {
+                        Ok(result) => {
+                            // What reponse is needed as to get user
+                            self.data.user = result.unwrap_or(TrackedUser::new());
+                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
+                            // Why does this have to be Some(...)
+                            // Might be perhaps emergency_contact is an optoin
+                            self.data.user.emergency_contact = Some(self.data.emergency_user.clone().unwrap().id);
+                        }
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to find user, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.data.error_messages.push("failed to find user".to_string());
+                }
+            },
+            Msg::ResponseAddUser(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            Log!("returned user is {:?}", result);
+                            self.data.success_message = Some("successfully added user".to_string());
+                            self.data.user = result;
+                            // Does this line break any rust borrowing rules?
+                            self.data.user.emergency_contact = Some(self.data.emergency_user.clone().unwrap().id);
+                            self.data.id = Some(self.data.user.id);
+                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
+                        },
+                        Err(e) => {
+                            self.data.error_messages.push(format!("failed to add user, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.data.error_messages.push("failed to add user. Meta.status failed".to_string());
                 }
             },
             Msg::ResponseUpdateUser(response) => {
@@ -241,25 +318,6 @@ impl Component for UserAddUpdate {
                     }
                 } else {
                     self.data.error_messages.push("failed to update user".to_string());
-                }
-            },
-            Msg::ResponseAddUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            Log!("returned beacon is {:?}", result);
-                            self.data.success_message = Some("successfully added user".to_string());
-                            self.data.user = result;
-                            self.data.id = Some(self.data.user.id);
-                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
-                        },
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to add user, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.data.error_messages.push("failed to add user".to_string());
                 }
             },
         }
@@ -309,11 +367,12 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
         let mobile_phone = self.data.user.mobile_phone.clone().unwrap_or(String::new());
         let note = self.data.user.note.clone().unwrap_or(String::new());
         
-        let emergency_name = self.data.emergency_user.unwrap_or(TrackedUser::new()).name.clone();
-        let emergency_employee_id = self.data.emergency_user.employee_id.clone().unwrap_or(String::new());
-        let emergency_phone = self.data.emergency_user.phone.clone().unwrap_or(String::new());
-        let emergency_employee_id = self.data.emergency_user.mobile_phone.clone().unwrap_or(String::new());
-        let emergency_note = self.data.emergency_user.note.clone().unwrap_or(String::new());
+        let emergency_name = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name;
+        // Isn't this used in the html code?
+        let _emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).employee_id.unwrap_or(String::new());
+        let emergency_mobile = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).phone.unwrap_or(String::new());
+        let emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).mobile_phone.unwrap_or(String::new());
+        let emergency_note = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).note.unwrap_or(String::new());
 
         html! {
             <>
@@ -415,7 +474,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                value = emergency_phone,
+                                value = emergency_mobile,
                                 oninput=|e| Msg::InputEmergencyPhone(e.value)
                             />
                         </td>

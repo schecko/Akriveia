@@ -5,7 +5,7 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 
-fn row_to_user(row: Row) -> TrackedUser {
+fn row_to_user(row: &Row) -> TrackedUser {
     let mut entry = TrackedUser::new();
     for (i, column) in row.columns().iter().enumerate() {
         match column.name() {
@@ -13,7 +13,7 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_coordinates" => {
                 let coords: Vec<f64> = row.get(i);
                 entry.coordinates = na::Vector2::new(coords[0], coords[1]);
-            }
+            },
             "u_emergency_contact" => entry.emergency_contact = row.get(i),
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
@@ -21,7 +21,7 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
-            "u_work_phone" => entry.work_phone = row.get(i),
+            "u_phone" => entry.phone = row.get(i),
             "u_mobile_phone" => entry.mobile_phone = row.get(i),
             unhandled if unhandled.starts_with("u_") => { panic!("unhandled user column {}", unhandled); },
             _ => {},
@@ -42,7 +42,7 @@ pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tok
                 .collect()
                 .into_future()
                 .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_user(row)).collect())
+                    (client, rows.into_iter().map(|row| row_to_user(&row)).collect())
                 })
         })
 }
@@ -62,7 +62,7 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -81,10 +81,10 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_map_id,
                 u_name,
                 u_note,
-                u_work_phone,
-                u_mobile_phone,
+                u_phone,
+                u_mobile_phone
             )
-            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
+            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -110,7 +110,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.work_phone,
+                    &user.phone,
                     &user.mobile_phone,
                 ])
                 .into_future()
@@ -119,7 +119,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -139,10 +139,10 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 u_map_id = $6,
                 u_name = $7,
                 u_note = $8,
-                u_work_phone = $9
+                u_phone = $9,
                 u_mobile_phone = $10
              WHERE
-                u_id = $10
+                u_id = $11
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -169,7 +169,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.work_phone,
+                    &user.phone,
                     &user.mobile_phone,
                     &user.id,
                 ])
@@ -179,7 +179,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -230,7 +230,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert map");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -257,7 +257,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -281,7 +281,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to select user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -305,7 +305,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to select multiple users");
             });
         runtime.block_on(task).unwrap();
     }
@@ -329,7 +329,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to delete user");
             });
         runtime.block_on(task).unwrap();
     }

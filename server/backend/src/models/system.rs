@@ -40,7 +40,8 @@ const SCHEMA: [&str; 27] = [
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
         u_note VARCHAR(1024),
-        u_phone_number VARCHAR(20)
+        u_phone VARCHAR(20),
+        u_mobile_phone VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
