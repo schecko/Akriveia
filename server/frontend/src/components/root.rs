@@ -217,7 +217,9 @@ impl Renderable<RootComponent> for RootComponent {
                         <UserAddUpdate
                             id=id,
                         />
-                    </div> 
+                    </div>
+                }
+            }
             Page::MapList => {
                html! {
                     <div>
@@ -291,6 +293,7 @@ impl RootComponent {
                         },
                     >
                         { "Add User" }
+                    </option>
                     // TODO CSS for navigation bar
                     <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
@@ -302,15 +305,15 @@ impl RootComponent {
                                 Page::MapAddUpdate {..} => true,
                                 _ => false,
                             }
-                        },
+                        }, 
                     >
                         { "Add Map" }
                     </option>
                 </select>
             </div>
         }
-
     }
+
 
     fn view_data(&self) -> Html<RootComponent> {
         html! {
