@@ -10,6 +10,7 @@ extern crate nalgebra as na;
 
 #[macro_use]
 mod util;
+mod canvas;
 mod components;
 
 use components::root::RootComponent;
