@@ -1,7 +1,7 @@
 
 use common::*;
 use crate::models::map;
-use futures::{ Stream, Future, IntoFuture, };
+use futures::{ Stream, Future, IntoFuture, future::join_all, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
@@ -507,49 +507,37 @@ mod tests {
 
         let map = Map::new();
 
-        let mut beacon0 = Beacon::new();
-        beacon0.name = "b0".to_string();
-        beacon0.mac_address = MacAddress::from_bytes(&[1, 0, 0, 0, 0, 0]).unwrap();
-        beacon0.ip = IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0));
-        let mut beacon1 = Beacon::new();
-        beacon1.name = "b1".to_string();
-        beacon1.mac_address = MacAddress::from_bytes(&[2, 0, 0, 0, 0, 0]).unwrap();
-        beacon1.ip = IpAddr::V4(Ipv4Addr::new(2, 0, 0, 0));
-        let mut beacon2 = Beacon::new();
-        beacon2.name = "b2".to_string();
-        beacon2.mac_address = MacAddress::from_bytes(&[3, 0, 0, 0, 0, 0]).unwrap();
-        beacon2.ip = IpAddr::V4(Ipv4Addr::new(3, 0, 0, 0));
+        let mut beacons = vec![Beacon::new(), Beacon::new(), Beacon::new()];
+        for (i, mut b) in beacons.iter_mut().enumerate() {
+            b.name = i.to_string();
+            b.mac_address = MacAddress::from_bytes(&[i as u8, 0, 0, 0, 0, 0]).unwrap();
+            b.ip = IpAddr::V4(Ipv4Addr::new(i as u8, 0, 0, 0));
+        }
 
         let task = db_utils::default_connect()
             .and_then(|client| {
                 // a beacon must point to a valid map
                 map::insert_map(client, map)
             })
-            .and_then(|(client, map)| {
-                beacon0.map_id = Some(map.unwrap().id);
-                insert_beacon(client, beacon0)
-                    .map(|(client, opt_beacon)| {
-                        (client, opt_beacon.unwrap())
+            .and_then(|(client, opt_map)| {
+                let map_id = opt_map.unwrap().id;
+                join_all(beacons
+                    .into_iter()
+                    .map(move |mut b| {
+                        b.map_id = Some(map_id);
+                        db_utils::default_connect()
+                            .and_then(|client| {
+                                insert_beacon(client, b)
+                                    .map(|(_client, beacon)| { beacon })
+                            })
                     })
-            })
-            .and_then(|(client, beacon0)| {
-                beacon1.map_id = beacon0.map_id;
-                insert_beacon(client, beacon1)
-                    .map(|(client, opt_beacon)| {
-                        (client, vec![beacon0, opt_beacon.unwrap()])
-                    })
-            })
-            .and_then(|(client, prev_beacons)| {
-                beacon2.map_id = prev_beacons[0].map_id;
-                insert_beacon(client, beacon2)
-                    .map(move |(client, opt_beacon)| {
-                        let b0 = prev_beacons[0].clone();
-                        let b1 = prev_beacons[1].clone();
-                        (client, vec![b0, b1, opt_beacon.unwrap()])
-                    })
+                )
+                .map(|beacons| {
+                    (client, beacons)
+                })
             })
             .and_then(|(client, beacons)| {
-                let macs: Vec<MacAddress> = beacons.iter().map(|b| b.mac_address).collect();
+                let macs: Vec<MacAddress> = beacons.into_iter().map(|b| b.unwrap().mac_address).collect();
                 select_beacons_by_mac(client, macs)
             })
             .map(|(_client, _beacons)| {
