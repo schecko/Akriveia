@@ -15,7 +15,6 @@ const LOCATION_HISTORY_SIZE: usize = 5;
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHistory {
-    pub tag_name: String,
     pub tag_mac: MacAddress,
     pub beacon_history: BTreeMap<MacAddress, VecDeque<i64>>,
 }
@@ -173,7 +172,6 @@ impl Handler<InLocationData> for DataProcessor {
                     let averaged_data: Vec<common::TagData> = tag_entry.beacon_history.iter().map(|(beacon_mac, hist_vec)| {
                         common::TagData {
                             tag_mac: tag_entry.tag_mac.clone(),
-                            tag_name: tag_entry.tag_name.clone(),
                             beacon_mac: beacon_mac.clone(),
                             // TODO recasting back to RSSI is silly... refactor...
                             tag_distance: common::DataType::RSSI(hist_vec.into_iter().sum::<i64>() / hist_vec.len() as i64),
@@ -188,7 +186,6 @@ impl Handler<InLocationData> for DataProcessor {
             None => {
                 // create new entry
                 let mut hash_entry = TagHistory {
-                    tag_name: tag_data.tag_name.clone(),
                     tag_mac: tag_data.tag_mac.clone(),
                     beacon_history: BTreeMap::new(),
                 };

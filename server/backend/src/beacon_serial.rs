@@ -119,8 +119,8 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
 
                         let split: Vec<&str> = line.split("|").collect();
                         if split.len() == 3 {
-                            let name = split[0];
-                            let mac = MacAddress::parse_str(split[1]).unwrap();
+                            let beacon_mac = MacAddress::parse_str(split[0]).unwrap();
+                            let tag_mac = MacAddress::parse_str(split[1]).unwrap();
                             let rssi = split[2];
                             let reg = Regex::new(r"/[^$0-9]+/").unwrap();
                             let rssi_stripped = reg.replace_all(&rssi, "");
@@ -133,16 +133,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                             }
                             match i64::from_str_radix(&rssi_stripped[..rssi_stripped.len() - 1], 10) {
                                 Ok(rssi_numeric) => {
-                                    beacon_info.manager
-                                        .do_send( TagDataMessage {
-                                            data: common::TagData {
-                                                tag_name: name.to_string(),
-                                                tag_mac: mac,
-                                                tag_distance: common::DataType::RSSI(rssi_numeric),
-                                                beacon_mac: MacAddress::from_bytes(&beacon_info.port_name.as_bytes()[0..6]).unwrap(),
-                                            }
-                                        })
-                                        .expect("failed to send tag message to manager");
+                                    let msg = TagDataMessage {
+                                        data: common::TagData {
+                                            beacon_mac: beacon_mac.clone(),
+                                            tag_distance: common::DataType::RSSI(rssi_numeric),
+                                            tag_mac,
+                                        }
+                                    };
+                                    beacon_info.manager.do_send(msg).expect("serial beacon could not send message to manager");
                                 },
                                 Err(e) => {
                                     println!("parsed a bad number: {}, error {}", e, rssi_stripped);

@@ -61,10 +61,9 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                         beacon_manager_addr
                             .do_send( TagDataMessage {
                                 data: common::TagData {
-                                    tag_name: user.name,
-                                    tag_mac: user.mac_address,
-                                    tag_distance: common::DataType::RSSI(user_distance),
                                     beacon_mac: beacon_mac,
+                                    tag_distance: common::DataType::RSSI(user_distance),
+                                    tag_mac: user.mac_address,
                                 }
                             });
                     }
