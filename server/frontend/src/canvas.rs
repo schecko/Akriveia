@@ -106,4 +106,33 @@ impl Canvas {
         }
         self.context.restore();
     }
+
+    pub fn draw_users(&mut self, map: &Map, users: &Vec<User>, show_distance: Option<MacAddress>) {
+        self.context.save();
+        for user in users.iter() {
+            let user_pos = screen_space(
+                user.coordinates.x as f64 * MAP_SCALE,
+                user.coordinates.y as f64 * MAP_SCALE,
+            );
+
+            for beacon_source in &user.beacon_sources {
+                let beacon_loc = screen_space(
+                    beacon_source.location.x * MAP_SCALE,
+                    beacon_source.location.y * MAP_SCALE,
+                );
+                self.context.set_fill_style_color("#000000FF");
+                self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
+                match &show_distance {
+                    Some(tag_mac) if tag_mac == &user.mac_address => {
+                        self.context.set_fill_style_color("#00000034");
+                        self.context.begin_path();
+                        self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * MAP_SCALE, 0.0, std::f64::consts::PI * 2.0, true);
+                        self.context.fill(FillRule::NonZero);
+                    },
+                    _ => { }
+                }
+            }
+        }
+        self.context.restore();
+    }
 }

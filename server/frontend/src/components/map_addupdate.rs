@@ -117,7 +117,7 @@ impl Component for MapAddUpdate {
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         if let Some(id) = props.opt_id {
             link.send_self(Msg::RequestGetMap(id));
-            link.send_self(Msg::RequestGetBeaconsForMap(id));
+            link.send_self(Msg::RequestGetBeacMpnsForMap(id));
         }
         let data = Data::new();
 

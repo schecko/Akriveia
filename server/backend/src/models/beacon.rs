@@ -1,7 +1,7 @@
 
 use common::*;
 use crate::models::map;
-use futures::{ Stream, Future, IntoFuture, future::join_all, };
+use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
@@ -282,6 +282,7 @@ mod tests {
     use crate::db_utils;
     use tokio::runtime::current_thread::Runtime;
     use std::net::{ IpAddr, Ipv4Addr, };
+    use futures::future::join_all;
 
     #[test]
     fn insert() {
