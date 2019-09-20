@@ -26,12 +26,15 @@ device_configuration_t DEFAULT_CONFIG = {
     true,
     true,
     false,
-    SFDMode::STANDARD_SFD,
+    //SFDMode::STANDARD_SFD,
+    SFDMode::DECAWAVE_SFD, //Recommended SFD (Start of frame delimiter)
     Channel::CHANNEL_5,
     DataRate::RATE_850KBPS,
     PulseFrequency::FREQ_64MHZ,
-    PreambleLength::LEN_256,
-    PreambleCode::CODE_3
+    //PreambleLength::LEN_256,
+    PreambleLength::LEN_1024, //Longer PreambleLength improves range performance
+    //PreambleCode::CODE_3
+    PreambleCode::CODE_10 //Preamble Codes for 64MHz on Channel 5: 9, 10, 11, 12 
 };
 
 frame_filtering_configuration_t TAG_FRAME_FILTER_CONFIG = {
