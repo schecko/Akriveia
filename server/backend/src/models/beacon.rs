@@ -94,23 +94,6 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         })
 }
 
-pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
-    client
-        .prepare("
-            SELECT * FROM runtime.beacons
-            WHERE b_map_id = $1::INTEGER
-        ")
-        .and_then(move |statement| {
-            client
-                .query(&statement, &[&id])
-                .collect()
-                .into_future()
-                .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
-                })
-        })
-}
-
 pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=tokio_postgres::Error> {
     // TODO paging
     client
@@ -383,35 +366,6 @@ mod tests {
             .map_err(|e| {
                 println!("db error {:?}", e);
                 panic!("failed to insert beacon");
-            });
-        runtime.block_on(task).unwrap();
-    }
-
-    #[test]
-    fn select_for_map() {
-        let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
-
-        let mut beacon = Beacon::new();
-        beacon.name = "hello_test".to_string();
-
-        let task = db_utils::default_connect()
-            .and_then(|client| {
-                // a beacon must point to a valid map
-                map::insert_map(client, Map::new())
-            })
-            .and_then(|(client, map)| {
-                beacon.map_id = Some(map.unwrap().id);
-                insert_beacon(client, beacon)
-            })
-            .and_then(|(client, opt_beacon)| {
-                select_beacons_for_map(client, opt_beacon.unwrap().map_id.unwrap())
-            })
-            .map(|(_client, _beacons)| {
-            })
-            .map_err(|e| {
-                println!("db error {:?}", e);
-                panic!("failed to select beacons for map");
             });
         runtime.block_on(task).unwrap();
     }

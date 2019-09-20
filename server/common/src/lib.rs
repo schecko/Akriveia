@@ -14,9 +14,6 @@ pub fn beacon_url(id: &str) -> String {
 pub fn beacons_url() -> String {
     return String::from("/beacons");
 }
-pub fn beacons_for_map_url(id: &str) -> String {
-    return format!("/map/{}/beacons", id);
-}
 
 pub fn user_url(id: &str) -> String {
     return format!("/user/{}", id);
@@ -168,10 +165,10 @@ impl Beacon {
 pub struct Map {
     pub id: i32, // primary key
     pub blueprint: Vec<u8>,
-    pub bounds: na::Vector2<i32>,
+    pub bounds: na::Vector2<f64>,
     pub name: String,
     pub note: Option<String>,
-    pub scale: f64, // pixels per meter
+    pub scale: f64,
 }
 
 impl Map {
@@ -179,7 +176,7 @@ impl Map {
         Map {
             id: -1,
             blueprint: Vec::new(),
-            bounds: na::Vector2::new(0, 0),
+            bounds: na::Vector2::new(0.0, 0.0),
             name: String::new(),
             note: None,
             scale: 1.0,
