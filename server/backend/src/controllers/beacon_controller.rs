@@ -50,29 +50,6 @@ pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, par
     }
 }
 
-pub fn get_beacons_for_map(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
-    match id {
-        Ok(id) if id != -1 => {
-            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
-                .and_then(move |client| {
-                    beacon::select_beacons_for_map(client, id)
-                })
-                .map_err(|postgres_err| {
-                    // TODO can this be better?
-                    error::ErrorBadRequest(postgres_err)
-                })
-                .and_then(|(_client, beacons)| {
-                    HttpResponse::Ok().json(beacons)
-                })
-            )
-        },
-        _ => {
-            Either::B(ok(HttpResponse::NotFound().finish()))
-        }
-    }
-}
-
 pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let prefetch = params.prefetch.unwrap_or(false);
     let connect = db_utils::connect(db_utils::DEFAULT_CONNECTION);

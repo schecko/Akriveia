@@ -105,13 +105,10 @@ fn main() -> std::io::Result<()> {
             .wrap(middleware::DefaultHeaders::new().header("X-Version", "0.2"))
             .wrap(middleware::Compress::default())
             .wrap(middleware::Logger::default())
-
-            // beacon
             .service(
                 web::resource(&beacons_url())
                     .route(web::get().to_async(beacon_controller::get_beacons))
             )
-
             .service(
                 web::resource(&beacon_url("{id}"))
                     .route(web::get().to_async(beacon_controller::get_beacon))
@@ -122,8 +119,6 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacon_url(""))
                     .route(web::post().to_async(beacon_controller::post_beacon))
             )
-
-            // user
             .service(
                 web::resource(&users_url())
                     .route(web::get().to_async(user_controller::get_users))
@@ -132,34 +127,20 @@ fn main() -> std::io::Result<()> {
                 web::resource(&user_url("{id}"))
                     .route(web::get().to_async(user_controller::get_user))
                     .route(web::put().to_async(user_controller::put_user))
+                    .route(web::post().to_async(user_controller::post_user))
                     .route(web::delete().to_async(user_controller::delete_user))
             )
-            .service(
-                web::resource(&user_url(""))
-                    .route(web::post().to_async(user_controller::post_user))
-            )
-
-            // map
             .service(
                 web::resource(&maps_url())
                     .route(web::get().to_async(map_controller::get_maps))
             )
             .service(
-                web::resource(&beacons_for_map_url("{id}"))
-                    .route(web::get().to_async(beacon_controller::get_beacons_for_map))
-            )
-            .service(
                 web::resource(&map_url("{id}"))
                     .route(web::get().to_async(map_controller::get_map))
                     .route(web::put().to_async(map_controller::put_map))
+                    .route(web::post().to_async(map_controller::post_map))
                     .route(web::delete().to_async(map_controller::delete_map))
             )
-            .service(
-                web::resource(&map_url(""))
-                    .route(web::post().to_async(map_controller::post_map))
-            )
-
-            // system
             .service(
                 web::resource(&system_emergency_url())
                     .route(web::get().to_async(system_controller::get_emergency))

@@ -12,7 +12,7 @@ pub fn row_to_map(row: &Row) -> Map {
             "m_id" => entry.id = row.get(i),
             "m_blueprint" => {}, //panic!("blueprint data not handled yet"),
             "m_bounds" => {
-                let bounds: Vec<i32> = row.get(i);
+                let bounds: Vec<f64> = row.get(i);
                 entry.bounds = na::Vector2::new(bounds[0], bounds[1]);
             }
             "m_scale" => entry.scale = row.get(i),
@@ -76,7 +76,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
             VALUES( $1, $2, $3, $4 )
             RETURNING *
         ", &[
-            Type::INT4_ARRAY,
+            Type::FLOAT8_ARRAY,
             Type::VARCHAR,
             Type::VARCHAR,
             Type::FLOAT8,
@@ -116,7 +116,7 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_id = $5
             RETURNING *
         ", &[
-            Type::INT4_ARRAY,
+            Type::FLOAT8_ARRAY,
             Type::VARCHAR,
             Type::VARCHAR,
             Type::FLOAT8,
