@@ -60,7 +60,7 @@ impl MapViewComponent {
 #[derive(Clone, Default, PartialEq)]
 pub struct MapViewProps {
     pub emergency: bool,
-    pub id: i32,
+    pub opt_id: Option<i32>,
 }
 
 impl Component for MapViewComponent {
@@ -68,8 +68,10 @@ impl Component for MapViewComponent {
     type Properties = MapViewProps;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        link.send_self(Msg::RequestGetMap(props.id));
-        link.send_self(Msg::RequestGetBeaconsForMap(props.id));
+        if let Some(id) = props.opt_id {
+            link.send_self(Msg::RequestGetMap(id));
+            link.send_self(Msg::RequestGetBeaconsForMap(id));
+        }
         let click_callback = link.send_back(|_event| Msg::Ignore);
 
         let mut result = MapViewComponent {

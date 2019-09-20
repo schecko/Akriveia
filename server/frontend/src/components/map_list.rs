@@ -126,6 +126,12 @@ impl Renderable<MapList> for MapList {
                             border=false,
                             value=map.id
                         />
+                        <ValueButton<i32>
+                            display=Some("View".to_string()),
+                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::MapView(Some(value))),
+                            border=false,
+                            value=map.id
+                        />
                     </td>
                 </tr>
             }
