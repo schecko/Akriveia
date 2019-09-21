@@ -1,6 +1,6 @@
 use common::*;
-use crate::util;
 use crate::canvas::{ Canvas, /*screen_space*/ };
+use crate::util;
 use std::time::Duration;
 use stdweb::web::{ Node, };
 use super::value_button::ValueButton;
@@ -14,16 +14,18 @@ const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
     Ignore,
-    RenderMap,
     ViewDistance(MacAddress),
+    ChooseMap(i32),
 
-    RequestRealtimeUser,
     RequestGetBeaconsForMap(i32),
     RequestGetMap(i32),
+    RequestGetMaps,
+    RequestRealtimeUser,
 
-    ResponseRealtimeUser(util::Response<Vec<TrackedUser>>),
     ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
     ResponseGetMap(util::Response<Option<Map>>),
+    ResponseGetMaps(util::Response<Vec<Map>>),
+    ResponseRealtimeUser(util::Response<Vec<TrackedUser>>),
 }
 
 pub struct MapViewComponent {
@@ -34,9 +36,11 @@ pub struct MapViewComponent {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
+    get_many_fetch_task: Option<FetchTask>,
     interval_service: Option<IntervalService>,
     interval_service_task: Option<IntervalTask>,
-    opt_map: Option<Map>,
+    current_map: Option<Map>,
+    maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<MacAddress>,
     users: Vec<TrackedUser>,
@@ -55,6 +59,14 @@ impl MapViewComponent {
         self.interval_service = None;
         self.interval_service_task = None;
     }
+
+    fn render(&mut self) {
+        if let Some(map) = &self.current_map {
+            self.canvas.reset(map);
+            self.canvas.draw_users(map, &self.users, self.show_distance);
+            self.canvas.draw_beacons(map, &self.beacons);
+        }
+    }
 }
 
 #[derive(Clone, Default, PartialEq)]
@@ -72,6 +84,7 @@ impl Component for MapViewComponent {
             link.send_self(Msg::RequestGetMap(id));
             link.send_self(Msg::RequestGetBeaconsForMap(id));
         }
+        link.send_self(Msg::RequestGetMaps);
         let click_callback = link.send_back(|_event| Msg::Ignore);
 
         let mut result = MapViewComponent {
@@ -82,9 +95,11 @@ impl Component for MapViewComponent {
             fetch_service: FetchService::new(),
             fetch_task: None,
             get_fetch_task: None,
+            get_many_fetch_task: None,
             interval_service: None,
             interval_service_task: None,
-            opt_map: None,
+            maps: Vec::new(),
+            current_map: None,
             self_link: link,
             show_distance: None,
             users: Vec::new(),
@@ -98,13 +113,6 @@ impl Component for MapViewComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::RenderMap => {
-                if let Some(map) = &self.opt_map {
-                    self.canvas.reset(map);
-                    self.canvas.draw_users(map, &self.users, self.show_distance);
-                    self.canvas.draw_beacons(map, &self.beacons);
-                }
-            },
             Msg::ViewDistance(selected_tag_mac) => {
                 match &self.show_distance {
                     Some(current_tag) => {
@@ -117,6 +125,24 @@ impl Component for MapViewComponent {
                     None => {
                         self.show_distance = Some(selected_tag_mac);
                     }
+                }
+            },
+            Msg::ChooseMap(id) => {
+                self.current_map = match &self.current_map {
+                    Some(curr) if curr.id == id => {
+                        None
+                    },
+                    _ => {
+                        match self.maps.iter().find(|map| map.id == id) {
+                            Some(map) => Some(map.clone()),
+                            None => None,
+                        }
+                    }
+                };
+
+                if let Some(map) = &self.current_map {
+                    self.self_link.send_self(Msg::RequestGetMap(map.id));
+                    self.self_link.send_self(Msg::RequestGetBeaconsForMap(map.id));
                 }
             },
             Msg::RequestRealtimeUser => {
@@ -147,6 +173,16 @@ impl Component for MapViewComponent {
                     Msg::ResponseGetMap
                 );
             },
+            Msg::RequestGetMaps => {
+                self.error_messages = Vec::new();
+
+                self.get_many_fetch_task = get_request!(
+                    self.fetch_service,
+                    &maps_url(),
+                    self.self_link,
+                    Msg::ResponseGetMaps
+                );
+            },
             Msg::ResponseRealtimeUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -161,8 +197,6 @@ impl Component for MapViewComponent {
                 } else {
                     Log!("response - failed to get realtime user data");
                 }
-
-                self.self_link.send_self(Msg::RenderMap);
             },
             Msg::ResponseGetBeaconsForMap(response) => {
                 let (meta, Json(body)) = response.into_parts();
@@ -184,18 +218,36 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.opt_map = result;
+                            self.current_map = result;
                         },
                         Err(e) => {
-                            self.error_messages.push(format!("failed to find map, reason: {}", e));
+                            self.error_messages.push(format!("failed to get map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.error_messages.push("failed to find map".to_string());
+                    self.error_messages.push("failed to get map".to_string());
                 }
             },
-            Msg::Ignore => { },
+            Msg::ResponseGetMaps(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            self.maps = result;
+                        },
+                        Err(e) => {
+                            self.error_messages.push(format!("failed to get maps, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_messages.push("failed to get map".to_string());
+                }
+            },
+            Msg::Ignore => {
+            },
         }
+
+        self.render();
         true
     }
 
@@ -207,7 +259,9 @@ impl Component for MapViewComponent {
             self.start_service();
         } else {
             self.end_service();
+            self.users = Vec::new();
         }
+        self.render();
         true
     }
 }
@@ -228,6 +282,24 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
+        let current_map_id = match &self.current_map {
+            Some(map) => map.id,
+            None => -1,
+        };
+
+        let mut maps = self.maps.iter().map(|map| {
+            let map_id = map.id;
+            let map_name = map.name.clone();
+            html! {
+                <ValueButton<i32>
+                    on_click=move |value: i32| Msg::ChooseMap(map_id),
+                    border=map.id == current_map_id,
+                    value={map.id},
+                    display=Some(map_name),
+                />
+            }
+        });
+
         let mut errors = self.error_messages.iter().cloned().map(|msg| {
             html! {
                 <p>{msg}</p>
@@ -238,13 +310,19 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             <div>
                 { for errors }
                 <div>
+                    <p>{ "Maps " }</p>
+                    { for maps }
+                </div>
+                <div>
+                    <p>
                     {
                         if self.users.len() > 0 {
-                            "View Tag Distance Values: "
+                            "View TOF: "
                         } else {
                             ""
                         }
                     }
+                    </p>
                     { for render_distance_buttons }
                 </div>
                 { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
