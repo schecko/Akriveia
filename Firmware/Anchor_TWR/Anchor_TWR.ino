@@ -16,9 +16,9 @@ const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:02";
-uint16_t dex = 2;
-bool is_head = false;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:01";
+uint16_t dex = 1;
+bool is_head = true;
 bool is_tail = false;
 
 uint16_t netID;
