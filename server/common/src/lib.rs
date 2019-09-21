@@ -114,7 +114,7 @@ pub struct TrackedUser {
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
-    pub phone: Option<String>,
+    pub work_phone: Option<String>,
     pub mobile_phone: Option<String>,
 
     // NOTE TEMPORARY
@@ -133,7 +133,7 @@ impl TrackedUser {
             map_id: None,
             name: String::new(),
             note: None,
-            phone: None,
+            work_phone: None,
             mobile_phone: None,
 
             beacon_sources: Vec::new(),

@@ -12,7 +12,7 @@ pub enum Msg {
     RequestDeleteUser(i32),
     RequestGetUsers,
 
-    ResponseGetUsers(util::Response<Vec<(TrackedUser, Map)>>),
+    ResponseGetUsers(util::Response<Vec<TrackedUser>>),
     ResponseDeleteUser(util::Response<Vec<()>>),
 }
 
@@ -20,12 +20,13 @@ pub struct UserList {
     change_page: Option<Callback<root::Page>>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    list: Vec<(TrackedUser, Map)>,
+    list: Vec<TrackedUser>,
     self_link: ComponentLink<Self>,
 }
 
 #[derive(Clone, Default, PartialEq)]
 pub struct UserListProps {
+    // What is a callback?
     pub change_page: Option<Callback<root::Page>>,
 }
 
@@ -50,7 +51,7 @@ impl Component for UserList {
             Msg::RequestGetUsers => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}?prefetch=true", users_url()),
+                    &format!("{}", users_url()),
                     self.self_link,
                     Msg::ResponseGetUsers
                 );
@@ -67,8 +68,8 @@ impl Component for UserList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(users_and_maps) => {
-                            self.list = users_and_maps;
+                        Ok(users) => {
+                            self.list = users;
                         }
                         _ => { }
                     }
@@ -107,23 +108,18 @@ impl Component for UserList {
 impl Renderable<UserList> for UserList {
     fn view(&self) -> Html<Self> {
 
-        let mut rows = self.list.iter().map(|(user, map)| {
-            let employee_id = &user.employee_id.clone().unwrap_or(String::new());
-            let phone = &user.phone.clone().unwrap_or(String::new());
-            let mobile_phone = &user.mobile_phone.clone().unwrap_or(String::new());
-            let note = &user.note.clone().unwrap_or(String::new());
+        let mut rows = self.list.iter().map(|user| {
 
             html! {
                 <tr>
-                    <td>{ &user.mac_address.to_hex_string() }</td>
-                    <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
-                    <td>{ &map.name }</td>
                     <td>{ &user.name }</td>
-                    <td>{ employee_id }</td>
+                    <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
+                    <td>{ &user.mac_address.to_hex_string() }</td>
+                    <td>{ user.employee_id.clone().unwrap_or(String::new()) }</td>
                     <td>{ &user.last_active}</td>
-                    <td>{ phone }</td>
-                    <td>{ mobile_phone}</td>
-                    <td>{ note }</td>
+                    <td>{ user.work_phone.clone().unwrap_or(String::new()) }</td>
+                    <td>{ user.mobile_phone.clone().unwrap_or(String::new()) }</td>
+                    //<td>{ user.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
                             display=Some("Edit".to_string()),
@@ -147,15 +143,14 @@ impl Renderable<UserList> for UserList {
                 <p>{ "User List" }</p>
                 <table>
                 <tr>
-                    <td>{ "Mac" }</td>
-                    <td>{ "Coordinates" }</td>
-                    <td>{ "Floor" }</td>
                     <td>{ "Name" }</td>
+                    <td>{ "Coordinates" }</td>
+                    <td>{ "Mac" }</td>
                     <td>{ "Employee ID" }</td>
-                    <td>{ "Last Acive" }</td>
-                    <td>{ "Phone" }</td>
+                    <td>{ "Last Active" }</td>
+                    <td>{ "Work Phone" }</td>
                     <td>{ "Mobile Phone" }</td>
-                    <td>{ "Note" }</td> 
+                    //<td>{ "Note" }</td> 
                 </tr>
                 { for rows }
                 </table>

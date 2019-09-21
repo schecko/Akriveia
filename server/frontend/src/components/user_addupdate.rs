@@ -3,25 +3,23 @@ use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
-// Remove after AddUser works
+
+#[derive(Copy, Clone)]
+pub enum UserType {
+    Normal,
+    Contact,
+}
 
 pub enum Msg {
     AddAnotherUser,
-    // Refers to ID tag MAC address
+    
     InputMacAddress(String),
-    InputName(String),
-    // Do we include employee ID #?
-    InputEmployeeID(String),
-    InputPhone(String),
-    InputMobilePhone(String),
-    InputNote(String),
-    // Do you use a Option or not?
-    // Can you have an option as a message parameter?
-    InputEmergencyName(String),
-    InputEmergencyEmployeeID(String),
-    InputEmergencyNote(String),
-    InputEmergencyPhone(String),
-    InputEmergencyMobilePhone(String),
+    // bool is True if user else emergency user   
+    InputName(String, UserType),
+    InputEmployeeID(String, UserType),
+    InputWorkPhone(String, UserType),
+    InputMobilePhone(String, UserType),
+    InputNote(String, UserType),
 
     RequestAddUpdateUser,
     RequestGetUser(i32),
@@ -125,84 +123,62 @@ impl Component for UserAddUpdate {
             Msg::InputMacAddress(mac) => {
                 self.data.raw_mac = mac;
             },
-            Msg::InputName(name) => {
-                self.data.user.name = name;
-            },
-            Msg::InputEmployeeID(employee_id) => {
-                self.data.user.employee_id = Some(employee_id);
-            },
-            Msg::InputPhone(phone) => {
-                self.data.user.phone = Some(phone);
-            },
-            Msg::InputMobilePhone(mobile_phone) => {
-                self.data.user.mobile_phone = Some(mobile_phone);
-            },
-            Msg::InputNote(note) => {
-                self.data.user.note = Some(note);
-            },
-            // Set emergency_user = TrackedUser
-            Msg::InputEmergencyName(emergency_name) => {
-                let emergency_user = &mut self.data.emergency_user.take();
-                match emergency_user {
-                    Some(emergency_user) => {
-                        emergency_user.name = emergency_name;
-                    }
-                    None => {
-                        let mut user = TrackedUser::new();
-                        user.name = emergency_name;
-                        *emergency_user = Some(user);
-                    }    
-                }
-            },
-            Msg::InputEmergencyEmployeeID(emergency_id) => {
-                let emergency_user = &mut self.data.emergency_user.take();
-                match emergency_user {
-                    Some(emergency_user) => {
-                        emergency_user.employee_id = Some(emergency_id);
-                    }
-                    None => {
-                        let mut user = TrackedUser::new();
-                        user.employee_id = Some(emergency_id);
-                        *emergency_user = Some(user);
+            Msg::InputName(name, usertype) => {
+                match usertype {
+                    UserType::Normal => self.data.user.name = name,
+                    UserType::Contact => {
+                        match &mut self.data.emergency_user {
+                            Some(user) => user.name = name,
+                            None => {
+                                let mut new_user = TrackedUser::new();
+                                new_user.name = name;
+                                self.data.emergency_user = Some(new_user);
+                            }
+                        }
                     }
                 }
             },
-            Msg::InputEmergencyNote(emergency_note) => {
-                let emergency_user = &mut self.data.emergency_user.take();
-                match emergency_user {
-                    Some(emergency_user) => {
-                        emergency_user.note = Some(emergency_note);
+            Msg::InputEmployeeID(employee_id, usertype) => {
+                match usertype {
+                    UserType::Normal => self.data.user.employee_id = Some(employee_id),
+                    UserType::Contact => {
+                        match &mut self.data.emergency_user {
+                            Some(user) => user.employee_id = Some(employee_id),
+                            None => {},
+                        }
                     }
-                    None => {
-                        let mut user = TrackedUser::new();
-                        user.note = Some(emergency_note);
-                        *emergency_user = Some(user);
+                }            
+            },
+            Msg::InputWorkPhone(work_phone, usertype) => {
+                match usertype {
+                    UserType::Normal => self.data.user.work_phone = Some(work_phone),
+                    UserType::Contact => {
+                        match &mut self.data.emergency_user {
+                            Some(user) => user.work_phone= Some(work_phone),
+                            None => {},
+                        }
                     }
                 }
             },
-            Msg::InputEmergencyPhone(emergency_phone) => {
-                let emergency_user = &mut self.data.emergency_user.take();
-                match emergency_user {
-                    Some(emergency_user) => {
-                        emergency_user.phone = Some(emergency_phone);
-                    }
-                    None => {
-                        let mut user = TrackedUser::new();
-                        user.phone = Some(emergency_phone);
-                        *emergency_user = Some(user);
+            Msg::InputMobilePhone(mobile_phone, usertype) => {
+                match usertype {
+                    UserType::Normal => self.data.user.mobile_phone = Some(mobile_phone),
+                    UserType::Contact => {
+                        match &mut self.data.emergency_user {
+                            Some(user) => user.mobile_phone = Some(mobile_phone),
+                            None => {},
+                        }
                     }
                 }
             },
-            Msg::InputEmergencyMobilePhone(emergency_mobile) => {
-                let emergency_user = &mut self.data.emergency_user.take();
-                match emergency_user {
-                    Some(emergency_user) => {
-                        emergency_user.mobile_phone = Some(emergency_mobile);
-                    }
-                    None => {
-                        let mut user = TrackedUser::new();
-                        user.mobile_phone = Some(emergency_mobile);
-                        *emergency_user = Some(user);
+            Msg::InputNote(note, usertype) => {
+                match usertype {
+                    UserType::Normal => self.data.user.note = Some(note),
+                    UserType::Contact => {
+                        match &mut self.data.emergency_user {
+                            Some(user) => user.note = Some(note),
+                            None => {},
+                        }
                     }
                 }
             },
@@ -219,7 +195,6 @@ impl Component for UserAddUpdate {
                         // Where do we compare the list of user ID tags?
                         self.data.user.id = id;
 
-                        self.data.error_messages.push("Found the id. Arrived before push request".to_string());
                         self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
@@ -227,10 +202,9 @@ impl Component for UserAddUpdate {
                             self.self_link,
                             Msg::ResponseUpdateUser
                         );
-                        self.data.error_messages.push("Should be a success".to_string());
+
                     },
                     None if success => {
-                        self.data.error_messages.push("New user. Sending the new post request".to_string());
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &user_url(""),
@@ -239,15 +213,6 @@ impl Component for UserAddUpdate {
                             self.self_link,
                             Msg::ResponseAddUser
                         );
-                        // Need to add emergency user too
-                        self.fetch_task = post_request!(
-                            self.fetch_service,
-                            &user_url(""),
-                            self.data.emergency_user,
-                            self.self_link,
-                            Msg::ResponseAddUser
-                        );
-                        self.data.error_messages.push("After the post_request. Should be finished".to_string());
                     }
                     _ => {
                         self.data.error_messages.push("Other cases error in add/updating".to_string());
@@ -290,8 +255,15 @@ impl Component for UserAddUpdate {
                             Log!("returned user is {:?}", result);
                             self.data.success_message = Some("successfully added user".to_string());
                             self.data.user = result;
-                            // Does this line break any rust borrowing rules?
-                            self.data.user.emergency_contact = Some(self.data.emergency_user.clone().unwrap().id);
+                            // How do I set it where it returns None if
+                            match &self.data.emergency_user {
+                                Some(e_user) => {
+                                    self.data.user.emergency_contact = Some(e_user.id);  
+                                }
+                                None => {
+                                    self.data.user.emergency_contact = None;
+                                }
+                            }
                             self.data.id = Some(self.data.user.id);
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
                         },
@@ -330,6 +302,62 @@ impl Component for UserAddUpdate {
     }
 }
 
+// should user be a reference or should it just be the value?
+// b/c it doesn't matter what is being passed through value
+
+impl UserAddUpdate {
+    fn render_input_form(&self, user: &TrackedUser, type_user: UserType) -> Html<Self> {
+        
+        html! {
+            <>
+                <tr>
+                    <td>{ "Employee ID: " }</td>
+                    <td>
+                        <input
+                            type="text"
+                            // string literal is immutable; stored on the stack
+                            // Is there a faster method to copy the input of the keyed input
+                            // Is value then a placeholder?
+                            value = user.employee_id.clone().unwrap_or(String::new()),
+                            oninput=|e| Msg::InputEmployeeID(e.value, type_user),
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>{ "Work Phone: " }</td>
+                    <td>
+                        <input
+                            type="text",
+                            value = user.work_phone.clone().unwrap_or(String::new()),
+                            oninput=|e| Msg::InputWorkPhone(e.value, type_user)
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>{ "Mobile Phone: " }</td>
+                    <td>
+                        <input
+                            type="text",
+                            value = user.mobile_phone.clone().unwrap_or(String::new()),
+                            oninput=|e| Msg::InputMobilePhone(e.value, type_user)
+                        />
+                    </td>
+                </tr>                    
+                <tr>
+                    <td>{ "Note: " }</td>
+                    <td>
+                        <textarea
+                            rows=5,
+                            value = user.note.clone().unwrap_or(String::new()),
+                            oninput=|e| Msg::InputNote(e.value, type_user),
+                        />
+                    </td>
+                </tr>
+            </>
+        }
+    }
+}
+
 // The front-end layout in HTML
 impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
@@ -341,11 +369,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             Some(_id) => "User Update",
             None => "User Add",
         };
-        // Backend assigns the chosen floor to the user.map_id
-        /*let chosen_floor_id = match self.data.user.map_id {
-            Some(id) => id,
-            None => -1,
-        }; */
+
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
@@ -362,17 +386,6 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 <p>{msg}</p>
             }
         });
-        let employee_id = self.data.user.employee_id.clone().unwrap_or(String::new());
-        let phone = self.data.user.phone.clone().unwrap_or(String::new());
-        let mobile_phone = self.data.user.mobile_phone.clone().unwrap_or(String::new());
-        let note = self.data.user.note.clone().unwrap_or(String::new());
-        
-        let emergency_name = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name;
-        // Isn't this used in the html code?
-        let _emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).employee_id.unwrap_or(String::new());
-        let emergency_mobile = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).phone.unwrap_or(String::new());
-        let emergency_employee_id = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).mobile_phone.unwrap_or(String::new());
-        let emergency_note = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).note.unwrap_or(String::new());
 
         html! {
             <>
@@ -393,7 +406,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                             <input
                                 type="text",
                                 value=&self.data.user.name,
-                                oninput=|e| Msg::InputName(e.value),
+                                oninput=|e| Msg::InputName(e.value, UserType::Normal),
                             />
                         </td>
                     </tr>
@@ -407,98 +420,30 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                             />
                         </td>
                     </tr>
-                    <tr>
-                        <td>{ "Employee ID: " }</td>
-                        <td>
-                            <input
-                                type="text"
-                                value=employee_id,
-                                oninput=|e| Msg::InputEmployeeID(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Phone: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value = phone,
-                                oninput=|e| Msg::InputPhone(e.value)
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Mobile Phone: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value = mobile_phone,
-                                oninput=|e| Msg::InputMobilePhone(e.value)
-                            />
-                        </td>
-                    </tr>                    
-                    <tr>
-                        <td>{ "Note: " }</td>
-                        <td>
-                            <textarea
-                                rows=5,
-                                value=note,
-                                oninput=|e| Msg::InputNote(e.value),
-                            />
-                        </td>
-                    </tr>
-                    // Emergency Contact Information
+                    {   //let normal_user = &self.data.user.clone();
+                        self.render_input_form(&self.data.user, UserType::Normal )}
+                    // Emergency Contact Informationemergency_user
                     <tr> { "Emergency Contact Information"} </tr>
                     <tr>
                         <td>{ "Name: " }</td>
                         <td>
                             <input
                                 type="text",
-                                value = emergency_name,
-                                oninput=|e| Msg::InputEmergencyName(e.value)
+                                // Do you clone the reference to data.emergency_user or clone emergency_user 
+                                value = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name,
+                                oninput=|e| Msg::InputName(e.value, UserType::Contact)
                             />
                         </td>
                     </tr>
-                    <tr>
-                        <td>{ "Employee ID: (if applicable) " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value = emergency_employee_id,
-                                oninput=|e| Msg::InputEmergencyEmployeeID(e.value)
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Phone: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value = emergency_mobile,
-                                oninput=|e| Msg::InputEmergencyPhone(e.value)
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Mobile Phone " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value = emergency_mobile,
-                                oninput=|e| Msg::InputEmergencyMobilePhone(e.value)
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Note: " }</td>
-                        <td>
-                            <textarea
-                                rows=5,
-                                value = emergency_note,
-                                oninput=|e| Msg::InputEmergencyNote(e.value),
-                            />
-                        </td>
-                    </tr>
+                    {match &self.data.emergency_user {
+                        Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
+                        None => {
+                            html!{
+                                <></>
+                            }
+                        },
+                    }
+                }
                 </table>
                 <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
                 { add_another_button }

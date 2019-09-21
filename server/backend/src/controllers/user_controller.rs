@@ -72,6 +72,7 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
             user::insert_user(client, payload.0)
         })
         .map_err(|postgres_err| {
+            println!("{}", postgres_err);
             error::ErrorBadRequest(postgres_err)
         })
         .and_then(|(_client, user)| {

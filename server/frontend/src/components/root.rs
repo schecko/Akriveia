@@ -294,7 +294,9 @@ impl RootComponent {
                     >
                         { "Add User" }
                     </option>
+                    </select>
                     // TODO CSS for navigation bar
+                <select>
                     <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
                     <option

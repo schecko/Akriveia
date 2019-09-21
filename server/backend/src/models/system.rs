@@ -40,7 +40,7 @@ const SCHEMA: [&str; 27] = [
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
         u_note VARCHAR(1024),
-        u_phone VARCHAR(20),
+        u_work_phone VARCHAR(20),
         u_mobile_phone VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
@@ -71,7 +71,7 @@ const SCHEMA: [&str; 27] = [
     "GRANT CONNECT ON DATABASE ak TO ak_responder_role",
     "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_responder_role",
 
-    // update persmissions for admins
+    // update permissions for admins
     "GRANT CONNECT ON DATABASE ak TO ak_admin_role",
     "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
     "GRANT UPDATE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
