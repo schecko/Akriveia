@@ -8,7 +8,7 @@ use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -69,7 +69,7 @@ impl MapViewComponent {
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct MapViewProps {
     pub emergency: bool,
     pub opt_id: Option<i32>,

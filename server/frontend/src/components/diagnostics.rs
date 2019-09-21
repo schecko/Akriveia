@@ -7,7 +7,7 @@ use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -33,7 +33,7 @@ pub struct Diagnostics {
     self_link: ComponentLink<Diagnostics>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct DiagnosticsProps {
     pub emergency: bool,
 }

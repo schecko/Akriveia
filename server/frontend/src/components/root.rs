@@ -3,7 +3,7 @@ use common::*;
 use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;

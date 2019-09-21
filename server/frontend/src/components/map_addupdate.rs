@@ -6,7 +6,7 @@ use stdweb::web::{ Node, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::virtual_dom::vnode::VNode;
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 use yew::IMouseEvent;
 use stdweb::traits::*;
 
@@ -105,7 +105,7 @@ pub struct MapAddUpdate {
     self_link: ComponentLink<Self>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct MapAddUpdateProps {
     pub opt_id: Option<i32>,
 }

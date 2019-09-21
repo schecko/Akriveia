@@ -4,7 +4,7 @@ use super::root;
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 pub enum Msg {
     ChangeRootPage(root::Page),
@@ -17,16 +17,17 @@ pub enum Msg {
 }
 
 pub struct MapList {
-    change_page: Option<Callback<root::Page>>,
+    change_page: Callback<root::Page>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     list: Vec<Map>,
     self_link: ComponentLink<Self>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct MapListProps {
-    pub change_page: Option<Callback<root::Page>>,
+    #[props(required)]
+    pub change_page: Callback<root::Page>,
 }
 
 impl Component for MapList {
@@ -92,7 +93,7 @@ impl Component for MapList {
                 self.self_link.send_self(Msg::RequestGetMaps);
             },
             Msg::ChangeRootPage(page) => {
-                self.change_page.as_mut().unwrap().emit(page);
+                self.change_page.emit(page);
             }
         }
         true
