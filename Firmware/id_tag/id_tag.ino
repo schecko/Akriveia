@@ -5,20 +5,13 @@
 #include <DW1000NgRanging.hpp>
 #include <DW1000NgRTLS.hpp>
 
-#if defined(ESP32)
-const uint8_t PIN_SCK = 18;
-const uint8_t PIN_MOSI = 23;
-const uint8_t PIN_MISO = 19;
-const uint8_t PIN_SS = 2;
-const uint8_t PIN_RST = 15;
-const uint8_t PIN_IRQ = 17;
-#else
 const uint8_t PIN_RST = 9; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
-#endif
 
 volatile uint32_t blink_rate = 200;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:00";
+uint16_t netID = 0;
 
 device_configuration_t DEFAULT_CONFIG = {
     false,
@@ -64,8 +57,8 @@ void setup() {
     Serial.println("DW1000Ng initialized ...");
     DW1000Ng::applyConfiguration(DEFAULT_CONFIG);
     DW1000Ng::enableFrameFiltering(TAG_FRAME_FILTER_CONFIG);
-    DW1000Ng::setEUI("AA:BB:CC:DD:EE:FF:00:00");
-    DW1000Ng::setDeviceAddress(0);
+    DW1000Ng::setEUI(EUI);
+    DW1000Ng::setDeviceAddress(netID);
     DW1000Ng::setNetworkId(RTLS_APP_ID);
     DW1000Ng::setAntennaDelay(16436);
     DW1000Ng::applySleepConfiguration(SLEEP_CONFIG);
@@ -89,7 +82,7 @@ void loop() {
     DW1000Ng::deepSleep();
     delay(blink_rate);
     DW1000Ng::spiWakeup();
-    DW1000Ng::setEUI("AA:BB:CC:DD:EE:FF:00:00");
+    DW1000Ng::setEUI(EUI);
     
     RangeInfrastructureResult res = DW1000NgRTLS::tagTwrLocalize(1500);
     if(res.success){  blink_rate = res.new_blink_rate;}
