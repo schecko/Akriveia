@@ -16,7 +16,7 @@ const LOCATION_HISTORY_SIZE: usize = 5;
 #[derive(Debug)]
 struct TagHistory {
     pub tag_mac: MacAddress,
-    pub beacon_history: BTreeMap<MacAddress, VecDeque<i64>>,
+    pub beacon_history: BTreeMap<MacAddress, VecDeque<f64>>,
 }
 
 pub struct DataProcessor {
@@ -38,61 +38,21 @@ impl DataProcessor {
         }
     }
 
-    fn calc_trilaterate(beacons: &Vec<common::Beacon>, tag_data: &Vec<common::TagData>, beacon_sources: &mut Vec<common::UserBeaconSourceLocations>) -> na::Vector2<f64> {
+    fn calc_trilaterate(beacons: &Vec<common::Beacon>, tag_data: &Vec<common::TagData>) -> na::Vector2<f64> {
         if tag_data.len() < 3 {
             panic!("not enough data points to trilaterate");
         }
         if beacons.len() < 3 {
             panic!("not enough beacons to trilaterate");
         }
-        assert!(beacon_sources.len() == 0);
 
-        let env_factor = 2.0;
-        let measure_power = -76.0;
-        // TODO move to db
         let bloc1 = beacons[0].coordinates;
         let bloc2 = beacons[1].coordinates;
         let bloc3 = beacons[2].coordinates;
 
-        // TODO change calc based on type
-        let tag_distance0 = match tag_data[0].tag_distance {
-            common::DataType::RSSI(rssi) => rssi,
-            common::DataType::TOF(tof) => tof,
-        } as f64;
-        let tag_distance1 = match tag_data[1].tag_distance {
-            common::DataType::RSSI(rssi) => rssi,
-            common::DataType::TOF(tof) => tof,
-        } as f64;
-        let tag_distance2 = match tag_data[2].tag_distance {
-            common::DataType::RSSI(rssi) => rssi,
-            common::DataType::TOF(tof) => tof,
-        } as f64;
-
-
-        let denom = 10.0 * env_factor;
-        let d1 = 10f64.powf((measure_power - tag_distance0) / denom);
-        let d2 = 10f64.powf((measure_power - tag_distance1) / denom);
-        let d3 = 10f64.powf((measure_power - tag_distance2) / denom);
-
-        { // NOTE temporary
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[0].name.clone(),
-                location: bloc1,
-                distance_to_tag: d1,
-            });
-
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[1].name.clone(),
-                location: bloc2,
-                distance_to_tag: d2,
-            });
-
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[2].name.clone(),
-                location: bloc3,
-                distance_to_tag: d3,
-            });
-        }
+        let d1 = tag_data[0].tag_distance;
+        let d2 = tag_data[1].tag_distance;
+        let d3 = tag_data[2].tag_distance;
 
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
@@ -140,15 +100,15 @@ pub struct InLocationData(pub common::TagData);
 impl Message for InLocationData {
     type Result = Result<(), ()>;
 }
-fn append_history(tag_entry: &mut Box<TagHistory>, rssi_value: i64, tag_data: &common::TagData) {
+fn append_history(tag_entry: &mut Box<TagHistory>, tag_data: &common::TagData) {
     if let Some(beacon_entry) = tag_entry.beacon_history.get_mut(&tag_data.beacon_mac) {
-        beacon_entry.push_back(rssi_value);
+        beacon_entry.push_back(tag_data.tag_distance);
         if beacon_entry.len() > LOCATION_HISTORY_SIZE {
             beacon_entry.pop_front();
         }
     } else {
         let mut deque = VecDeque::new();
-        deque.push_back(rssi_value);
+        deque.push_back(tag_data.tag_distance);
         tag_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
     }
 }
@@ -158,14 +118,10 @@ impl Handler<InLocationData> for DataProcessor {
 
     fn handle (&mut self, msg: InLocationData, _: &mut Context<Self>) -> Self::Result {
         let tag_data = msg.0;
-        let rssi_value = match tag_data.tag_distance {
-            common::DataType::RSSI(rssi) => rssi,
-            common::DataType::TOF(tof) => tof,
-        };
 
         let opt_averages = match self.tag_hash.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
-                append_history(&mut tag_entry, rssi_value, &tag_data);
+                append_history(&mut tag_entry, &tag_data);
 
                 // TODO pick the most recent 3 beacons
                 if tag_entry.beacon_history.len() >= 3 {
@@ -173,8 +129,7 @@ impl Handler<InLocationData> for DataProcessor {
                         common::TagData {
                             tag_mac: tag_entry.tag_mac.clone(),
                             beacon_mac: beacon_mac.clone(),
-                            // TODO recasting back to RSSI is silly... refactor...
-                            tag_distance: common::DataType::RSSI(hist_vec.into_iter().sum::<i64>() / hist_vec.len() as i64),
+                            tag_distance: hist_vec.into_iter().sum::<f64>() / hist_vec.len() as f64,
                         }
                     }).collect();
 
@@ -190,7 +145,7 @@ impl Handler<InLocationData> for DataProcessor {
                     beacon_history: BTreeMap::new(),
                 };
                 let mut deque = VecDeque::new();
-                deque.push_back(rssi_value);
+                deque.push_back(tag_data.tag_distance);
                 hash_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
                 self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
                 None
@@ -207,7 +162,17 @@ impl Handler<InLocationData> for DataProcessor {
                     .into_actor(self)
                     .and_then(move |(client, beacons), actor, _context| {
                         let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
-                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages, &mut beacon_sources);
+                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
+
+                        averages.iter().for_each(|tag_data| {
+                            let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
+                            beacon_sources.push(common::UserBeaconSourceLocations {
+                                name: beacon.name.clone(),
+                                location: beacon.coordinates,
+                                distance_to_tag: tag_data.tag_distance,
+                            });
+                        });
+
                         // update the user information
                         match actor.users.get_mut(&averages[0].tag_mac) {
                             Some(user_ref) => {

@@ -13,8 +13,8 @@ use common::*;
 use futures::future::ok;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
-const MIN_RSSI_DISTANCE: i64 = -82;
-const MAX_RSSI_DISTANCE: i64 = -50;
+const MIN_DISTANCE: f64 = 1.0;
+const MAX_DISTANCE: f64 = 4.0;
 
 pub fn dummy_beacon_thread(beacon: Beacon,
                            receive: mpsc::Receiver<BeaconCommand>,
@@ -49,7 +49,7 @@ pub fn dummy_beacon_thread(beacon: Beacon,
             }
 
             let beacon_manager_addr = beacon_manager.clone();
-            let user_distance = rng.gen_range(MIN_RSSI_DISTANCE, MAX_RSSI_DISTANCE);
+            let user_distance = rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
             let beacon_mac = beacon.mac_address.clone();
 
             let data_gen_fut = db_utils::default_connect()
@@ -62,7 +62,7 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                             .do_send( TagDataMessage {
                                 data: common::TagData {
                                     beacon_mac: beacon_mac,
-                                    tag_distance: common::DataType::RSSI(user_distance),
+                                    tag_distance: user_distance,
                                     tag_mac: user.mac_address,
                                 }
                             });
