@@ -6,6 +6,9 @@ use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
 use yew::prelude::*;
 
+const USER_RADIUS: f64 = 5.0;
+const BEACON_RADIUS: f64 = 8.0;
+
 pub struct Canvas {
     pub canvas: CanvasElement,
     pub context: CanvasRenderingContext2d,
@@ -100,7 +103,7 @@ impl Canvas {
             Log!("beacon is : {} {}", beacon_loc.x, beacon_loc.y);
             self.context.set_fill_style_color("#0000FFFF");
             self.context.begin_path();
-            self.context.arc(beacon_loc.x, beacon_loc.y, 20.0, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
             self.context.fill(FillRule::NonZero);
         }
         self.context.restore();
@@ -122,7 +125,9 @@ impl Canvas {
                     beacon_source.location.y * map.scale,
                 );
                 self.context.set_fill_style_color("#000000FF");
-                self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
+                self.context.begin_path();
+                self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+                self.context.fill(FillRule::NonZero);
                 match &show_distance {
                     Some(tag_mac) if tag_mac == &user.mac_address => {
                         self.context.set_fill_style_color("#00000034");

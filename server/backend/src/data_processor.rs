@@ -55,27 +55,6 @@ impl DataProcessor {
         let d2 = tag_data[1].tag_distance;
         let d3 = tag_data[2].tag_distance;
 
-        // TODO simplify
-        { // NOTE temporary
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[0].name.clone(),
-                location: bloc1,
-                distance_to_tag: d1,
-            });
-
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[1].name.clone(),
-                location: bloc2,
-                distance_to_tag: d2,
-            });
-
-            beacon_sources.push(common::UserBeaconSourceLocations {
-                name: beacons[2].name.clone(),
-                location: bloc3,
-                distance_to_tag: d3,
-            });
-        }
-
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
         let b = -2.0 * bloc1.y + 2.0 * bloc2.y;
@@ -185,6 +164,16 @@ impl Handler<InLocationData> for DataProcessor {
                     .and_then(move |(client, beacons), actor, _context| {
                         let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
                         let new_tag_location = Self::calc_trilaterate(&beacons, &averages, &mut beacon_sources);
+
+                        averages.iter().for_each(|tag_data| {
+                            let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
+                            beacon_sources.push(common::UserBeaconSourceLocations {
+                                name: beacon.name.clone(),
+                                location: beacon.coordinates,
+                                distance_to_tag: tag_data.tag_distance,
+                            });
+                        });
+
                         // update the user information
                         match actor.users.get_mut(&averages[0].tag_mac) {
                             Some(user_ref) => {
