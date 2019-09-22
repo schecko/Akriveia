@@ -121,29 +121,29 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                         if split.len() == 3 {
                             let beacon_mac = MacAddress::parse_str(split[0]).unwrap();
                             let tag_mac = MacAddress::parse_str(split[1]).unwrap();
-                            let rssi = split[2];
+                            let distance = split[2];
                             let reg = Regex::new(r"/[^$0-9]+/").unwrap();
-                            let rssi_stripped = reg.replace_all(&rssi, "");
+                            let distance_stripped = reg.replace_all(&distance, "");
 
                             // remove the last character every time, idk why but there is always
                             // a newline at the end of rssi_stripped. from_str_radix REQUIRES
                             // all numeric characters.
-                            if rssi_stripped.len() <= 0 {
+                            if distance_stripped.len() <= 0 {
                                 continue;
                             }
-                            match i64::from_str_radix(&rssi_stripped[..rssi_stripped.len() - 1], 10) {
-                                Ok(rssi_numeric) => {
+                            match distance_stripped[..distance_stripped.len() - 1].parse::<f64>() {
+                                Ok(distance_numeric) => {
                                     let msg = TagDataMessage {
                                         data: common::TagData {
                                             beacon_mac: beacon_mac.clone(),
-                                            tag_distance: common::DataType::RSSI(rssi_numeric),
+                                            tag_distance: distance_numeric,
                                             tag_mac,
                                         }
                                     };
                                     beacon_info.manager.do_send(msg).expect("serial beacon could not send message to manager");
                                 },
                                 Err(e) => {
-                                    println!("parsed a bad number: {}, error {}", e, rssi_stripped);
+                                    println!("parsed a bad number: {}, error {}", distance_stripped, e);
                                 }
                             }
                         } else {

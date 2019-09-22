@@ -148,25 +148,12 @@ impl Renderable<Diagnostics> for Diagnostics {
             let filtered: Vec<common::TagData> = self.diagnostic_data.iter().filter(|point| self.selected_beacons.contains(&point.beacon_mac)).cloned().collect();
 
             let mut diagnostic_rows = filtered.iter().map(|row| {
-                match row.tag_distance {
-                    common::DataType::RSSI(strength) => {
-                        html! {
-                            <tr>
-                                <td>{ &row.beacon_mac }</td>
-                                <td>{ &row.tag_mac }</td>
-                                <td>{ &strength }</td>
-                            </tr>
-                        }
-                    },
-                    common::DataType::TOF(distance) => {
-                        html! {
-                            <tr>
-                                <td>{ &row.beacon_mac }</td>
-                                <td>{ &row.tag_mac }</td>
-                                <td>{ &distance }</td>
-                            </tr>
-                        }
-                    },
+                html! {
+                    <tr>
+                        <td>{ &row.beacon_mac }</td>
+                        <td>{ &row.tag_mac }</td>
+                        <td>{ &row.tag_distance }</td>
+                    </tr>
                 }
             });
 
@@ -185,7 +172,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         <tr>
                             <td>{"Beacon Mac" }</td>
                             <td>{"User Mac" }</td>
-                            <td>{"RSSI/TOF" }</td>
+                            <td>{"Distance" }</td>
                         </tr>
                         { for diagnostic_rows }
                     </table>
