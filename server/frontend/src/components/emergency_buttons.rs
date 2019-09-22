@@ -9,15 +9,17 @@ pub enum Msg {
 
 pub struct EmergencyButtons {
     is_emergency: bool,
-    on_emergency: Option<Callback<()>>,
-    on_end_emergency: Option<Callback<()>>,
+    on_emergency: Callback<()>,
+    on_end_emergency: Callback<()>,
 }
 
-#[derive(PartialEq, Clone, Default)]
+#[derive(Properties)]
 pub struct EmergencyButtonsProps {
     pub is_emergency: bool,
-    pub on_emergency: Option<Callback<()>>,
-    pub on_end_emergency: Option<Callback<()>>,
+    #[props(required)]
+    pub on_emergency: Callback<()>,
+    #[props(required)]
+    pub on_end_emergency: Callback<()>,
 }
 
 impl Component for EmergencyButtons {
@@ -37,9 +39,9 @@ impl Component for EmergencyButtons {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::RequestEmergency => {
-                self.on_emergency.as_mut().unwrap().emit(())
+                self.on_emergency.emit(())
             },
-            Msg::RequestEndEmergency => self.on_end_emergency.as_mut().unwrap().emit(()),
+            Msg::RequestEndEmergency => self.on_end_emergency.emit(()),
         }
         true
     }

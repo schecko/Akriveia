@@ -1,5 +1,5 @@
 
-use yew::{ Component, Callback, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 pub enum Msg {
     Click,
@@ -8,15 +8,17 @@ pub enum Msg {
 pub struct ValueButton<T> {
     pub display: Option<String>,
     pub value: T,
-    pub on_click: Option<Callback<T>>,
+    pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
 }
 
-#[derive(Clone, PartialEq, Default)]
+#[derive(Properties)]
 pub struct ValueButtonProps<T> {
+    #[props(required)]
     pub value: T,
-    pub on_click: Option<Callback<T>>,
+    #[props(required)]
+    pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
     pub display: Option<String>,
@@ -41,7 +43,7 @@ impl <T: 'static> Component for ValueButton<T>
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Click => {
-                self.on_click.as_mut().unwrap().emit(self.value.clone());
+                self.on_click.emit(self.value.clone());
             },
         }
         true
