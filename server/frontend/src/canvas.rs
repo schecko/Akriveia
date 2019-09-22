@@ -100,7 +100,6 @@ impl Canvas {
                 beacon.coordinates.x * map.scale,
                 beacon.coordinates.y * map.scale,
             );
-            Log!("beacon is : {} {}", beacon_loc.x, beacon_loc.y);
             self.context.set_fill_style_color("#0000FFFF");
             self.context.begin_path();
             self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
