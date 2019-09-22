@@ -35,9 +35,9 @@ impl Actor for BeaconManager {
 
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 
-const USE_DUMMY_BEACONS: bool = true;
+const USE_DUMMY_BEACONS: bool = false;
 const USE_SERIAL_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
@@ -57,7 +57,7 @@ impl BeaconManager {
     }
 
     fn find_beacons_udp(&mut self, _context: &mut Context<Self>) {
-        self.udp_connections.push(BeaconUDP::new("127.0.0.1:0".parse().unwrap()));
+        self.udp_connections.push(BeaconUDP::new("127.0.0.1:8081".parse().unwrap()));
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
