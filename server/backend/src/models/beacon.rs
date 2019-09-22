@@ -1,10 +1,10 @@
 
 use common::*;
+use crate::models::map;
 use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
-use crate::models::map;
 
 pub fn row_to_beacon(row: &Row) -> Beacon {
     let mut b = Beacon::new();
@@ -103,6 +103,27 @@ pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> im
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
+                .collect()
+                .into_future()
+                .map(|rows| {
+                    (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
+                })
+        })
+}
+
+pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAddress>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.beacons
+            WHERE b_mac_address IN ($1, $2, $3)
+        ", &[
+            Type::MACADDR,
+            Type::MACADDR,
+            Type::MACADDR,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&macs[0], &macs[1], &macs[2]])
                 .collect()
                 .into_future()
                 .map(|rows| {
@@ -260,6 +281,8 @@ mod tests {
     use super::*;
     use crate::db_utils;
     use tokio::runtime::current_thread::Runtime;
+    use std::net::{ IpAddr, Ipv4Addr, };
+    use futures::future::join_all;
 
     #[test]
     fn insert() {
@@ -468,6 +491,55 @@ mod tests {
             })
             .and_then(|(client, _opt_beacon)| {
                 select_beacons(client)
+            })
+            .map(|(_client, _beacons)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_3_by_mac() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let map = Map::new();
+
+        let mut beacons = vec![Beacon::new(), Beacon::new(), Beacon::new()];
+        for (i, mut b) in beacons.iter_mut().enumerate() {
+            b.name = i.to_string();
+            b.mac_address = MacAddress::from_bytes(&[i as u8, 0, 0, 0, 0, 0]).unwrap();
+            b.ip = IpAddr::V4(Ipv4Addr::new(i as u8, 0, 0, 0));
+        }
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                let map_id = opt_map.unwrap().id;
+                join_all(beacons
+                    .into_iter()
+                    .map(move |mut b| {
+                        b.map_id = Some(map_id);
+                        db_utils::default_connect()
+                            .and_then(|client| {
+                                insert_beacon(client, b)
+                                    .map(|(_client, beacon)| { beacon })
+                            })
+                    })
+                )
+                .map(|beacons| {
+                    (client, beacons)
+                })
+            })
+            .and_then(|(client, beacons)| {
+                let macs: Vec<MacAddress> = beacons.into_iter().map(|b| b.unwrap().mac_address).collect();
+                select_beacons_by_mac(client, macs)
             })
             .map(|(_client, _beacons)| {
             })

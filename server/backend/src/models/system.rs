@@ -85,7 +85,7 @@ const SCHEMA: [&str; 27] = [
     ",
     // TODO remove after implementing frontend
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
-            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:00')
+            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '80:00:00:00:00:00')
     ",
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 400, 400 ], 'test_map', 100)

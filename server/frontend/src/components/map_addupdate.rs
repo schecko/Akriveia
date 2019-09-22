@@ -37,7 +37,7 @@ struct Data {
     pub map: Map,
     pub error_messages: Vec<String>,
     pub attached_beacons: Vec<Beacon>,
-    pub id: Option<i32>,
+    pub opt_id: Option<i32>,
     pub raw_bounds: [String; 2],
     pub raw_scale: String,
     pub success_message: Option<String>,
@@ -50,7 +50,7 @@ impl Data {
             map: Map::new(),
             error_messages: Vec::new(),
             attached_beacons: Vec::new(),
-            id: None,
+            opt_id: None,
             raw_bounds: ["0".to_string(), "0".to_string()],
             raw_scale: "1".to_string(),
             success_message: None,
@@ -133,7 +133,7 @@ impl Component for MapAddUpdate {
 
         result.canvas.reset(&result.data.map);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons);
-        result.data.id = props.opt_id;
+        result.data.opt_id = props.opt_id;
         result
     }
 
@@ -225,7 +225,7 @@ impl Component for MapAddUpdate {
 
                 let success = self.data.validate();
 
-                match self.data.id {
+                match self.data.opt_id {
                     Some(id) if success => {
                         //ensure the id does not mismatch.
                         self.data.map.id = id;
@@ -336,7 +336,7 @@ impl Component for MapAddUpdate {
                         Ok(result) => {
                             self.data.success_message = Some("successfully added map".to_string());
                             self.data.map = result;
-                            self.data.id = Some(self.data.map.id);
+                            self.data.opt_id = Some(self.data.map.id);
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to add map, reason: {}", e));
@@ -354,7 +354,7 @@ impl Component for MapAddUpdate {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.data.id = props.opt_id;
+        self.data.opt_id = props.opt_id;
         if let Some(id) = props.opt_id {
             self.self_link.send_self(Msg::RequestGetMap(id));
             self.self_link.send_self(Msg::RequestGetBeaconsForMap(id));
@@ -397,7 +397,7 @@ impl MapAddUpdate {
             }
         });
 
-        match self.data.id {
+        match self.data.opt_id {
             Some(_) => {
                 if self.data.attached_beacons.len() > 0 {
                     html! {
@@ -439,16 +439,16 @@ impl MapAddUpdate {
 
 impl Renderable<MapAddUpdate> for MapAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
+        let submit_name = match self.data.opt_id {
             Some(_id) => "Update Map",
             None => "Add Map",
         };
-        let title_name = match self.data.id {
+        let title_name = match self.data.opt_id {
             Some(_id) => "Map Update",
             None => "Map Add",
         };
 
-        let add_another_map = match &self.data.id {
+        let add_another_map = match &self.data.opt_id {
             Some(_) => {
                 html! {
                     <button onclick=|_| Msg::AddAnotherMap,>{ "Add Another" }</button>

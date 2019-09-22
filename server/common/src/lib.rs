@@ -79,7 +79,6 @@ pub struct TagData {
     pub beacon_mac: MacAddress,
     pub tag_distance: DataType,
     pub tag_mac: MacAddress,
-    pub tag_name: String,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
