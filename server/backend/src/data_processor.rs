@@ -38,14 +38,13 @@ impl DataProcessor {
         }
     }
 
-    fn calc_trilaterate(beacons: &Vec<common::Beacon>, tag_data: &Vec<common::TagData>, beacon_sources: &mut Vec<common::UserBeaconSourceLocations>) -> na::Vector2<f64> {
+    fn calc_trilaterate(beacons: &Vec<common::Beacon>, tag_data: &Vec<common::TagData>) -> na::Vector2<f64> {
         if tag_data.len() < 3 {
             panic!("not enough data points to trilaterate");
         }
         if beacons.len() < 3 {
             panic!("not enough beacons to trilaterate");
         }
-        assert!(beacon_sources.len() == 0);
 
         let bloc1 = beacons[0].coordinates;
         let bloc2 = beacons[1].coordinates;
@@ -163,7 +162,7 @@ impl Handler<InLocationData> for DataProcessor {
                     .into_actor(self)
                     .and_then(move |(client, beacons), actor, _context| {
                         let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
-                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages, &mut beacon_sources);
+                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
 
                         averages.iter().for_each(|tag_data| {
                             let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
