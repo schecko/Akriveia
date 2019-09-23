@@ -69,7 +69,7 @@ use bytes::{ Bytes };
 use std::time;
 
 fn main() -> std::io::Result<()> {
-    {
+    /*{
         let mut i = 0;
         let sock = UdpSocket::bind("127.0.0.1:8081").expect("couldn't bind to address");
         sock.set_broadcast(true).expect("fuck fuck fuc");
@@ -89,7 +89,7 @@ fn main() -> std::io::Result<()> {
             }*/
         }
 
-    }
+    }*/
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
