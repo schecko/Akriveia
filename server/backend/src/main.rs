@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
@@ -64,7 +64,32 @@ fn default_route(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().finish()
 }
 
+use std::net::UdpSocket;
+use bytes::{ Bytes };
+use std::time;
+
 fn main() -> std::io::Result<()> {
+    {
+        let mut i = 0;
+        let sock = UdpSocket::bind("127.0.0.1:8081").expect("couldn't bind to address");
+        sock.set_broadcast(true).expect("fuck fuck fuc");
+        sock.connect("127.0.0.255:8082").expect("connect function failed");
+        sock.set_read_timeout(Some(time::Duration::from_millis(10)));
+        loop {
+            match sock.send(&Bytes::from(format!("fuck fuck {}\n", i))) {
+                Ok(_) => println!("yayyyyyy"),
+                Err(e) => println!("what the fuck {}", e),
+            }
+            i += 1;
+            std::thread::sleep(time::Duration::from_millis(1000));
+            /*let mut buf = [0; 1000];
+            match sock.recv(&mut buf) {
+                Ok(received) => println!("received {} bytes {:?}", received, &buf[..received]),
+                Err(e) => println!("recv function failed: {:?}", e),
+            }*/
+        }
+
+    }
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();

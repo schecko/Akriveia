@@ -12,7 +12,7 @@ use tokio::net::{ UdpSocket, UdpFramed };
 use tokio::codec::BytesCodec;
 use actix::prelude::*;
 use actix::{ Actor, Context, StreamHandler };
-use actix::io::SinkWrite;
+//use actix::io::SinkWrite;
 use crate::beacon_manager::*;
 
 const BROADCAST: bool = true;
@@ -58,9 +58,9 @@ impl Handler<BeaconCommand> for BeaconUDP {
                 } else {
                     let stream_data = self.beacon_ips.iter()
                         .map(|&ip| (Bytes::from("start"), ip));
-                    let stream = stream::iter_ok::<_, io::Error>(stream_data);
+                    let _stream = stream::iter_ok::<_, io::Error>(stream_data);
                     // TODO handle
-                    let _ = (self.sink).send_all(stream);
+                    //let _ = (self.sink).send_all(stream);
                 }
                 Ok(common::SystemCommandResponse{ emergency: true })
             },
@@ -95,9 +95,9 @@ impl BeaconUDP {
         let (sink, stream) = UdpFramed::new(sock, BytesCodec::new()).split();
         BeaconUDP::create(|context| {
             context.add_stream(stream.map(|(data, sender)| Frame { data, addr: sender }));
-            let sw = SinkWrite::new(sink, context);
-            let broad: SocketAddr = "255.255.255.255:0".parse().unwrap();
-            sw.write((Bytes::from("end"), broad));
+            //let sw = SinkWrite::new(sink, context);
+            //let broad: SocketAddr = "255.255.255.255:0".parse().unwrap();
+            //sw.write((Bytes::from("end"), broad));
             //let fut = (self.sink).send((Bytes::from("end"), broad)).map(|_x| {}).map_err(|_e| {});
             //tokio::spawn(fut);
             BeaconUDP {
