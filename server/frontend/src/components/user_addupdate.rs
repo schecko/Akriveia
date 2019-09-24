@@ -182,12 +182,17 @@ impl Component for UserAddUpdate {
                     }
                 }
             },
+            // Send a web parameter as in beacon_list.rs
+            // self.fetch_service,
+            // &format!("{}?emergency=true", user_url()),
+
             Msg::RequestAddUpdateUser => {
                 self.data.error_messages = Vec::new();
                 self.data.success_message = None;
 
                 // Do we need to validate the data?
                 let success = self.data.validate();
+                let many_users = (&self.data.user, &self.data.emergency_user);
 
                 match self.data.id {
                     Some(id) if success => {
@@ -195,7 +200,7 @@ impl Component for UserAddUpdate {
                         // Where do we compare the list of user ID tags?
                         self.data.user.id = id;
 
-                        self.fetch_task = put_request!(
+                         self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
                             self.data.user,
@@ -204,12 +209,12 @@ impl Component for UserAddUpdate {
                         );
 
                     },
+                    // Is this the same service that is called in main.rs?
                     None if success => {
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &user_url(""),
-                            //&beacon_url(""),
-                            self.data.user,
+                            many_users,
                             self.self_link,
                             Msg::ResponseAddUser
                         );

@@ -1,43 +1,49 @@
 use common::*;
+use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util;
-use na;
-use std::collections::BTreeMap;
 use std::time::Duration;
-use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{ CanvasRenderingContext2d, Node, FillRule };
+use stdweb::web::{ Node, };
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
-const MAP_WIDTH: u32 = 800;
-const MAP_HEIGHT: u32 = 800;
-const MAP_SCALE: f64 = MAP_WIDTH as f64 / 4.0;
-
 pub enum Msg {
-    RenderMap,
+    Ignore,
     ViewDistance(MacAddress),
+    ChooseMap(i32),
 
+    RequestGetBeaconsForMap(i32),
+    RequestGetMap(i32),
+    RequestGetMaps,
     RequestRealtimeUser,
 
-    ResponseRealtimeUser(util::Response<Vec<common::TrackedUser>>),
+    ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
+    ResponseGetMap(util::Response<Option<Map>>),
+    ResponseGetMaps(util::Response<Vec<Map>>),
+    ResponseRealtimeUser(util::Response<Vec<TrackedUser>>),
 }
 
 pub struct MapViewComponent {
-    context: CanvasRenderingContext2d,
+    beacons: Vec<Beacon>,
+    canvas: Canvas,
     emergency: bool,
+    error_messages: Vec<String>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    get_fetch_task: Option<FetchTask>,
+    get_many_fetch_task: Option<FetchTask>,
     interval_service: Option<IntervalService>,
     interval_service_task: Option<IntervalTask>,
-    map_canvas: CanvasElement,
+    current_map: Option<Map>,
+    maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<MacAddress>,
-    users: BTreeMap<MacAddress, Box<common::TrackedUser>>,
+    users: Vec<TrackedUser>,
 }
 
 impl MapViewComponent {
@@ -53,100 +59,52 @@ impl MapViewComponent {
         self.interval_service = None;
         self.interval_service_task = None;
     }
+
+    fn render(&mut self) {
+        if let Some(map) = &self.current_map {
+            self.canvas.reset(map);
+            self.canvas.draw_users(map, &self.users, self.show_distance);
+            self.canvas.draw_beacons(map, &self.beacons);
+        }
+    }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct MapViewProps {
     pub emergency: bool,
-}
-
-fn screen_space(x: f64, y: f64) -> na::Vector2<f64> {
-    na::Vector2::new(x, MAP_HEIGHT as f64 - y)
-}
-
-impl MapViewComponent {
-    fn clear_map(&self) {
-        // clear the canvas and draw a border
-
-        self.context.set_line_dash(vec![]);
-        self.context.clear_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
-        self.context.stroke_rect(0.0, 0.0, self.map_canvas.width().into(), self.map_canvas.height().into());
-
-        self.context.save();
-        self.context.set_line_dash(vec![5.0, 15.0]);
-        // vertical gridlines
-        for i in (MAP_SCALE as u32..MAP_WIDTH as u32).step_by(MAP_SCALE as usize) {
-            let pos0 = screen_space(i as f64, MAP_HEIGHT as f64);
-            let pos1 = screen_space(i as f64, 0.0);
-            self.context.begin_path();
-            self.context.move_to(pos0.x, pos0.y);
-            self.context.line_to(pos1.x, pos1.y);
-            self.context.stroke();
-        }
-        // horizontal gridlines
-        for i in (MAP_SCALE as u32..MAP_HEIGHT as u32).step_by(MAP_SCALE as usize) {
-            let pos0 = screen_space(MAP_WIDTH as f64, i as f64);
-            let pos1 = screen_space(0.0, i as f64);
-            self.context.begin_path();
-            self.context.move_to(pos0.x, pos0.y);
-            self.context.line_to(pos1.x, pos1.y);
-            self.context.stroke();
-        }
-        self.context.restore();
-
-        let text_adjustment = 10.0;
-        // x axis
-        for i in 0..(MAP_WIDTH / MAP_SCALE as u32) {
-            let pos = screen_space(i as f64 * MAP_SCALE + text_adjustment, text_adjustment);
-            self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
-        }
-        // y axis
-        // skip 0 because it was rendered by the y axis.
-        for i in 1..(MAP_HEIGHT / MAP_SCALE as u32) {
-            let pos = screen_space(text_adjustment, i as f64 * MAP_SCALE + text_adjustment);
-            self.context.fill_text(&format!("{}m", i), pos.x, pos.y, None);
-        }
-    }
-}
-
-fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
-    unsafe {
-        js! (
-            return @{canvas}.getContext("2d");
-        ).into_reference_unchecked().unwrap()
-    }
+    pub opt_id: Option<i32>,
 }
 
 impl Component for MapViewComponent {
     type Message = Msg;
     type Properties = MapViewProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let canvas: CanvasElement = unsafe {
-            js! (
-                let c = document.createElement("canvas");
-                c.setAttribute("id", "map_canvas");
-                return c;
-            ).into_reference_unchecked().unwrap()
-        };
-        canvas.set_width(MAP_WIDTH);
-        canvas.set_height(MAP_HEIGHT);
-        let context = get_context(&canvas);
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        if let Some(id) = props.opt_id {
+            link.send_self(Msg::RequestGetMap(id));
+            link.send_self(Msg::RequestGetBeaconsForMap(id));
+        }
+        link.send_self(Msg::RequestGetMaps);
+        let click_callback = link.send_back(|_event| Msg::Ignore);
 
         let mut result = MapViewComponent {
-            context: context,
+            beacons: Vec::new(),
+            canvas: Canvas::new("map_canvas", click_callback),
             emergency: props.emergency,
+            error_messages: Vec::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
+            get_fetch_task: None,
+            get_many_fetch_task: None,
             interval_service: None,
             interval_service_task: None,
-            map_canvas: canvas,
+            maps: Vec::new(),
+            current_map: None,
             self_link: link,
             show_distance: None,
-            users: BTreeMap::new(),
+            users: Vec::new(),
         };
 
-        result.clear_map();
         if props.emergency {
             result.start_service();
         }
@@ -155,38 +113,6 @@ impl Component for MapViewComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::RenderMap => {
-                self.context.save();
-                for (_tag_mac, user) in self.users.iter() {
-                    let user_pos = screen_space(
-                        user.coordinates.x as f64 * MAP_SCALE,
-                        user.coordinates.y as f64 * MAP_SCALE,
-                    );
-
-                    for beacon_source in &user.beacon_sources {
-                        let beacon_loc = screen_space(
-                            beacon_source.location.x * MAP_SCALE,
-                            beacon_source.location.y * MAP_SCALE,
-                        );
-                        self.context.set_fill_style_color("#0000FFFF");
-                        self.context.fill_rect(beacon_loc.x, beacon_loc.y - 30.0, 30.0, 30.0);
-                        self.context.set_fill_style_color("#000000FF");
-                        self.context.fill_rect(user_pos.x, user_pos.y, 20.0, 20.0);
-                        match &self.show_distance {
-                            Some(tag_mac) if tag_mac == &user.mac_address => {
-                                self.context.set_fill_style_color("#00000034");
-                                self.context.begin_path();
-                                self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * MAP_SCALE, 0.0, std::f64::consts::PI * 2.0, true);
-                                self.context.fill(FillRule::NonZero);
-                            },
-                            _ => { }
-                        }
-                    }
-                }
-                self.context.restore();
-
-                return false;
-            },
             Msg::ViewDistance(selected_tag_mac) => {
                 match &self.show_distance {
                     Some(current_tag) => {
@@ -200,7 +126,24 @@ impl Component for MapViewComponent {
                         self.show_distance = Some(selected_tag_mac);
                     }
                 }
-                return true;
+            },
+            Msg::ChooseMap(id) => {
+                self.current_map = match &self.current_map {
+                    Some(curr) if curr.id == id => {
+                        None
+                    },
+                    _ => {
+                        match self.maps.iter().find(|map| map.id == id) {
+                            Some(map) => Some(map.clone()),
+                            None => None,
+                        }
+                    }
+                };
+
+                if let Some(map) = &self.current_map {
+                    self.self_link.send_self(Msg::RequestGetMap(map.id));
+                    self.self_link.send_self(Msg::RequestGetBeaconsForMap(map.id));
+                }
             },
             Msg::RequestRealtimeUser => {
                 self.fetch_task = get_request!(
@@ -209,34 +152,103 @@ impl Component for MapViewComponent {
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );
+            },
+            Msg::RequestGetBeaconsForMap(id) => {
+                self.error_messages = Vec::new();
 
-                return false;
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &beacons_for_map_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetBeaconsForMap
+                );
+            },
+            Msg::RequestGetMap(id) => {
+                self.error_messages = Vec::new();
+
+                self.get_fetch_task = get_request!(
+                    self.fetch_service,
+                    &map_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetMap
+                );
+            },
+            Msg::RequestGetMaps => {
+                self.error_messages = Vec::new();
+
+                self.get_many_fetch_task = get_request!(
+                    self.fetch_service,
+                    &maps_url(),
+                    self.self_link,
+                    Msg::ResponseGetMaps
+                );
             },
             Msg::ResponseRealtimeUser(response) => {
-                self.clear_map();
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
-                    if let Ok(data) = body {
-                        for user in data.iter() {
-                            match self.users.get_mut(&user.mac_address) {
-                                Some(local_user_data) => {
-                                    **local_user_data = user.clone();
-                                },
-                                None => {
-                                    self.users.insert(user.mac_address.clone(), Box::new(user.clone()));
-                                }
-
-                            }
+                    match body {
+                        Ok(result) => {
+                            self.users = result;
+                        },
+                        Err(e) => {
+                            self.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
                         }
                     }
                 } else {
                     Log!("response - failed to get realtime user data");
                 }
-
-                self.self_link.send_self(Msg::RenderMap);
-                return true;
-            }
+            },
+            Msg::ResponseGetBeaconsForMap(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            self.beacons = result;
+                        },
+                        Err(e) => {
+                            self.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_messages.push("failed to obtain available floors list".to_string());
+                }
+            },
+            Msg::ResponseGetMap(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            self.current_map = result;
+                        },
+                        Err(e) => {
+                            self.error_messages.push(format!("failed to get map, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_messages.push("failed to get map".to_string());
+                }
+            },
+            Msg::ResponseGetMaps(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(result) => {
+                            self.maps = result;
+                        },
+                        Err(e) => {
+                            self.error_messages.push(format!("failed to get maps, reason: {}", e));
+                        }
+                    }
+                } else {
+                    self.error_messages.push("failed to get map".to_string());
+                }
+            },
+            Msg::Ignore => {
+            },
         }
+
+        self.render();
+        true
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
@@ -247,40 +259,73 @@ impl Component for MapViewComponent {
             self.start_service();
         } else {
             self.end_service();
+            self.users = Vec::new();
         }
+        self.render();
         true
     }
 }
 
 impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
-        let mut render_distance_buttons = self.users.iter().map(|(user_mac, _user)| {
+        let mut render_distance_buttons = self.users.iter().map(|user| {
             let set_border = match &self.show_distance {
-                Some(selected) => selected == user_mac,
+                Some(selected) => selected == &user.mac_address,
                 None => false,
             };
             html! {
                 <ValueButton<String>
                     on_click=|value: String| Msg::ViewDistance(MacAddress::parse_str(&value).unwrap()),
                     border=set_border,
-                    value={user_mac.to_hex_string()}
+                    value={user.mac_address.to_hex_string()}
                 />
+            }
+        });
+
+        let current_map_id = match &self.current_map {
+            Some(map) => map.id,
+            None => -1,
+        };
+
+        let mut maps = self.maps.iter().map(|map| {
+            let map_id = map.id;
+            let map_name = map.name.clone();
+            html! {
+                <ValueButton<i32>
+                    on_click=move |value: i32| Msg::ChooseMap(map_id),
+                    border=map.id == current_map_id,
+                    value={map.id},
+                    display=Some(map_name),
+                />
+            }
+        });
+
+        let mut errors = self.error_messages.iter().cloned().map(|msg| {
+            html! {
+                <p>{msg}</p>
             }
         });
 
         html! {
             <div>
+                { for errors }
                 <div>
+                    <p>{ "Maps " }</p>
+                    { for maps }
+                </div>
+                <div>
+                    <p>
                     {
                         if self.users.len() > 0 {
-                            "View Tag Distance Values: "
+                            "View TOF: "
                         } else {
                             ""
                         }
                     }
+                    </p>
                     { for render_distance_buttons }
                 </div>
-                { VNode::VRef(Node::from(self.map_canvas.to_owned()).to_owned()) }
+                { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
             </div>
         }
     }

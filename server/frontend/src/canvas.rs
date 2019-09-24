@@ -6,6 +6,9 @@ use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
 use yew::prelude::*;
 
+const USER_RADIUS: f64 = 5.0;
+const BEACON_RADIUS: f64 = 8.0;
+
 pub struct Canvas {
     pub canvas: CanvasElement,
     pub context: CanvasRenderingContext2d,
@@ -14,7 +17,6 @@ pub struct Canvas {
 pub fn screen_space(map: &Map, x: f64, y: f64) -> na::Vector2<f64> {
     na::Vector2::new(x, map.bounds.y as f64 - y)
 }
-
 
 impl Canvas {
     fn get_context(canvas: &CanvasElement) -> CanvasRenderingContext2d {
@@ -98,11 +100,43 @@ impl Canvas {
                 beacon.coordinates.x * map.scale,
                 beacon.coordinates.y * map.scale,
             );
-            Log!("beacon is : {} {}", beacon_loc.x, beacon_loc.y);
             self.context.set_fill_style_color("#0000FFFF");
             self.context.begin_path();
-            self.context.arc(beacon_loc.x, beacon_loc.y, 20.0, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
             self.context.fill(FillRule::NonZero);
+        }
+        self.context.restore();
+    }
+
+    pub fn draw_users(&mut self, map: &Map, users: &Vec<TrackedUser>, show_distance: Option<MacAddress>) {
+        self.context.save();
+        for user in users.iter() {
+            let user_pos = screen_space(
+                map,
+                user.coordinates.x as f64 * map.scale,
+                user.coordinates.y as f64 * map.scale,
+            );
+
+            for beacon_source in &user.beacon_sources {
+                let beacon_loc = screen_space(
+                    map,
+                    beacon_source.location.x * map.scale,
+                    beacon_source.location.y * map.scale,
+                );
+                self.context.set_fill_style_color("#000000FF");
+                self.context.begin_path();
+                self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+                self.context.fill(FillRule::NonZero);
+                match &show_distance {
+                    Some(tag_mac) if tag_mac == &user.mac_address => {
+                        self.context.set_fill_style_color("#00000034");
+                        self.context.begin_path();
+                        self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * map.scale, 0.0, std::f64::consts::PI * 2.0, true);
+                        self.context.fill(FillRule::NonZero);
+                    },
+                    _ => { }
+                }
+            }
         }
         self.context.restore();
     }

@@ -3,7 +3,7 @@ use common::*;
 use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 use super::map_view::MapViewComponent;
 use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
@@ -23,7 +23,7 @@ pub enum Page {
     Diagnostics,
     FrontPage,
     Login,
-    Map,
+    MapView(Option<i32>),
     MapList,
     MapAddUpdate(Option<i32>),
 }
@@ -158,10 +158,10 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
-            Page::Map => {
+            Page::MapView(opt_id) => {
                 html! {
                     <div>
-                        <h>{ "Map" }</h>
+                        <h>{ "MapView" }</h>
                         { self.navigation() }
                         <div>
                             <EmergencyButtons
@@ -171,7 +171,8 @@ impl Renderable<RootComponent> for RootComponent {
                             />
                         </div>
                         <MapViewComponent
-                            emergency={self.emergency}
+                            emergency={self.emergency},
+                            opt_id=opt_id,
                         />
                     </div>
                 }
@@ -260,7 +261,17 @@ impl RootComponent {
             <div>
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
-                <button onclick=|_| Msg::ChangePage(Page::Map), disabled={self.current_page == Page::Map},>{ "Map" }</button>
+                <button
+                    onclick=|_| Msg::ChangePage(Page::MapView(None)),
+                    disabled={
+                        match self.current_page {
+                            Page::MapView { .. } => true,
+                            _ => false,
+                        }
+                    },
+                >
+                    { "MapView" }
+                </button>
                 <select>
                     // TODO CSS for navigation bar
                     <option disabled=true,>{ "Beacon Config(Header)" }</option>

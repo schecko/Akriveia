@@ -14,10 +14,13 @@ use crate::beacon_dummy::*;
 use crate::beacon_serial::*;
 use crate::beacon_udp::*;
 use crate::data_processor::*;
+use crate::db_utils;
+use crate::models::beacon;
 use serialport;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
+use futures::future::{ ok, Either, };
 
 pub struct BeaconManager {
     pub emergency: bool,
@@ -31,7 +34,6 @@ impl Actor for BeaconManager {
 }
 
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
-const NUM_DUMMY_BEACONS: u32 = 5;
 
 const USE_DUMMY_BEACONS: bool = true;
 const USE_SERIAL_BEACONS: bool = false;
@@ -59,14 +61,37 @@ impl BeaconManager {
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
-        for i in 0..NUM_DUMMY_BEACONS {
-            let (send, receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
-            let beacon_manager = context.address().clone();
-            thread::spawn(move || {
-                dummy_beacon_thread(i, receive, beacon_manager);
+        let beacons_fut = db_utils::default_connect()
+            .then(|res_client| {
+                match res_client {
+                    Ok(client) => {
+                        Either::A(beacon::select_beacons(client)
+                            .map(|(_client, beacons)| {
+                                beacons
+                            })
+                        )
+                    },
+                    Err(postgres_err) => {
+                        println!("failed to connect to postgres for dummy beacons: {}", postgres_err);
+                        Either::B(ok(Vec::new()))
+                    }
+                }
+            })
+            .into_actor(self)
+            .and_then(|beacons, actor, context| {
+                for beacon in beacons {
+                    let (send, receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
+                    let beacon_manager = context.address().clone();
+                    thread::spawn(move || {
+                        dummy_beacon_thread(beacon, receive, beacon_manager);
+                    });
+                    actor.serial_connections.push(send);
+                }
+                fut::result(Ok(()))
+            })
+            .map_err(|_err, _, _| {
             });
-            self.serial_connections.push(send);
-        }
+        context.spawn(beacons_fut);
     }
 
     fn find_beacons_serial(&mut self, context: &mut Context<Self>) {
@@ -181,7 +206,7 @@ impl Handler<TagDataMessage> for BeaconManager {
     fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
         // find the beacons
         self.diagnostic_data.tag_data.push(msg.data.clone());
-        self.data_processor.do_send(DPMessage::LocationData(msg.data.clone()));
+        self.data_processor.do_send(InLocationData(msg.data.clone()));
         Ok(1)
     }
 }

@@ -66,10 +66,14 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
 }
 
 // new user
-pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<TrackedUser>) -> impl Future<Item=HttpResponse, Error=Error> {
+// How to send a tuple of TrackedUser as a Json<original_user, emergency_user>?
+// How to find a way to add two users instead of just one
+pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: (web::Json<TrackedUser>, web::Json<TrackedUser>)) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
-            user::insert_user(client, payload.0)
+            // What is payload? How come the parameters of post_user() is not called in /backend/main.res
+            user::insert_user(client, payload.0);
+            user::insert_user(client, payload.1)
         })
         .map_err(|postgres_err| {
             println!("{}", postgres_err);

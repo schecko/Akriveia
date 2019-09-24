@@ -2,7 +2,7 @@ use common::*;
 use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 pub enum Msg {
     AddAnotherBeacon,
@@ -98,7 +98,7 @@ pub struct BeaconAddUpdate {
     self_link: ComponentLink<Self>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct BeaconAddUpdateProps {
     pub id: Option<i32>,
 }

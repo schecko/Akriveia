@@ -7,7 +7,7 @@ use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::prelude::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -33,7 +33,7 @@ pub struct Diagnostics {
     self_link: ComponentLink<Diagnostics>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Properties)]
 pub struct DiagnosticsProps {
     pub emergency: bool,
 }
@@ -146,6 +146,17 @@ impl Renderable<Diagnostics> for Diagnostics {
                 }
             });
             let filtered: Vec<common::TagData> = self.diagnostic_data.iter().filter(|point| self.selected_beacons.contains(&point.beacon_mac)).cloned().collect();
+
+            let mut diagnostic_rows = filtered.iter().map(|row| {
+                html! {
+                    <tr>
+                        <td>{ &row.beacon_mac }</td>
+                        <td>{ &row.tag_mac }</td>
+                        <td>{ &row.tag_distance }</td>
+                    </tr>
+                }
+            });
+
             html! {
                 <>
                     <button
@@ -158,22 +169,12 @@ impl Renderable<Diagnostics> for Diagnostics {
                         { for beacon_selections }
                     </div>
                     <table>
-                    {
-                        for filtered.iter().map(|row| {
-                            match row.tag_distance {
-                                common::DataType::RSSI(strength) => {
-                                    html! {
-                                        <tr>{ format!("beacon_mac: {}\tname: {}\tmac: {}\trssi: {}", &row.beacon_mac, &row.tag_name, &row.tag_mac, strength ) } </tr>
-                                    }
-                                },
-                                common::DataType::TOF(distance) => {
-                                    html! {
-                                        <tr>{ format!("beacon_mac: {}\tname: {}\tmac: {}\ttof: {}", &row.beacon_mac, &row.tag_name, &row.tag_mac, distance ) } </tr>
-                                    }
-                                },
-                            }
-                        })
-                    }
+                        <tr>
+                            <td>{"Beacon Mac" }</td>
+                            <td>{"User Mac" }</td>
+                            <td>{"Distance" }</td>
+                        </tr>
+                        { for diagnostic_rows }
                     </table>
                 </>
             }

@@ -16,10 +16,10 @@ const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:03";
-uint16_t dex = 3;
-bool is_head = false;
-bool is_tail = true;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:01";
+uint16_t dex = 1;
+bool is_head = true;
+bool is_tail = false;
 
 uint16_t netID;
 uint16_t next_anchor;
