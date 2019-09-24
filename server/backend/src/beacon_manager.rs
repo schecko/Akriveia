@@ -136,10 +136,10 @@ impl BeaconManager {
 }
 
 pub enum BeaconCommand {
+    EndEmergency,
     GetEmergency,
     ScanBeacons,
     StartEmergency,
-    EndEmergency,
 }
 
 impl Message for BeaconCommand {
@@ -162,6 +162,9 @@ impl Handler<BeaconCommand> for BeaconManager {
                         .send(BeaconCommand::StartEmergency)
                         .expect("failed to send start emergency to serial beacon connection");
                 }
+                for connection in &self.udp_connections {
+                    connection.do_send(UdpCommand::StartEmergency);
+                }
                 self.emergency = true;
             }
             BeaconCommand::EndEmergency => {
@@ -169,6 +172,10 @@ impl Handler<BeaconCommand> for BeaconManager {
                     connection
                         .send(BeaconCommand::EndEmergency)
                         .expect("failed to send end emergency to serial beacon connection");
+                }
+                for connection in &self.udp_connections {
+                    connection
+                        .do_send(UdpCommand::EndEmergency);
                 }
                 self.emergency = false;
                 // Send a message to DP to clear hashmap
