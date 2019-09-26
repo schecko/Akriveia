@@ -11,6 +11,7 @@ use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
+use super::status::Status;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -18,6 +19,7 @@ pub enum Page {
     BeaconList,
     Diagnostics,
     FrontPage,
+    Status,
     Login,
     MapView(Option<i32>),
     MapList,
@@ -145,6 +147,24 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::Status => {
+                html! {
+                    <div>
+                        <h>{ "Status" }</h>
+                        { self.navigation() }
+                        <div>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestPostEmergency(true),
+                                on_end_emergency=|_| Msg::RequestPostEmergency(false),
+                            />
+                        </div>
+                        <Status
+                            change_page=|page| Msg::ChangePage(page),
+                        />
+                    </div>
+                }
+            }
             Page::Login => {
                 html! {
                     <div>
@@ -235,6 +255,7 @@ impl RootComponent {
             <div>
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
                 <button
                     onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
@@ -264,8 +285,7 @@ impl RootComponent {
                     </option>
                 </select>
                 <select>
-                    // TODO CSS for navigation bar
-                    <option disabled=true,>{ "Map Config(Header)" }</option>
+                    // TODO CSS for navigation bar <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
                     <option
                         onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),

@@ -1,4 +1,3 @@
-
 use common::*;
 use futures::{ Stream, Future, IntoFuture, };
 use na;
