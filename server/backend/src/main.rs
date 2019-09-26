@@ -49,7 +49,7 @@ impl AkriveiaState {
         let data_processor_addr =  DataProcessor::new().start();
         let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
 
-        beacon_manager_addr.do_send(BeaconCommand::ScanBeacons);
+        beacon_manager_addr.do_send(BMCommand::ScanBeacons);
 
         web::Data::new(Mutex::new(AkriveiaState {
             beacon_manager: beacon_manager_addr,

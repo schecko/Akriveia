@@ -39,6 +39,28 @@ const USE_DUMMY_BEACONS: bool = false;
 const USE_SERIAL_BEACONS: bool = false;
 const USE_UDP_BEACONS: bool = true;
 
+pub enum BMCommand {
+    EndEmergency,
+    GetEmergency,
+    ScanBeacons,
+    StartEmergency,
+}
+
+impl Message for BMCommand {
+    type Result = Result<common::SystemCommandResponse, io::Error>;
+}
+
+pub enum BeaconCommand {
+    EndEmergency,
+    GetEmergency,
+    ScanBeacons,
+    StartEmergency,
+}
+
+impl Message for BeaconCommand {
+    type Result = Result<(), ()>;
+}
+
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
         BeaconManager {
@@ -135,27 +157,17 @@ impl BeaconManager {
     }
 }
 
-pub enum BeaconCommand {
-    EndEmergency,
-    GetEmergency,
-    ScanBeacons,
-    StartEmergency,
-}
-
-impl Message for BeaconCommand {
-    type Result = Result<common::SystemCommandResponse, io::Error>;
-}
-impl Handler<BeaconCommand> for BeaconManager {
+impl Handler<BMCommand> for BeaconManager {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 
-    fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BeaconCommand::GetEmergency => { },
-            BeaconCommand::ScanBeacons => {
+            BMCommand::GetEmergency => { },
+            BMCommand::ScanBeacons => {
                 println!("find beacons called!");
                 self.find_beacons(context);
             },
-            BeaconCommand::StartEmergency => {
+            BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
                 for connection in &self.serial_connections {
                     connection
@@ -163,11 +175,11 @@ impl Handler<BeaconCommand> for BeaconManager {
                         .expect("failed to send start emergency to serial beacon connection");
                 }
                 for connection in &self.udp_connections {
-                    connection.do_send(UdpCommand::StartEmergency);
+                    connection.do_send(BeaconCommand::StartEmergency);
                 }
                 self.emergency = true;
             }
-            BeaconCommand::EndEmergency => {
+            BMCommand::EndEmergency => {
                 for connection in &self.serial_connections {
                     connection
                         .send(BeaconCommand::EndEmergency)
@@ -175,7 +187,7 @@ impl Handler<BeaconCommand> for BeaconManager {
                 }
                 for connection in &self.udp_connections {
                     connection
-                        .do_send(UdpCommand::EndEmergency);
+                        .do_send(BeaconCommand::EndEmergency);
                 }
                 self.emergency = false;
                 // Send a message to DP to clear hashmap
