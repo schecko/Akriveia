@@ -120,7 +120,6 @@ impl Renderable<UserList> for UserList {
                     <td>{ &user.last_active}</td>
                     <td>{ user.work_phone.clone().unwrap_or(String::new()) }</td>
                     <td>{ user.mobile_phone.clone().unwrap_or(String::new()) }</td>
-                    //<td>{ user.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
                             display=Some("Edit".to_string()),
@@ -151,7 +150,6 @@ impl Renderable<UserList> for UserList {
                     <td>{ "Last Active" }</td>
                     <td>{ "Work Phone" }</td>
                     <td>{ "Mobile Phone" }</td>
-                    //<td>{ "Note" }</td> 
                 </tr>
                 { for rows }
                 </table>
