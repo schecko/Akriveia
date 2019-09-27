@@ -92,9 +92,9 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
                 None => {},
             }
             user::insert_user(_client, user)
-            .map(|(_client, user)|{ 
-                (user, opt_e_user)
-            })
+                .map(|(_client, user)|{
+                    (user, opt_e_user)
+                })
         })
         .map_err(|postgres_err| {
             println!("{}", postgres_err);
@@ -113,60 +113,41 @@ pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payl
 
     let users = payload.into_inner();
     let mut user = users.0;
-    let e_user = users.1;
+    let opt_e_user = users.1;
 
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
         // How do I check if the emergency user exists already and not to insert a new one?
             match user.emergency_contact {
-                Some(contact) => { 
-                    let futA = match e_user {
+                Some(_contact) => {
+                    let fut_a = match opt_e_user {
                         // update the emergency user with new info
                         Some(e) => Either::A(user::update_user(client, e)
                             .map(move |(client, opt_e)| (client, user, opt_e))),
-                        // emergency user exists, but does not need to be update
+                        // emergency user exists, but does not need to be updated(new data not
+                        // provided)
                         None => Either::B(ok((client, user, None))),
                     };
-                    Either::A(ok(futA))
+                    Either::A(ok(fut_a).flatten())
                 },
                 None => {
-                    let futB = match e_user {
+                    let fut_b = match opt_e_user {
+                        // need to create the emergency user in this case
                         Some(e) => Either::A(user::insert_user(client, e)
                                 .and_then(move |(client, opt_e)| {
-                                    if let Some(new_contact) = & opt_e {
+                                    if let Some(new_contact) = &opt_e {
                                         user.emergency_contact = Some(new_contact.id);
                                     }
-                                    (client, user, opt_e)
+                                    ok((client, user, opt_e))
                                 })
                         ),
-                        None => Either::B(ok(client, user, None)),
+                        // do nothing, the contact doesnt exist, and the were not changing it
+                        None => Either::B(ok((client, user, None))),
                     };
-                    Either::B(ok(futB))
+                    Either::B(ok(fut_b).flatten())
                 },
             }
         })
-       /* .and_then(move |client| {
-            match e_user {
-                Some(opt_e) => { 
-                    // update the emergency user with new info
-                    match user.emergency_contact {
-                        Some(contact) => Either::A(user::update_user(client, opt_e)
-                            .map(move |(client, opt_e)| (client, user, opt_e))),
-                        // emergency user exists but needs to be inserted
-                        None => {
-                            Either::B(user::insert_user(client, opt_e)
-                                .and_then(move |(client, opt_e)| {
-                                    if let Some(new_contact) = & opt_e {
-                                        user.emergency_contact = Some(new_contact.id);
-                                    }
-                                    (client, user, opt_e)
-                                })
-                        )}
-                    }
-                },
-                None => ok((client, user, None)),
-            }
-        })*/
         .and_then(|(_client, user, opt_e_user)| {
             user::update_user(_client, user)
                 .map(move |(client, opt_user)| {
