@@ -1,4 +1,3 @@
-
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
@@ -9,9 +8,9 @@ const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
 
-const char* ssid = "TELUS3854";
-const char* password = "tsp5df7yfy";
-const char* hostAddress = "192.168.1.104";
+const char* ssid = "akriveia";
+const char* password = "";
+const char* hostAddress = "10.0.0.3";
 const int UdpPort = 9998;
 int wifi_timeout = 10 * 1000;
 

@@ -27,7 +27,7 @@ uint16_t next_anchor;
 double range_self;
 uint16_t blink_rate = 200;
 byte tag_shortAddress[] = {0x05, 0x00};
-String TAG_EUI = "AA:BB";
+String TAG_EUI = "00:00:00:00:00:01";
 
 device_configuration_t DEFAULT_CONFIG = {
   false,
