@@ -35,8 +35,8 @@ impl Actor for BeaconManager {
 
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 
-const USE_DUMMY_BEACONS: bool = true;
-const USE_SERIAL_BEACONS: bool = false;
+const USE_DUMMY_BEACONS: bool = false;
+const USE_SERIAL_BEACONS: bool = true;
 const USE_UDP_BEACONS: bool = false;
 
 impl BeaconManager {
