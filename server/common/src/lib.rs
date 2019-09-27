@@ -1,12 +1,14 @@
 extern crate serde_derive;
 extern crate nalgebra as na;
 extern crate eui48;
+extern crate ipnet;
 
 use serde_derive::{ Deserialize, Serialize, };
 pub use eui48::MacAddress;
 pub use chrono::{ DateTime, Utc, };
 pub use chrono::offset::TimeZone;
 use std::net::{ IpAddr, Ipv4Addr, };
+use ipnet::{ IpNet, Ipv4Net, };
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
@@ -176,6 +178,29 @@ impl Map {
             name: String::new(),
             note: None,
             scale: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkInterface {
+    pub id: i32, // primary key
+    pub beacon_port: Option<i16>,
+    pub ip: Ipv4Net,
+    pub mac: MacAddress,
+    pub name: String,
+    pub webserver_port: Option<i16>,
+}
+
+impl NetworkInterface {
+    pub fn new() -> NetworkInterface {
+        NetworkInterface {
+            id: -1,
+            beacon_port: None,
+            ip: Ipv4Net::new(Ipv4Addr::new(0, 0, 0, 0), 32).unwrap(),
+            mac: MacAddress::nil(),
+            name: String::new(),
+            webserver_port: None,
         }
     }
 }

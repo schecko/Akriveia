@@ -51,13 +51,14 @@ const SCHEMA: [&str; 27] = [
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024)
     );",
-    "CREATE TABLE system.networks (
+    "CREATE TABLE system.network_interfaces (
         n_id SERIAL PRIMARY KEY,
-        n_mac_address MACADDR,
-        n_host_beacon_udp BOOLEAN NOT NULL,
-        n_host_webserver BOOLEAN NOT NULL,
-        n_ip INET,
-        n_name VARCHAR(255) UNIQUE
+        n_beacon_port SMALLINT,
+        n_ip INET NOT NULL,
+        n_mac MACADDR NOT NULL,
+        n_mask SMALLINT NOT NULL,
+        n_name VARCHAR(255) UNIQUE,
+        n_webserver_port SMALLINT
     )",
 
     // create roles and users
@@ -80,8 +81,8 @@ const SCHEMA: [&str; 27] = [
     "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "INSERT INTO system.networks(n_mac_address, n_host_beacon_udp, n_host_webserver, n_ip, n_name)
-            VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
+    "INSERT INTO system.network_interfaces(n_mac, n_beacon_port, n_webserver_port, n_mask, n_ip, n_name)
+            VALUES('00:00:00:00:00:00', 8082, 8081, 8, '127.0.0.1', 'localhost')
     ",
     // TODO remove after implementing frontend
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)

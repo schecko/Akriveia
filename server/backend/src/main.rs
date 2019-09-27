@@ -6,6 +6,7 @@ extern crate actix_web;
 extern crate common;
 extern crate env_logger;
 extern crate futures;
+extern crate ipnet;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
 
