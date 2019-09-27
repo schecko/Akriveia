@@ -14,6 +14,8 @@ use actix::prelude::*;
 use actix::{ Actor, Context, StreamHandler, fut::Either, };
 use actix::io::{ WriteHandler, SinkWrite, };
 use crate::beacon_manager::*;
+use ipnet::Ipv4Net;
+use std::net::IpAddr;
 
 enum BeaconState {
     Idle,
@@ -23,6 +25,8 @@ enum BeaconState {
 }
 
 pub struct BeaconUDP {
+    bound_ip: Ipv4Net,
+    bound_port: u16,
     sink: SinkWrite<SplitSink<UdpFramed<BytesCodec>>>,
     beacon_ips: Vec<SocketAddr>,
 }
@@ -83,16 +87,20 @@ impl Handler<BeaconCommand> for BeaconUDP {
 }
 
 impl BeaconUDP {
-    pub fn new(addr: SocketAddr) -> Addr<BeaconUDP> {
-        let sock = UdpSocket::bind(&addr).unwrap();
+    pub fn new(ip: Ipv4Net, port: u16) -> Addr<BeaconUDP> {
+        let bind_addr = SocketAddr::new(IpAddr::V4(ip.addr()), port);
+
+        let sock = UdpSocket::bind(&bind_addr).unwrap();
         sock.set_broadcast(true).expect("could not set broadcast");
 
         let (sink, stream) = UdpFramed::new(sock, BytesCodec::new()).split();
-        BeaconUDP::create(|context| {
+        BeaconUDP::create(move |context| {
             context.add_stream(stream.map(|(data, sender)| Frame { data, addr: sender }));
             let sw = SinkWrite::new(sink, context);
             BeaconUDP {
                 sink: sw,
+                bound_port: port,
+                bound_ip: ip,
                 beacon_ips: Vec::new(),
             }
         })

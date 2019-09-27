@@ -16,6 +16,7 @@ use crate::beacon_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::beacon;
+use crate::models::network_interface;
 use serialport;
 use std::io;
 use std::sync::mpsc;
@@ -78,26 +79,39 @@ impl BeaconManager {
         if USE_UDP_BEACONS { self.find_beacons_udp(context); }
     }
 
-    fn find_beacons_udp(&mut self, _context: &mut Context<Self>) {
-        self.udp_connections.push(BeaconUDP::new("127.0.0.1:8081".parse().unwrap()));
+    fn find_beacons_udp(&mut self, context: &mut Context<Self>) {
+        let fut = db_utils::default_connect()
+            .and_then(|client| {
+                network_interface::select_network_interfaces(client)
+                    .map(|(_client, ifaces)| {
+                        ifaces
+                    })
+            })
+            .into_actor(self)
+            .and_then(|ifaces, actor, context| {
+                for iface in ifaces {
+                    match iface.beacon_port {
+                        Some(port) => {
+                            actor.udp_connections.push(BeaconUDP::new(iface.ip.clone(), port as u16));
+                        },
+                        None => {},
+                    }
+                }
+                fut::result(Ok(()))
+            })
+            .map_err(|err, _, _| {
+                println!("failed to create udp connection {}", err);
+            });
+        context.spawn(fut);
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
         let beacons_fut = db_utils::default_connect()
-            .then(|res_client| {
-                match res_client {
-                    Ok(client) => {
-                        Either::A(beacon::select_beacons(client)
-                            .map(|(_client, beacons)| {
-                                beacons
-                            })
-                        )
-                    },
-                    Err(postgres_err) => {
-                        println!("failed to connect to postgres for dummy beacons: {}", postgres_err);
-                        Either::B(ok(Vec::new()))
-                    }
-                }
+            .and_then(|client| {
+                beacon::select_beacons(client)
+                    .map(|(_client, beacons)| {
+                        beacons
+                    })
             })
             .into_actor(self)
             .and_then(|beacons, actor, context| {
@@ -111,7 +125,8 @@ impl BeaconManager {
                 }
                 fut::result(Ok(()))
             })
-            .map_err(|_err, _, _| {
+            .map_err(|err, _, _| {
+                println!("failed to create dummy beacons {}", err);
             });
         context.spawn(beacons_fut);
     }
