@@ -15,6 +15,13 @@ use actix::{ Actor, Context, StreamHandler, fut::Either, };
 use actix::io::{ WriteHandler, SinkWrite, };
 use crate::beacon_manager::*;
 
+enum BeaconState {
+    Idle,
+    SendingStart,
+    Emergency,
+    SendingEnd,
+}
+
 pub struct BeaconUDP {
     sink: SinkWrite<SplitSink<UdpFramed<BytesCodec>>>,
     beacon_ips: Vec<SocketAddr>,
@@ -84,7 +91,6 @@ impl BeaconUDP {
         BeaconUDP::create(|context| {
             context.add_stream(stream.map(|(data, sender)| Frame { data, addr: sender }));
             let sw = SinkWrite::new(sink, context);
-            //tokio::spawn(fut);
             BeaconUDP {
                 sink: sw,
                 beacon_ips: Vec::new(),
