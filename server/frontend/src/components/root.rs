@@ -203,10 +203,10 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "User" }</h>
-                        {self.navigation() }
+                        { self.navigation() }
                         <UserList
                             change_page=|page| Msg::ChangePage(page),
-                            />
+                        />
                     </div>
                 }
             }

@@ -86,7 +86,7 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -236,7 +236,7 @@ pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAdd
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })

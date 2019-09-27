@@ -134,6 +134,7 @@ fn main() -> std::io::Result<()> {
                     .route(web::put().to_async(user_controller::put_user))
                     .route(web::delete().to_async(user_controller::delete_user))
             )
+            // this means that the user_url frontend has routing to the add user page 
             .service(
                 web::resource(&user_url(""))
                     .route(web::post().to_async(user_controller::post_user))

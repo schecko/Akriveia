@@ -2,7 +2,7 @@ use common::*;
 use crate::util;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, };
+use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
 
 #[derive(Copy, Clone)]
 pub enum UserType {
@@ -12,9 +12,7 @@ pub enum UserType {
 
 pub enum Msg {
     AddAnotherUser,
-    
-    InputMacAddress(String),
-    // bool is True if user else emergency user   
+    InputMacAddress(String),   
     InputName(String, UserType),
     InputEmployeeID(String, UserType),
     InputWorkPhone(String, UserType),
@@ -84,7 +82,7 @@ pub struct UserAddUpdate {
     self_link: ComponentLink<Self>,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, Properties)]
 pub struct UserAddUpdateProps {
     pub id: Option<i32>,
 }
@@ -192,7 +190,6 @@ impl Component for UserAddUpdate {
 
                 // Do we need to validate the data?
                 let success = self.data.validate();
-                let many_users = (&self.data.user, &self.data.emergency_user);
 
                 match self.data.id {
                     Some(id) if success => {
@@ -203,7 +200,7 @@ impl Component for UserAddUpdate {
                          self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
-                            self.data.user,
+                            (&self.data.user, &self.data.emergency_user),
                             self.self_link,
                             Msg::ResponseUpdateUser
                         );
@@ -214,7 +211,8 @@ impl Component for UserAddUpdate {
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &user_url(""),
-                            many_users,
+                            (&self.data.user, &self.data.emergency_user),
+                            //self.data.user,
                             self.self_link,
                             Msg::ResponseAddUser
                         );
@@ -237,12 +235,13 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() { 
                     match body {
                         Ok(result) => {
-                            // What reponse is needed as to get user
                             self.data.user = result.unwrap_or(TrackedUser::new());
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
-                            // Why does this have to be Some(...)
-                            // Might be perhaps emergency_contact is an optoin
-                            self.data.user.emergency_contact = Some(self.data.emergency_user.clone().unwrap().id);
+                            match &self.data.emergency_user {
+                                Some(opt_e_user) => 
+                                    self.data.user.emergency_contact = Some(opt_e_user.id),
+                                None => {},
+                            }
                         }
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find user, reason: {}", e));

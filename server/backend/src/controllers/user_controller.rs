@@ -50,6 +50,7 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> im
     }
 }
 
+// TODO add prefetch to get emergency_user
 pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
@@ -68,12 +69,32 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
 // new user
 // How to send a tuple of TrackedUser as a Json<original_user, emergency_user>?
 // How to find a way to add two users instead of just one
-pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: (web::Json<TrackedUser>, web::Json<TrackedUser>)) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let users = payload.into_inner();
+    let mut user = users.0;
+    let e_user = users.1;
+
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
-            // What is payload? How come the parameters of post_user() is not called in /backend/main.res
-            user::insert_user(client, payload.0);
-            user::insert_user(client, payload.1)
+            // What is payload? How come the parameters of post_user() is not called in /backend/main
+            // and_then must return a result
+            match e_user {
+                Some(e_user) => Either::A(user::insert_user(client, e_user)),
+                None => Either::B(ok((client, None))),
+            }
+        })
+        // and_then wraps the function input and returns the wrapped value
+        // https://doc.rust-lang.org/rust-by-example/error/option_unwrap/and_then.html
+        // TODO add to Anki
+        .and_then(|(_client, opt_e_user)| {
+            match &opt_e_user {
+                Some(emergency_user) => user.emergency_contact = Some(emergency_user.id),
+                None => {},
+            }
+            user::insert_user(_client, user)
+            .map(|(_client, user)|{ 
+                (user, opt_e_user)
+            })
         })
         .map_err(|postgres_err| {
             println!("{}", postgres_err);
@@ -88,17 +109,76 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
 }
 
 // update user
-pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<TrackedUser>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+
+    let users = payload.into_inner();
+    let mut user = users.0;
+    let e_user = users.1;
+
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
-            user::update_user(client, payload.0)
+        // How do I check if the emergency user exists already and not to insert a new one?
+            match user.emergency_contact {
+                Some(contact) => { 
+                    let futA = match e_user {
+                        // update the emergency user with new info
+                        Some(e) => Either::A(user::update_user(client, e)
+                            .map(move |(client, opt_e)| (client, user, opt_e))),
+                        // emergency user exists, but does not need to be update
+                        None => Either::B(ok((client, user, None))),
+                    };
+                    Either::A(ok(futA))
+                },
+                None => {
+                    let futB = match e_user {
+                        Some(e) => Either::A(user::insert_user(client, e)
+                                .and_then(move |(client, opt_e)| {
+                                    if let Some(new_contact) = & opt_e {
+                                        user.emergency_contact = Some(new_contact.id);
+                                    }
+                                    (client, user, opt_e)
+                                })
+                        ),
+                        None => Either::B(ok(client, user, None)),
+                    };
+                    Either::B(ok(futB))
+                },
+            }
+        })
+       /* .and_then(move |client| {
+            match e_user {
+                Some(opt_e) => { 
+                    // update the emergency user with new info
+                    match user.emergency_contact {
+                        Some(contact) => Either::A(user::update_user(client, opt_e)
+                            .map(move |(client, opt_e)| (client, user, opt_e))),
+                        // emergency user exists but needs to be inserted
+                        None => {
+                            Either::B(user::insert_user(client, opt_e)
+                                .and_then(move |(client, opt_e)| {
+                                    if let Some(new_contact) = & opt_e {
+                                        user.emergency_contact = Some(new_contact.id);
+                                    }
+                                    (client, user, opt_e)
+                                })
+                        )}
+                    }
+                },
+                None => ok((client, user, None)),
+            }
+        })*/
+        .and_then(|(_client, user, opt_e_user)| {
+            user::update_user(_client, user)
+                .map(move |(client, opt_user)| {
+                    (client, opt_user, opt_e_user)
+                })
         })
         .map_err(|postgres_err| {
             error::ErrorBadRequest(postgres_err)
         })
-        .and_then(|(_client, user)| {
-            match user {
-                Some(u) => HttpResponse::Ok().json(u),
+        .and_then(|(_client, opt_user, opt_e_user)| {
+            match opt_user {
+                Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
                 None => HttpResponse::NotFound().finish(),
             }
         })
