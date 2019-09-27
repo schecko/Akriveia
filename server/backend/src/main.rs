@@ -23,6 +23,7 @@ use controllers::beacon_controller;
 use controllers::map_controller;
 use controllers::system_controller;
 use controllers::user_controller;
+use controllers::network_interface_controller;
 
 //use models::beacon;
 //use models::map;
@@ -195,6 +196,23 @@ fn main() -> std::io::Result<()> {
                 web::resource(&system_diagnostics_url())
                     .route(web::get().to_async(system_controller::diagnostics))
             )
+
+            // network
+            .service(
+                web::resource(&networks_url())
+                    .route(web::get().to_async(network_interface_controller::get_network_interfaces))
+            )
+            .service(
+                web::resource(&network_url("{id}"))
+                    .route(web::get().to_async(network_interface_controller::get_network_interface))
+                    .route(web::put().to_async(network_interface_controller::put_network_interface))
+                    .route(web::delete().to_async(network_interface_controller::delete_network_interface))
+            )
+            .service(
+                web::resource(&network_url(""))
+                    .route(web::post().to_async(network_interface_controller::post_network_interface))
+            )
+
             .service(web::resource(&users_realtime_url()).to_async(user_controller::realtime_users))
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))

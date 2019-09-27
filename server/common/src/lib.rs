@@ -37,11 +37,11 @@ pub fn maps_url() -> String {
     return String::from("/maps");
 }
 
-pub fn system_network_url(id: &str) -> String {
-    return format!("/system/network/{}", id);
+pub fn network_url(id: &str) -> String {
+    return format!("/network/{}", id);
 }
-pub fn system_networks_url() -> String {
-    return String::from("/system/networks");
+pub fn networks_url() -> String {
+    return String::from("/networks");
 }
 
 pub fn system_emergency_url() -> String {
