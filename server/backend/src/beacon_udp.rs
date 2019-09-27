@@ -70,13 +70,13 @@ impl Handler<BeaconCommand> for BeaconUDP {
 
     fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
 
-        let broad: SocketAddr = "127.0.0.255:8082".parse().unwrap();
+        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port + 1);
         match msg {
             BeaconCommand::StartEmergency => {
-                self.sink.write((Bytes::from("start"), broad));
+                self.sink.write((Bytes::from("start"), broadcast)).expect("failed to send start");
             },
             BeaconCommand::EndEmergency => {
-                self.sink.write((Bytes::from("end"), broad));
+                self.sink.write((Bytes::from("end"), broadcast)).expect("failed to send end");
             },
             _ => {
             }

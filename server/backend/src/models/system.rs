@@ -82,7 +82,7 @@ const SCHEMA: [&str; 27] = [
     "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "INSERT INTO system.network_interfaces(n_mac, n_beacon_port, n_webserver_port, n_mask, n_ip, n_name)
-            VALUES('00:00:00:00:00:00', 8082, 8081, 8, '127.0.0.1', 'localhost')
+            VALUES('00:00:00:00:00:00', 8081, 8080, 24, '127.0.0.1', 'localhost')
     ",
     // TODO remove after implementing frontend
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
