@@ -6,6 +6,7 @@
 #if defined(ESP32)
 const uint8_t PIN_SCK = 18;
 const uint8_t PIN_MOSI = 23;
+
 const uint8_t PIN_MISO = 19;
 const uint8_t PIN_SS = 2;
 const uint8_t PIN_RST = 15;
@@ -17,8 +18,8 @@ const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:01";
-uint16_t dex = 1;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
+uint16_t dex = 10;
 bool is_head = true;
 bool is_tail = false;
 
@@ -27,8 +28,8 @@ uint16_t next_anchor;
 
 double range_self;
 uint16_t blink_rate = 200;
-byte tag_shortAddress[] = {0x05, 0x00};
-String TAG_EUI = "AA:BB";
+byte tag_shortAddress[] = {0x00, 0x01};
+String TAG_EUI = "01";
 
 const byte numChars = 50;
 char receivedChars[numChars];
@@ -141,7 +142,6 @@ void loop() {
     }
     newData = false;
   }
-
 }
 
 
