@@ -14,11 +14,6 @@ const char* hostAddress = "192.168.1.104";
 const int UdpPort = 15400;
 int wifi_timeout = 10 * 1000;
 
-IPAddress staticIP(192, 168, 1, 121);
-IPAddress gateway(192, 168, 1, 254);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress dns(8, 8, 8, 8);
-
 char incomingPacket[255];
 bool system_on = false;
 String packet;
