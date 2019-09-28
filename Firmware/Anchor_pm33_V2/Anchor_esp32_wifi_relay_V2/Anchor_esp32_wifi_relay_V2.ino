@@ -25,7 +25,6 @@ void setup() {
   Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
-  WiFi.config(staticIP, subnet, gateway, dns);
   WiFi.begin(ssid, password);
   Serial.println("Connecting to WiFi");
   unsigned long start_wait = millis();
