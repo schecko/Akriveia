@@ -8,8 +8,8 @@ const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
 
-const char* ssid = "TELUS3854";
-const char* password = "tsp5df7yfy";
+const char* ssid = "akriveia";
+const char* password = "";
 const char* hostAddress = "192.168.1.104";
 const int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
