@@ -8,11 +8,16 @@ const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
 
-const char* ssid = "akriveia";
+const char* ssid = "AP";
 const char* password = "";
-const char* hostAddress = "10.0.0.3";
-const int UdpPort = 9998;
+const char* hostAddress = "192.168.1.104";
+const int UdpPort = 15400;
 int wifi_timeout = 10 * 1000;
+
+IPAddress staticIP(192, 168, 1, 121);
+IPAddress gateway(192, 168, 1, 254);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress dns(8, 8, 8, 8);
 
 char incomingPacket[255];
 bool system_on = false;
@@ -22,19 +27,20 @@ WiFiUDP Udp;
 
 void setup() {
 
-  //  Serial.begin(115200);
+  Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
+  WiFi.config(staticIP, subnet, gateway, dns);
   WiFi.begin(ssid, password);
-  //  Serial.println("Connecting to WiFi");
+  Serial.println("Connecting to WiFi");
   unsigned long start_wait = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start_wait <= wifi_timeout) {
-    //    Serial.print(".");
+    Serial.print(".");
     delay(500);
   }
 
-  //  Serial.println("Connected! IP address: " + WiFi.localIP().toString());
-  //  Serial.printf("UDP port %d\n", UdpPort);
+  Serial.println("Connected! IP address: " + WiFi.localIP().toString());
+  Serial.printf("UDP port %d\n", UdpPort);
   Udp.begin(UdpPort);
 }
 
@@ -68,16 +74,16 @@ void loop() {
 
   int packetSize = Udp.parsePacket();
   if (packetSize) {
-    //    Serial.printf("Received %d bytes from %s:%d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+    Serial.printf("Received %d bytes from %s:%d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
     int len = Udp.read(incomingPacket, 255);
     if (len > 0) incomingPacket[len] = 0;
-    //    Serial.printf("UDP Packet Contents: %s", incomingPacket);
+    Serial.printf("UDP Packet Contents: %s", incomingPacket);
     Serial2.println("<" + String(incomingPacket) + '>');
   }
 
   recvWithStartEndMarkers();
   if (newData == true) {
-    //    Serial.println(String(receivedChars));
+    Serial.println(String(receivedChars));
     if (WiFi.status() == WL_CONNECTED) {
       Udp.beginPacket(hostAddress, UdpPort);
       Udp.printf((String(receivedChars) + "\n").c_str());

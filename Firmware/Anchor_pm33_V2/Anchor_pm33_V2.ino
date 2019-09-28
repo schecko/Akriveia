@@ -28,8 +28,8 @@ uint16_t next_anchor;
 
 double range_self;
 uint16_t blink_rate = 200;
-byte tag_shortAddress[] = {0x00, 0x01};
-String TAG_EUI = "01";
+byte tag_shortAddress[] = {0x05, 0x00};
+String TAG_EUI = "00";
 
 const byte numChars = 50;
 char receivedChars[numChars];
