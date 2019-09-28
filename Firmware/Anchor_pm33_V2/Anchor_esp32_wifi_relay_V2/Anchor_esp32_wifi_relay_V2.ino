@@ -8,14 +8,13 @@ const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
 
-const char* ssid = "AP";
+const char* ssid = "akriveia";
 const char* password = "";
 const char* hostAddress = "192.168.1.104";
-const int UdpPort = 15400;
+const int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
 
 char incomingPacket[255];
-bool system_on = false;
 String packet;
 
 WiFiUDP Udp;
@@ -36,6 +35,10 @@ void setup() {
   Serial.println("Connected! IP address: " + WiFi.localIP().toString());
   Serial.printf("UDP port %d\n", UdpPort);
   Udp.begin(UdpPort);
+
+  Udp.beginPacket(hostAddress, UdpPort);
+  Udp.printf("udp_ack\n");
+  Udp.endPacket();
 }
 
 void recvWithStartEndMarkers() {
