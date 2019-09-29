@@ -1,28 +1,48 @@
 
 use common::MacAddress;
 use regex::Regex;
+use std::error::Error;
+use std::fmt;
 
-pub struct MessageError {
+#[derive(Debug)]
+pub enum MessageError {
+    ParseFormat,
+    ParseFloat,
+    ParseMac,
 }
+
+impl fmt::Display for MessageError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MessageError::ParseFormat => write!(f, "Invalid message format"),
+            MessageError::ParseFloat => write!(f, "Failed to parse float"),
+            MessageError::ParseMac => write!(f, "Failed to parse mac address"),
+        }
+    }
+}
+
+impl Error for MessageError {
+     fn cause(&self) -> Option<&dyn Error> {
+         None
+     }
+ }
 
 impl From<eui48::ParseError> for MessageError {
     fn from(_item: eui48::ParseError) -> Self {
-        MessageError {  }
+        MessageError::ParseMac
     }
 }
 
 impl From<std::num::ParseFloatError> for MessageError {
     fn from(_item: std::num::ParseFloatError) -> Self {
-        MessageError {  }
+        MessageError::ParseFloat
     }
 }
 
 pub fn parse_message(message: &str) -> Result<common::TagData, MessageError> {
 
-    let mut last_line = "";
     let split: Vec<&str> = message.split("|").collect();
     if split.len() == 3 {
-
         let beacon_mac = MacAddress::parse_str(split[0])?;
         let tag_mac = MacAddress::parse_str(split[1])?;
         let distance = split[2];
@@ -33,7 +53,7 @@ pub fn parse_message(message: &str) -> Result<common::TagData, MessageError> {
         // a newline at the end of rssi_stripped. from_str_radix REQUIRES
         // all numeric characters.
         if distance_stripped.len() <= 0 {
-            return Err(MessageError{});
+            return Err(MessageError::ParseFormat)
         }
         let distance_numeric = distance_stripped[..distance_stripped.len() - 1].parse::<f64>()?;
         Ok(common::TagData {
@@ -42,7 +62,7 @@ pub fn parse_message(message: &str) -> Result<common::TagData, MessageError> {
             tag_mac,
         })
     } else {
-        // incomplete transmission, or bad frame
-        Err(MessageError{})
+        // incomplete transmission
+        Err(MessageError::ParseFormat)
     }
 }
