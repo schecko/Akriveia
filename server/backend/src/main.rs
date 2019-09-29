@@ -9,6 +9,8 @@ extern crate futures;
 extern crate ipnet;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
+extern crate eui48;
+extern crate eui64;
 
 mod beacon_dummy;
 mod beacon_manager;
@@ -18,6 +20,7 @@ mod controllers;
 mod data_processor;
 mod db_utils;
 mod models;
+mod conn_common;
 
 use controllers::beacon_controller;
 use controllers::map_controller;

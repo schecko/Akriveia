@@ -11,7 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 chrono = { version = "0.4.0", features = ["serde"] }
-eui48 = { version =  "0.4.6", default-features = false, features = ["serde", "serde_json"] }
+eui48 = { version = "0.4.6", default-features = false, features = ["serde", "serde_json"] }
 ipnet = { version = "2.0.0", features = ["serde"] }
 nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
 serde = "1.0"
