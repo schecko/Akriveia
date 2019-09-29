@@ -21,7 +21,6 @@ use serialport;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
-use futures::future::{ ok, Either, };
 
 pub struct BeaconManager {
     pub emergency: bool,

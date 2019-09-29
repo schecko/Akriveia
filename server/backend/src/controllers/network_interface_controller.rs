@@ -4,7 +4,6 @@ use common::NetworkInterface;
 use crate::db_utils;
 use crate::models::network_interface;
 use futures::{ future::ok, Future, future::Either, };
-use serde_derive::{ Deserialize, };
 use std::sync::*;
 
 pub fn get_network_interface(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {

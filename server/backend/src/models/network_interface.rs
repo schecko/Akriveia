@@ -1,11 +1,8 @@
 
 use common::*;
-use crate::models::map;
 use futures::{ Stream, Future, IntoFuture, };
-use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
-use tokio_postgres::types;
 use ipnet::Ipv4Net;
 use std::net::{ IpAddr, Ipv4Addr, };
 

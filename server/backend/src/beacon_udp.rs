@@ -5,12 +5,12 @@ extern crate bytes;
 
 use actix::io::{ WriteHandler, SinkWrite, };
 use actix::prelude::*;
-use actix::{ Actor, Context, StreamHandler, fut::Either, };
+use actix::{ Actor, Context, StreamHandler, };
 use bytes::{ BytesMut, Bytes };
 use crate::beacon_manager::*;
-use crate::conn_common::{ self, MessageError, };
+use crate::conn_common;
 use futures::stream::SplitSink;
-use futures::{ stream, Stream, Sink, future::ok, };
+use futures::{ Stream, };
 use ipnet::Ipv4Net;
 use std::io;
 use std::net::IpAddr;
@@ -19,7 +19,6 @@ use tokio::codec::BytesCodec;
 use tokio::net::{ UdpSocket, UdpFramed };
 
 pub struct BeaconUDP {
-    beacon_ips: Vec<SocketAddr>,
     bound_ip: Ipv4Net,
     bound_port: u16,
     manager: Addr<BeaconManager>,
@@ -72,7 +71,7 @@ impl StreamHandler<Frame, io::Error> for BeaconUDP {
 impl Handler<BeaconCommand> for BeaconUDP {
     type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BeaconCommand, _context: &mut Context<Self>) -> Self::Result {
 
         let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port + 1);
         match msg {
@@ -106,7 +105,6 @@ impl BeaconUDP {
             context.add_stream(stream.map(|(data, sender)| Frame { data, addr: sender }));
             let sw = SinkWrite::new(sink, context);
             BeaconUDP {
-                beacon_ips: Vec::new(),
                 bound_ip: ip,
                 bound_port: port,
                 manager,

@@ -2,19 +2,15 @@ extern crate serialport;
 extern crate regex;
 
 use actix::prelude::*;
-use common::MacAddress;
 use crate::beacon_manager::*;
 use crate::conn_common::{ self, MessageError, };
-use regex::Regex;
 use serialport::*;
 use std::io::*;
 use std::io::{ self, Write };
-use std::str;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-#[allow(dead_code)] // remove this once vid/pid are actually used.
 pub struct BeaconSerialConn {
     pub port_name: String,
     pub vid: u16,
@@ -84,7 +80,6 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                 }
 
                 // start polling data
-                //println!("Receiving data on {} :", &beacon_info.port_name);
                 let mut serial_buffer: Vec<u8> = Vec::new();
                 loop {
                     match beacon_info.receive.try_recv() {

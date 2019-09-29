@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
@@ -28,19 +28,16 @@ use controllers::system_controller;
 use controllers::user_controller;
 use controllers::network_interface_controller;
 
-//use models::beacon;
-//use models::map;
 use models::system;
-//use models::user;
 
 use actix::prelude::*;
 use actix_files as fs;
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
+use common::*;
 use data_processor::*;
 use std::env;
 use std::sync::*;
-use common::*;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
@@ -68,10 +65,6 @@ fn default_route(req: HttpRequest) -> HttpResponse {
     println!("request was: {:?}", req);
     HttpResponse::NotFound().finish()
 }
-
-use std::net::UdpSocket;
-use bytes::{ Bytes };
-use std::time;
 
 fn main() -> std::io::Result<()> {
     let system = System::new("Akriviea");
