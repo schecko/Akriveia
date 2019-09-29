@@ -120,7 +120,9 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
 
                         match conn_common::parse_message(line) {
                             Ok(msg) => {
-                                beacon_info.manager.do_send(TagDataMessage { data: msg }).expect("serial beacon could not send message to manager");
+                                beacon_info.manager
+                                    .do_send(TagDataMessage { data: msg })
+                                    .expect("serial beacon could not send message to manager");
                             },
                             Err(e) => {
                                 match e {

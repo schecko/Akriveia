@@ -92,7 +92,7 @@ impl BeaconManager {
                 for iface in ifaces {
                     match iface.beacon_port {
                         Some(port) => {
-                            actor.udp_connections.push(BeaconUDP::new(iface.ip.clone(), port as u16));
+                            actor.udp_connections.push(BeaconUDP::new(context.address(), iface.ip.clone(), port as u16));
                         },
                         None => {},
                     }
