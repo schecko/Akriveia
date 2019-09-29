@@ -322,7 +322,7 @@ mod tests {
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
-        user.mac_address = MacAddress::from_bytes(&[0, 0, 3, 0, 0, 0]).unwrap();
+        user.mac_address = ShortAddress::from_bytes(&[0, 3]).unwrap();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -330,7 +330,7 @@ mod tests {
             })
             .and_then(|(client, opt_user)| {
                 let mac = opt_user.unwrap().mac_address;
-                update_user_coords_by_mac(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
+                update_user_coords_by_short(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
             })
             .map(|(_client, _user)| {
             })

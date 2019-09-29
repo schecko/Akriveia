@@ -204,8 +204,6 @@ mod tests {
     use super::*;
     use crate::db_utils;
     use tokio::runtime::current_thread::Runtime;
-    use std::net::{ IpAddr, Ipv4Addr, };
-    use futures::future::join_all;
 
     #[test]
     fn insert() {
