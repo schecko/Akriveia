@@ -1,5 +1,5 @@
 
-use common::MacAddress;
+use common::{ MacAddress8, ShortAddress, };
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
@@ -27,8 +27,14 @@ impl Error for MessageError {
      }
  }
 
-impl From<eui48::ParseError> for MessageError {
-    fn from(_item: eui48::ParseError) -> Self {
+impl From<eui64::ParseError> for MessageError {
+    fn from(_item: eui64::ParseError) -> Self {
+        MessageError::ParseMac
+    }
+}
+
+impl From<common::short_address::ParseError> for MessageError {
+    fn from(_item: common::short_address::ParseError) -> Self {
         MessageError::ParseMac
     }
 }
@@ -43,8 +49,8 @@ pub fn parse_message(message: &str) -> Result<common::TagData, MessageError> {
 
     let split: Vec<&str> = message.split("|").collect();
     if split.len() == 3 {
-        let beacon_mac = MacAddress::parse_str(split[0])?;
-        let tag_mac = MacAddress::parse_str(split[1])?;
+        let beacon_mac = MacAddress8::parse_str(split[0])?;
+        let tag_mac = ShortAddress::parse_str(split[1])?;
         let distance = split[2];
         let reg = Regex::new(r"/[^$0-9]+/").unwrap();
         let distance_stripped = reg.replace_all(&distance, "");

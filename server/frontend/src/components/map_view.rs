@@ -14,7 +14,7 @@ const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
     Ignore,
-    ViewDistance(MacAddress),
+    ViewDistance(ShortAddress),
     ChooseMap(i32),
 
     RequestGetBeaconsForMap(i32),
@@ -42,7 +42,7 @@ pub struct MapViewComponent {
     current_map: Option<Map>,
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
-    show_distance: Option<MacAddress>,
+    show_distance: Option<ShortAddress>,
     users: Vec<TrackedUser>,
 }
 
@@ -275,9 +275,9 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             };
             html! {
                 <ValueButton<String>
-                    on_click=|value: String| Msg::ViewDistance(MacAddress::parse_str(&value).unwrap()),
+                    on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
                     border=set_border,
-                    value={user.mac_address.to_hex_string()}
+                    value={user.mac_address.to_string()}
                 />
             }
         });

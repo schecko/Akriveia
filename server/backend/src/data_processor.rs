@@ -7,7 +7,7 @@ use na;
 use crate::db_utils;
 use crate::models::beacon;
 use crate::models::user;
-use common::MacAddress;
+use common::{ MacAddress8, ShortAddress, };
 use futures::future::{ ok, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
@@ -15,19 +15,19 @@ const LOCATION_HISTORY_SIZE: usize = 5;
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHistory {
-    pub tag_mac: MacAddress,
-    pub beacon_history: BTreeMap<MacAddress, VecDeque<f64>>,
+    pub tag_mac: ShortAddress,
+    pub beacon_history: BTreeMap<MacAddress8, VecDeque<f64>>,
 }
 
 pub struct DataProcessor {
     // this hash maps the id_tag mac address to data points for that id tag.
-    tag_hash: HashMap<MacAddress, Box<TagHistory>>,
+    tag_hash: HashMap<ShortAddress, Box<TagHistory>>,
     // TODO support floors
     // TODO init with db data?
     // this tree maps tag mac addresses to users
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
-    users: BTreeMap<MacAddress, common::TrackedUser>
+    users: BTreeMap<ShortAddress, common::TrackedUser>
 }
 
 impl DataProcessor {
@@ -154,7 +154,7 @@ impl Handler<InLocationData> for DataProcessor {
 
         let fut = match opt_averages {
             Some(averages) => {
-                let beacon_macs: Vec<MacAddress>  = averages.iter().map(|tagdata| tagdata.beacon_mac).collect();
+                let beacon_macs: Vec<MacAddress8>  = averages.iter().map(|tagdata| tagdata.beacon_mac).collect();
                 actix::fut::Either::A(db_utils::default_connect()
                     .and_then(|client| {
                         beacon::select_beacons_by_mac(client, beacon_macs)
@@ -189,7 +189,7 @@ impl Handler<InLocationData> for DataProcessor {
                                 actor.users.insert(averages[0].tag_mac.clone(), user);
                             }
                         }
-                        user::update_user_coords_by_mac(client, averages[0].tag_mac, new_tag_location)
+                        user::update_user_coords_by_short(client, averages[0].tag_mac, new_tag_location)
                             .map(|(_client, _opt_user)| {
                             })
                             .into_actor(actor)

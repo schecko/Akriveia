@@ -108,7 +108,7 @@ impl Canvas {
         self.context.restore();
     }
 
-    pub fn draw_users(&mut self, map: &Map, users: &Vec<TrackedUser>, show_distance: Option<MacAddress>) {
+    pub fn draw_users(&mut self, map: &Map, users: &Vec<TrackedUser>, show_distance: Option<ShortAddress>) {
         self.context.save();
         for user in users.iter() {
             let user_pos = screen_space(

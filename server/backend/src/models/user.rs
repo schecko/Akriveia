@@ -17,7 +17,10 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_emergency_contact" => entry.emergency_contact = row.get(i),
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
-            "u_mac_address" => entry.mac_address = row.get(i),
+            "u_mac_address" => {
+                let mac_vec: Vec<u8> = row.get(i);
+                entry.mac_address = ShortAddress::from_bytes(&mac_vec).unwrap();
+            },
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
@@ -113,7 +116,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::MACADDR,
+            Type::CHAR_ARRAY,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -127,7 +130,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.emergency_contact,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address,
+                    &user.mac_address.as_bytes().to_vec(),
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -168,7 +171,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::MACADDR,
+            Type::CHAR_ARRAY,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -183,7 +186,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.emergency_contact,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address,
+                    &user.mac_address.as_bytes().to_vec(),
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -203,7 +206,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: ShortAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.users
@@ -221,7 +224,7 @@ pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAdd
             client
                 .query(&statement, &[
                     &coordinates,
-                    &mac,
+                    &mac.as_bytes().to_vec(),
                 ])
                 .into_future()
                 .map_err(|err| {

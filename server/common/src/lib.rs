@@ -1,14 +1,21 @@
 extern crate serde_derive;
 extern crate nalgebra as na;
 extern crate eui48;
+extern crate eui64;
 extern crate ipnet;
+#[cfg(postgres_traits)]
+extern crate tokio_postgres;
 
-use serde_derive::{ Deserialize, Serialize, };
-pub use eui48::MacAddress;
-pub use chrono::{ DateTime, Utc, };
+pub mod short_address;
+
 pub use chrono::offset::TimeZone;
+pub use chrono::{ DateTime, Utc, };
+pub use eui48::MacAddress;
+pub use eui64::MacAddress8;
+pub use short_address::ShortAddress;
+use ipnet::{ Ipv4Net, };
+use serde_derive::{ Deserialize, Serialize, };
 use std::net::{ IpAddr, Ipv4Addr, };
-use ipnet::{ IpNet, Ipv4Net, };
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
@@ -70,11 +77,12 @@ impl SystemCommandResponse {
     }
 }
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
-    pub beacon_mac: MacAddress,
+    pub beacon_mac: MacAddress8,
     pub tag_distance: f64,
-    pub tag_mac: MacAddress,
+    pub tag_mac: ShortAddress,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -105,7 +113,7 @@ pub struct TrackedUser {
     pub emergency_contact: Option<i32>,
     pub employee_id: Option<String>,
     pub last_active: DateTime<Utc>,
-    pub mac_address: MacAddress,
+    pub mac_address: ShortAddress,
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
@@ -123,7 +131,7 @@ impl TrackedUser {
             emergency_contact: None,
             employee_id: None,
             last_active: Utc.timestamp(0, 0),
-            mac_address: MacAddress::nil(),
+            mac_address: ShortAddress::nil(),
             map_id: None,
             name: String::new(),
             note: None,
@@ -139,7 +147,7 @@ pub struct Beacon {
     pub id: i32, // primary key
     pub coordinates: na::Vector2<f64>,
     pub ip: IpAddr,
-    pub mac_address: MacAddress,
+    pub mac_address: MacAddress8,
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
@@ -151,7 +159,7 @@ impl Beacon {
             id: -1,
             coordinates: na::Vector2::new(0.0, 0.0),
             ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            mac_address: MacAddress::nil(),
+            mac_address: MacAddress8::nil(),
             map_id: None,
             name: String::new(),
             note: None,

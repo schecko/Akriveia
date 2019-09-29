@@ -36,7 +36,7 @@ const SCHEMA: [&str; 27] = [
         u_emergency_contact INTEGER REFERENCES runtime.users(u_id),
         u_employee_id VARCHAR(256),
         u_last_active TIMESTAMPTZ NOT NULL,
-        u_mac_address MACADDR,
+        u_mac_address CHAR[2] UNIQUE,
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
         u_note VARCHAR(1024),
@@ -44,7 +44,7 @@ const SCHEMA: [&str; 27] = [
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
-        b_mac_address MACADDR UNIQUE,
+        b_mac_address CHAR[8] UNIQUE,
         b_ip INET UNIQUE,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
