@@ -12,8 +12,8 @@ pub fn row_to_beacon(row: &Row) -> Beacon {
         match column.name() {
             "b_id" => b.id = row.get(i),
             "b_mac_address" => {
-                let mac_vec: Vec<u8> = row.get(i);
-                b.mac_address = MacAddress8::from_bytes(&mac_vec).unwrap();
+                let mac_vec: String = row.get(i);
+                b.mac_address = MacAddress8::parse_str(&mac_vec).unwrap();
             },
             "b_ip" => b.ip = row.get(i),
             "b_coordinates" => {
@@ -120,16 +120,16 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
             SELECT * FROM runtime.beacons
             WHERE b_mac_address IN ($1, $2, $3)
         ", &[
-            Type::MACADDR,
-            Type::MACADDR,
-            Type::MACADDR,
+            Type::TEXT,
+            Type::TEXT,
+            Type::TEXT,
         ])
         .and_then(move |statement| {
             client
                 .query(&statement, &[
-                    &macs[0].as_bytes().to_vec(),
-                    &macs[1].as_bytes().to_vec(),
-                    &macs[2].as_bytes().to_vec()
+                    &macs[0].to_hex_string(),
+                    &macs[1].to_hex_string(),
+                    &macs[2].to_hex_string(),
                 ])
                 .collect()
                 .into_future()
@@ -178,12 +178,12 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 b_name,
                 b_note
             )
-            VALUES( $1, $2, $3, $4, $5, $6 )
+            VALUES( $1, $2, $3::MACADDR8, $4, $5, $6 )
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
             Type::INET,
-            Type::CHAR_ARRAY,
+            Type::TEXT,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -194,7 +194,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 .query(&statement, &[
                     &coords,
                     &beacon.ip,
-                    &beacon.mac_address.as_bytes().to_vec(),
+                    &beacon.mac_address.to_hex_string(),
                     &beacon.map_id,
                     &beacon.name,
                     &beacon.note
@@ -219,7 +219,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             SET
                 b_coordinates = $1,
                 b_ip = $2,
-                b_mac_address = $3,
+                b_mac_address = $3::MACADDR8,
                 b_map_id = $4,
                 b_name = $5,
                 b_note = $6
@@ -229,7 +229,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         ", &[
             Type::FLOAT8_ARRAY,
             Type::INET,
-            Type::CHAR_ARRAY,
+            Type::TEXT,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -241,7 +241,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 .query(&statement, &[
                     &coords,
                     &beacon.ip,
-                    &beacon.mac_address.as_bytes().to_vec(),
+                    &beacon.mac_address.to_hex_string(),
                     &beacon.map_id,
                     &beacon.name,
                     &beacon.note,
@@ -518,7 +518,7 @@ mod tests {
         let mut beacons = vec![Beacon::new(), Beacon::new(), Beacon::new()];
         for (i, mut b) in beacons.iter_mut().enumerate() {
             b.name = i.to_string();
-            b.mac_address = MacAddress8::from_bytes(&[i as u8, 0, 0, 0, 0, 0]).unwrap();
+            b.mac_address = MacAddress8::from_bytes(&[i as u8, 0, 0, 0, 0, 0, 0, 0]).unwrap();
             b.ip = IpAddr::V4(Ipv4Addr::new(i as u8, 0, 0, 0));
         }
 

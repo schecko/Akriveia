@@ -53,6 +53,22 @@ impl ShortAddress {
         &self.addr
     }
 
+    pub fn as_pg(&self) -> i16 {
+        let res = unsafe {
+            std::mem::transmute::<[u8; 2], i16>(self.addr)
+        };
+        res
+    }
+
+    pub fn from_pg(addr: i16) -> ShortAddress {
+        let res = unsafe {
+            std::mem::transmute::<i16, [u8; 2]>(addr)
+        };
+        ShortAddress {
+            addr: res,
+        }
+    }
+
     pub fn to_array(&self) -> [u8; 2] {
         self.addr
     }
