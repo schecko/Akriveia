@@ -44,7 +44,7 @@ const SCHEMA: [&str; 27] = [
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
-        b_mac_address CHAR[8] UNIQUE,
+        b_mac_address MACADDR8 UNIQUE,
         b_ip INET UNIQUE,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
@@ -86,19 +86,19 @@ const SCHEMA: [&str; 27] = [
     ",
     // TODO remove after implementing frontend
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
-            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '80:00:00:00:00:00')
+            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], ARRAY [ x'00'::CHAR, x'08'::CHAR ])
     ",
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 400, 400 ], 'test_map', 100)
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(100, '00:00:00:00:00:01', '0.0.0.1', ARRAY [ 0, 0 ], 69, 'origin_beacon')
+            VALUES(100, '00:00:00:00:00:00:00:01', '0.0.0.1', ARRAY [ 0, 0 ], 69, 'origin_beacon')
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(130, '00:00:00:00:00:02', '0.0.0.2', ARRAY [ 3, 0 ], 69, 'top_left')
+            VALUES(130, '00:00:00:00:00:00:00:02', '0.0.0.2', ARRAY [ 3, 0 ], 69, 'top_left')
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(103, '00:00:00:00:00:03', '0.0.0.3', ARRAY [ 0, 3 ], 69, 'bottom_right')
+            VALUES(103, '00:00:00:00:00:00:00:03', '0.0.0.3', ARRAY [ 0, 3 ], 69, 'bottom_right')
     ",
 ];
 
