@@ -17,9 +17,7 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_emergency_contact" => entry.emergency_contact = row.get(i),
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
-            "u_mac_address" => {
-                entry.mac_address = ShortAddress::from_pg(row.get(i));
-            },
+            "u_mac_address" => entry.mac_address = row.get(i),
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
@@ -115,7 +113,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::INT2,
+            Type::CHAR_ARRAY,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -129,7 +127,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.emergency_contact,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address.as_pg(),
+                    &user.mac_address,
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -171,7 +169,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::INT2,
+            Type::CHAR_ARRAY,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -186,7 +184,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.emergency_contact,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address.as_pg(),
+                    &user.mac_address,
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -217,14 +215,14 @@ pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: Shor
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
-            Type::INT2,
+            Type::CHAR_ARRAY,
         ])
         .and_then(move |statement| {
             let coordinates = vec![coords[0], coords[1]];
             client
                 .query(&statement, &[
                     &coordinates,
-                    &mac.as_pg(),
+                    &mac,
                 ])
                 .into_future()
                 .map_err(|err| {

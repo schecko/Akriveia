@@ -3,10 +3,14 @@ extern crate nalgebra as na;
 extern crate eui48;
 extern crate eui64;
 extern crate ipnet;
-#[cfg(postgres_traits)]
+
+#[cfg(feature = "with_postgres")]
+#[macro_use]
 extern crate tokio_postgres;
 
 pub mod short_address;
+#[cfg(feature = "with_postgres")]
+pub mod postgres_traits;
 
 pub use chrono::offset::TimeZone;
 pub use chrono::{ DateTime, Utc, };

@@ -2,8 +2,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::error::Error;
 use std::str::FromStr;
-#[cfg(feature = "postgres_traits")]
-use tokio_postgres::types::{self, FromSql, IsNull, ToSql, Type};
 
 // Credit to https://github.com/abaumhauer/eui48, the short address struct
 // defined here is virtually the same as an eui48, except the short address
@@ -129,28 +127,6 @@ impl ShortAddress {
     }
  }
 
-/*#[cfg(feature = "postgres_traits")]
-impl<'a> FromSql<'a> for ShortAddress {
-    fn from_sql(_: &Type, raw: &[u8]) -> Result<ShortAddress, Box<dyn Error + Sync + Send>> {
-        let bytes = types::macaddr_from_sql(raw)?;
-        Ok(MacAddress::new(bytes))
-    }
-
-    accepts!(MACADDR);
-}*/
-
-/*#[cfg(feature = "postgres_traits")]
-impl ToSql for ShortAddress {
-    fn to_sql(&self, _: &Type, w: &mut Vec<u8>) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        let mut bytes = [0; 6];
-        bytes.copy_from_slice(self.as_bytes());
-        types::array_to_sql(bytes, w);
-        Ok(IsNull::No)
-    }
-
-    accepts!(MACADDR);
-    to_sql_checked!();
-}*/
 impl FromStr for ShortAddress {
     type Err = ParseError;
     fn from_str(us: &str) -> Result<ShortAddress, ParseError> {
