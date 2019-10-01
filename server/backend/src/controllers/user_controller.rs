@@ -3,11 +3,18 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AkriveiaState;
 // What does the OutUserData stuct do?
+// It's for data_processor to probably update user position
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
 use futures::{ future::ok, Future, future::Either, };
+use serde_derive::{ Deserialize, };
 use std::sync::*;
+
+#[derive(Deserialize)]
+pub struct GetParams {
+    prefetch: Option<bool>,
+}
 
 pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
@@ -24,21 +31,37 @@ pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest)
         }})
 }
 
-pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
+    let prefetch = params.prefetch.unwrap_or(false);
     match id {
         Ok(id) if id != -1 => {
+            // returns a HTTPResponse of users?
             Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
                 .and_then(move |client| {
-                    user::select_user(client, id)
+                    if prefetch {
+                        // How can these two statements have the same Either?
+                        // Why does get_beacon have select_user for if prefetch == True
+                        // Select_user_prefetches returns a tuple (client, opt_user, opt_e_user)
+                        Either::A(user::select_user(client, id))
+                    }
+                    else {
+                        Either::B(user::select_user_prefetch(client, id))
+                    }
                 })
                 .map_err(|postgres_err| {
                     // TODO can this be better?
                     error::ErrorBadRequest(postgres_err)
                 })
-                .and_then(|(_client, user)| {
-                    match user {
-                        Some(u) => HttpResponse::Ok().json(u),
+                .and_then(|(_client, opt_user, opt_e_user)| {
+                    // follow what was done in update_user
+                    match opt_user {
+                        Some(u) => {
+                            match opt_e_user {
+                                Some(e) => HttpResponse::Ok().json((Some(u), Some(e))),
+                                None => HttpResponse::Ok().json(Some(u)),
+                            }
+                        },
                         None => HttpResponse::NotFound().finish(),
                     }
                 })

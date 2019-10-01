@@ -1,6 +1,6 @@
 
 use common::*;
-use futures::{ Stream, Future, IntoFuture, };
+use futures::{ Stream, Future, IntoFuture, future::Either, future::ok};
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
@@ -47,7 +47,7 @@ pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tok
         })
 }
 
-pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
             SELECT * FROM runtime.users
@@ -62,10 +62,31 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(&r))),
-                        _ => (client, None),
+                        Some(r) => (client, Some(row_to_user(&r)), None),
+                        _ => (client, None, None),
                     }
                 })
+        })
+}
+
+pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    select_user(client, id)
+        .and_then(|(client, opt_user, _opt_e_user)| {
+            match &opt_user {
+                Some(user) => {
+                    match user.emergency_contact {
+                        Some(contact) => {
+                            Either::A(select_user(client, contact)
+                                .map(move |(client, opt_contact, _contact)| {
+                                    (client, opt_user, opt_contact)
+                                })
+                            )
+                        },
+                        None => Either::B(ok((client, opt_user, None))),
+                    }
+                }
+                None => Either::B(ok((client, None, None))),    
+            } 
         })
 }
 
@@ -360,11 +381,42 @@ mod tests {
             .and_then(|(client, opt_user)| {
                 select_user(client, opt_user.unwrap().id)
             })
-            .map(|(_client, _opt_user)| {
+            .map(|(_client, _opt_user, _opt_e_user)| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
                 panic!("failed to select user");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_prefetch() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut e_user = TrackedUser::new();
+        e_user.name = "user_1".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, e_user)
+            })
+            .and_then(|(client, opt_e_user)| {
+                user.emergency_contact = Some(opt_e_user.unwrap().id);
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                select_user_prefetch(client, opt_user.unwrap().id)
+            })
+            .map(|(_client, _opt_user, _opt_e_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
             });
         runtime.block_on(task).unwrap();
     }
