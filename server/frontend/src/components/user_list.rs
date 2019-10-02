@@ -26,7 +26,6 @@ pub struct UserList {
 
 #[derive(Properties)]
 pub struct UserListProps {
-    // What is a callback?
     #[props(required)]
     pub change_page: Callback<root::Page>,
 }
@@ -90,7 +89,6 @@ impl Component for UserList {
                 } else {
                     Log!("response - failed to delete User");
                 }
-                // now that the User is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetUsers);
             },
             Msg::ChangeRootPage(page) => {

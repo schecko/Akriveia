@@ -26,8 +26,6 @@ pub enum Msg {
     ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
 }
 
-// keep all of the transient data together, since its not easy to create
-// a "new" method for a component.
 struct Data {
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
@@ -49,7 +47,6 @@ impl Data {
         }
     }
 
-    // checks for correctness of user data
     fn validate(&mut self) -> bool {
         let success = match MacAddress::parse_str(&self.raw_mac) {
             Ok(m) => {
@@ -192,7 +189,6 @@ impl Component for UserAddUpdate {
                             self.fetch_service,
                             &user_url(""),
                             (&self.data.user, &self.data.emergency_user),
-                            //self.data.user,
                             self.self_link,
                             Msg::ResponseAddUser
                         );

@@ -2,8 +2,6 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AkriveiaState;
-// What does the OutUserData stuct do?
-// It's for data_processor to probably update user position
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
@@ -49,7 +47,6 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, param
                     error::ErrorBadRequest(postgres_err)
                 })
                 .and_then(|(_client, opt_user, opt_e_user)| {
-                    // follow what was done in update_user
                     match opt_user {
                         Some(u) => {
                                 HttpResponse::Ok().json((Some(u), opt_e_user))
