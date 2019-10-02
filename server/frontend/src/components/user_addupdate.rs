@@ -79,9 +79,7 @@ impl Component for UserAddUpdate {
     type Message = Msg;
     type Properties = UserAddUpdateProps;
 
-    // mut link or
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        // Perhaps I'm missing the command to fetch the user IDs
         if let Some(id) = props.id {
             link.send_self(Msg::RequestGetUser(id));
         }
