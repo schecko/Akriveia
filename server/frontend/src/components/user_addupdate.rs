@@ -23,9 +23,9 @@ pub enum Msg {
     RequestGetUser(i32),
     // Do we need the map for it as well? Probably not
     // Response holds HTTP response from request
-    ResponseAddUser(util::Response<TrackedUser>),
-    ResponseGetUser(util::Response<Option<TrackedUser>>),
-    ResponseUpdateUser(util::Response<TrackedUser>),
+    ResponseAddUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
+    ResponseGetUser(util::Response<(Option<TrackedUser>, Option<TrackedUser>)>),
+    ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -68,7 +68,6 @@ impl Data {
                 false
             }
         };
-        // Don't need to validate the emergency contact since it can be NOne  
         success
     }
 }
@@ -225,23 +224,19 @@ impl Component for UserAddUpdate {
             Msg::RequestGetUser(id) => {
                 self.get_fetch_task = get_request! (
                     self.fetch_service,
-                    &user_url(&id.to_string()),
+                    &format!("{}?prefetch=true", user_url(&id.to_string())),
                     self.self_link,
                     Msg::ResponseGetUser
-                    );
+                );
             },
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() { 
                     match body {
-                        Ok(result) => {
-                            self.data.user = result.unwrap_or(TrackedUser::new());
+                        Ok((opt_user, opt_e_user)) => {
+                            self.data.user = opt_user.unwrap_or(TrackedUser::new());
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
-                            match &self.data.emergency_user {
-                                Some(opt_e_user) => 
-                                    self.data.user.emergency_contact = Some(opt_e_user.id),
-                                None => {},
-                            }
+                            self.data.emergency_user = opt_e_user;
                         }
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find user, reason: {}", e));
@@ -255,18 +250,15 @@ impl Component for UserAddUpdate {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
-                            Log!("returned user is {:?}", result);
+                        Ok((opt_user, opt_e_user)) => {
+                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully added user".to_string());
-                            self.data.user = result;
-                            // How do I set it where it returns None if
+                            self.data.user = opt_user;
+                            self.data.emergency_user = opt_e_user;
+                            
                             match &self.data.emergency_user {
-                                Some(e_user) => {
-                                    self.data.user.emergency_contact = Some(e_user.id);  
-                                }
-                                None => {
-                                    self.data.user.emergency_contact = None;
-                                }
+                                Some(contact) => self.data.user.emergency_contact = Some(contact.id),
+                                None =>self.data.user.emergency_contact = None,
                             }
                             self.data.id = Some(self.data.user.id);
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
@@ -276,17 +268,18 @@ impl Component for UserAddUpdate {
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add user. Meta.status failed".to_string());
+                    self.data.error_messages.push("failed to add user".to_string());
                 }
             },
             Msg::ResponseUpdateUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
-                            Log!("returned user is {:?}", result);
+                        Ok((opt_user, opt_e_user)) => {
+                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully updated user".to_string());
-                            self.data.user = result;
+                            self.data.user = opt_user;
+                            self.data.emergency_user = opt_e_user;
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to update user, reason: {}", e));

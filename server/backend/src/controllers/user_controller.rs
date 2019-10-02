@@ -43,10 +43,9 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, param
                         // How can these two statements have the same Either?
                         // Why does get_beacon have select_user for if prefetch == True
                         // Select_user_prefetches returns a tuple (client, opt_user, opt_e_user)
-                        Either::A(user::select_user(client, id))
-                    }
-                    else {
-                        Either::B(user::select_user_prefetch(client, id))
+                        Either::A(user::select_user_prefetch(client, id))
+                    } else {
+                        Either::B(user::select_user(client, id))
                     }
                 })
                 .map_err(|postgres_err| {
@@ -57,10 +56,7 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, param
                     // follow what was done in update_user
                     match opt_user {
                         Some(u) => {
-                            match opt_e_user {
-                                Some(e) => HttpResponse::Ok().json((Some(u), Some(e))),
-                                None => HttpResponse::Ok().json(Some(u)),
-                            }
+                                HttpResponse::Ok().json((Some(u), opt_e_user))
                         },
                         None => HttpResponse::NotFound().finish(),
                     }
@@ -102,30 +98,29 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
             // What is payload? How come the parameters of post_user() is not called in /backend/main
             // and_then must return a result
             match e_user {
-                Some(e_user) => Either::A(user::insert_user(client, e_user)),
+                Some(e) => Either::A(user::insert_user(client, e)),
                 None => Either::B(ok((client, None))),
             }
         })
         // and_then wraps the function input and returns the wrapped value
-        // https://doc.rust-lang.org/rust-by-example/error/option_unwrap/and_then.html
-        // TODO add to Anki
-        .and_then(|(_client, opt_e_user)| {
+        // https://doc.rust-lang.org/rust-by-example/erinsert_userror/option_unwrap/and_then.html
+        .and_then(|(client, opt_e_user)| {
             match &opt_e_user {
-                Some(emergency_user) => user.emergency_contact = Some(emergency_user.id),
+                Some(e) => user.emergency_contact = Some(e.id),
                 None => {},
             }
-            user::insert_user(_client, user)
-                .map(|(_client, user)|{
-                    (user, opt_e_user)
+            user::insert_user(client, user)
+                .map(|(_client, user)| {
+                    (_client, user, opt_e_user)
                 })
         })
         .map_err(|postgres_err| {
             println!("{}", postgres_err);
             error::ErrorBadRequest(postgres_err)
         })
-        .and_then(|(_client, user)| {
+        .and_then(|(_client, user, opt_e_user)| {
             match user {
-                Some(u) => HttpResponse::Ok().json(u),
+                Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
                 None => HttpResponse::NotFound().finish(),
             }
         })

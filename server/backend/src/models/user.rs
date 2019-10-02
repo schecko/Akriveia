@@ -71,20 +71,22 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
 
 pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
     select_user(client, id)
-        .and_then(|(client, opt_user, _opt_e_user)| {
+        .and_then(|(client, opt_user, _)| {
             match &opt_user {
                 Some(user) => {
                     match user.emergency_contact {
                         Some(contact) => {
                             Either::A(select_user(client, contact)
-                                .map(move |(client, opt_contact, _contact)| {
+                                // Am I saving the tuple of user and emergency_contact properly?
+                                // I think I might be replacing the user selected
+                                .map(move |(client, opt_contact, _)| {
                                     (client, opt_user, opt_contact)
                                 })
                             )
                         },
                         None => Either::B(ok((client, opt_user, None))),
                     }
-                }
+                },
                 None => Either::B(ok((client, None, None))),    
             } 
         })
@@ -361,7 +363,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert users");
             });
         runtime.block_on(task).unwrap();
     }
@@ -416,7 +418,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -441,7 +443,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
