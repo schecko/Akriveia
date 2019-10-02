@@ -7,7 +7,6 @@ pub fn default_connect() -> impl Future<Item=tokio_postgres::Client, Error=tokio
     connect(DEFAULT_CONNECTION)
 }
 
-//connecting using a new client
 pub fn connect(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
     tokio_postgres::connect(params, NoTls)
         .map(|(client, connection)| {
