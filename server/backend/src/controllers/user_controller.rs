@@ -36,13 +36,9 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, param
     let prefetch = params.prefetch.unwrap_or(false);
     match id {
         Ok(id) if id != -1 => {
-            // returns a HTTPResponse of users?
             Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
                 .and_then(move |client| {
                     if prefetch {
-                        // How can these two statements have the same Either?
-                        // Why does get_beacon have select_user for if prefetch == True
-                        // Select_user_prefetches returns a tuple (client, opt_user, opt_e_user)
                         Either::A(user::select_user_prefetch(client, id))
                     } else {
                         Either::B(user::select_user(client, id))
@@ -69,7 +65,6 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, param
     }
 }
 
-// TODO add prefetch to get emergency_user
 pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
@@ -77,7 +72,6 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
         })
         .map_err(|postgres_err| {
             // TODO can this be better?
-            // More specific error message (UserRequestError)
             error::ErrorBadRequest(postgres_err)
         })
         .and_then(|(_client, users)| {
@@ -86,8 +80,6 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
 }
 
 // new user
-// How to send a tuple of TrackedUser as a Json<original_user, emergency_user>?
-// How to find a way to add two users instead of just one
 pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
     let users = payload.into_inner();
     let mut user = users.0;
@@ -95,15 +87,11 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
 
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
-            // What is payload? How come the parameters of post_user() is not called in /backend/main
-            // and_then must return a result
             match e_user {
                 Some(e) => Either::A(user::insert_user(client, e)),
                 None => Either::B(ok((client, None))),
             }
         })
-        // and_then wraps the function input and returns the wrapped value
-        // https://doc.rust-lang.org/rust-by-example/erinsert_userror/option_unwrap/and_then.html
         .and_then(|(client, opt_e_user)| {
             match &opt_e_user {
                 Some(e) => user.emergency_contact = Some(e.id),
@@ -128,29 +116,26 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
 
 // update user
 pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
-
     let users = payload.into_inner();
     let mut user = users.0;
     let opt_e_user = users.1;
 
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
-        // How do I check if the emergency user exists already and not to insert a new one?
             match user.emergency_contact {
                 Some(_contact) => {
                     let fut_a = match opt_e_user {
                         // update the emergency user with new info
                         Some(e) => Either::A(user::update_user(client, e)
                             .map(move |(client, opt_e)| (client, user, opt_e))),
-                        // emergency user exists, but does not need to be updated(new data not
-                        // provided)
+                        // emergency user exists, but does not need to be updated(new data not provided)
                         None => Either::B(ok((client, user, None))),
                     };
                     Either::A(ok(fut_a).flatten())
                 },
                 None => {
                     let fut_b = match opt_e_user {
-                        // need to create the emergency user in this case
+                        // emergency user needs to be created
                         Some(e) => Either::A(user::insert_user(client, e)
                                 .and_then(move |(client, opt_e)| {
                                     if let Some(new_contact) = &opt_e {
@@ -159,7 +144,7 @@ pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payl
                                     ok((client, user, opt_e))
                                 })
                         ),
-                        // do nothing, the contact doesnt exist, and the were not changing it
+                        // do nothing, the contact doesnt exist, and changes are not required
                         None => Either::B(ok((client, user, None))),
                     };
                     Either::B(ok(fut_b).flatten())

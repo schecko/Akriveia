@@ -77,8 +77,6 @@ pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Fut
                     match user.emergency_contact {
                         Some(contact) => {
                             Either::A(select_user(client, contact)
-                                // Am I saving the tuple of user and emergency_contact properly?
-                                // I think I might be replacing the user selected
                                 .map(move |(client, opt_contact, _)| {
                                     (client, opt_user, opt_contact)
                                 })
