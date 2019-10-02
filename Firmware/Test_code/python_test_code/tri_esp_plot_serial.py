@@ -28,18 +28,50 @@ index = []
 def data_maker(a1,a2,a3):
     global data
     global index
+    global dL1
+    global dL2
+    global dL3
+
+    n1 = []
+    n2 = []
+    n3 = []
 
     while True:
         msg1 = (a1.readline())
         msg2 = (a2.readline())
         msg3 = (a3.readline())
+        
+        if len(n1) > size: n1.pop()
+        if len(n2) > size: n2.pop()
+        if len(n3) > size: n3.pop()
 
-        d1 = float(str(msg1).split('|')[-1].replace('\\r\\n\'', ''))
-        d2 = float(str(msg2).split('|')[-1].replace('\\r\\n\'', ''))
-        d3 = float(str(msg3).split('|')[-1].replace('\\r\\n\'', ''))
+        try:
+            n1.insert(0,float(str(msg1).split('|')[-1].replace('\\r\\n\'', '')))
+            n2.insert(0,float(str(msg2).split('|')[-1].replace('\\r\\n\'', '')))
+            n3.insert(0,float(str(msg3).split('|')[-1].replace('\\r\\n\'', '')))
 
-        print(str(d1) + "\n" + str(d2) + "\n" + str(d3))
+            n10 = float(str(msg1).split('|')[-1].replace('\\r\\n\'', ''))
+            n20 = float(str(msg2).split('|')[-1].replace('\\r\\n\'', ''))
+            n30 = float(str(msg3).split('|')[-1].replace('\\r\\n\'', ''))
+        except:
+            None
 
+        n11 = sum(n1)/len(n1)
+        n21 = sum(n2)/len(n2)
+        n31 = sum(n3)/len(n3)
+
+        d1 = 10.00 ** ((measure_power - (n11)) / (10.00 * N))
+        d2 = 10.00 ** ((measure_power - (n21)) / (10.00 * N))
+        d3 = 10.00 ** ((measure_power - (n31)) / (10.00 * N))
+
+        dL1 = d1
+        dL2 = d2
+        dL3 = d3
+
+        print(str(n1) + "\n" + str(n2) + "\n" + str(n3))
+        print("AVG: " + str(n11) + ' ' + str(n21) + ' ' + str(n31))
+        print("D: " + str(d1) + " | " + str(d2) + " | " + str(d3))
+       
         # Trilateration solver
         A = -2.00 * x_1 + 2.00 * x_2
         B = -2.00 * y_1 + 2.00 * y_2
@@ -52,8 +84,8 @@ def data_maker(a1,a2,a3):
 
         print(str(x) + '|' + str(y))
         try:
-            index = []; index.append(abs(x))
-            data = []; data.append(abs(y))
+            if len(n1) >= size: index = []; index.append(abs(x))
+            if len(n1) >= size: data = []; data.append(abs(y))
         except: None
 
         time.sleep(1)
@@ -95,16 +127,23 @@ def plotter():
 
 if __name__ == "__main__":
 
-    a1 = serial.Serial('/dev/ttyUSB1', 115200)
-    a2 = serial.Serial('/dev/ttyUSB0', 115200)
-    a3 = serial.Serial('/dev/ttyUSB4', 115200)
+    a1 = serial.Serial('COM4', 115200)
+    a2 = serial.Serial('COM9', 115200)
+    a3 = serial.Serial('COM10', 115200)
     msg1 = b""
     msg2 = b""
     msg3 = b""
     while True:
-        if b"|" in msg1 :
+        if b"ack" in msg1 and b"ack" in msg2 and b"ack" in msg3:
             break
         else:
+            a1.write('start\n'.encode())
+            a2.write('start\n'.encode())
+            a3.write('start\n'.encode())
+            a1.flush()
+            a2.flush()
+            a3.flush()
+            time.sleep(5)
             msg1 = a1.read(a1.inWaiting())
             msg2 = a2.read(a2.inWaiting())
             msg3 = a3.read(a3.inWaiting())
@@ -115,12 +154,12 @@ if __name__ == "__main__":
     print("\n-Start-\n")
     try:
         t1 = threading.Thread(target=data_maker,args=[a1,a2,a3])
-        # t2 = threading.Thread(target=plotter)
+        t2 = threading.Thread(target=plotter)
         t1.start()
-        # time.sleep(2)
-        # t2.start()
+        time.sleep(2)
+        t2.start()
     except KeyboardInterrupt:
         t1.join()
-        # t2.join()
+        t2.join()
 
 
