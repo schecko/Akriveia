@@ -276,7 +276,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text"
-                            value = user.employee_id.clone().unwrap_or(String::new()),
+                            value=user.employee_id.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputEmployeeID(e.value, type_user),
                         />
                     </td>
@@ -286,7 +286,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.work_phone.clone().unwrap_or(String::new()),
+                            value=user.work_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputWorkPhone(e.value, type_user)
                         />
                     </td>
@@ -296,7 +296,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.mobile_phone.clone().unwrap_or(String::new()),
+                            value=user.mobile_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputMobilePhone(e.value, type_user)
                         />
                     </td>
@@ -306,7 +306,7 @@ impl UserAddUpdate {
                     <td>
                         <textarea
                             rows=5,
-                            value = user.note.clone().unwrap_or(String::new()),
+                            value = user.note.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputNote(e.value, type_user),
                         />
                     </td>
@@ -339,7 +339,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
                 <p>{msg}</p>
             }
@@ -351,7 +351,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
+                        None => { String::new() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
@@ -385,8 +385,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                // new TrackedUser required to be made when name is inputted
-                                value = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name,
+                                value=self.data.emergency_user.as_ref().map_or(&String::new(), |u| &u.name),
                                 oninput=|e| Msg::InputName(e.value, UserType::Contact)
                             />
                         </td>
