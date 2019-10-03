@@ -12,7 +12,7 @@ pub enum UserType {
 
 pub enum Msg {
     AddAnotherUser,
-    InputMacAddress(String),   
+    InputMacAddress(String),
     InputName(String, UserType),
     InputEmployeeID(String, UserType),
     InputWorkPhone(String, UserType),
@@ -30,7 +30,7 @@ struct Data {
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
     pub error_messages: Vec<String>,
-    pub id: Option<i32>, 
+    pub id: Option<i32>,
     pub raw_mac: String,
     pub success_message: Option<String>,
 }
@@ -127,14 +127,14 @@ impl Component for UserAddUpdate {
                             None => {},
                         }
                     }
-                }            
+                }
             },
             Msg::InputWorkPhone(work_phone, usertype) => {
                 match usertype {
                     UserType::Normal => self.data.user.work_phone = Some(work_phone),
                     UserType::Contact => {
                         match &mut self.data.emergency_user {
-                            Some(user) => user.work_phone= Some(work_phone),
+                            Some(user) => user.work_phone = Some(work_phone),
                             None => {},
                         }
                     }
@@ -172,8 +172,12 @@ impl Component for UserAddUpdate {
                 match self.data.id {
                     Some(id) if success => {
                         self.data.user.id = id;
+                        if let Some(e_user) = &mut self.data.emergency_user {
+                            // ensure the emergency user is attached to the user
+                            e_user.attached_user = Some(id);
+                        }
 
-                         self.fetch_task = put_request!(
+                        self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
                             (&self.data.user, &self.data.emergency_user),
@@ -191,9 +195,7 @@ impl Component for UserAddUpdate {
                             Msg::ResponseAddUser
                         );
                     }
-                    _ => {
-                        self.data.error_messages.push("Other cases error in add/updating".to_string());
-                    },
+                    _ => {},
                 }
             },
             Msg::RequestGetUser(id) => {
@@ -206,7 +208,7 @@ impl Component for UserAddUpdate {
             },
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() { 
+                if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
                             self.data.user = opt_user.unwrap_or(TrackedUser::new());
@@ -226,15 +228,10 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully added user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
-                            
-                            match &self.data.emergency_user {
-                                Some(contact) => self.data.user.emergency_contact = Some(contact.id),
-                                None =>self.data.user.emergency_contact = None,
-                            }
+
                             self.data.id = Some(self.data.user.id);
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
                         },
@@ -251,7 +248,6 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully updated user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
@@ -276,7 +272,7 @@ impl Component for UserAddUpdate {
 
 impl UserAddUpdate {
     fn render_input_form(&self, user: &TrackedUser, type_user: UserType) -> Html<Self> {
-        
+
         html! {
             <>
                 <tr>
@@ -284,7 +280,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text"
-                            value = user.employee_id.clone().unwrap_or(String::new()),
+                            value=user.employee_id.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputEmployeeID(e.value, type_user),
                         />
                     </td>
@@ -294,7 +290,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.work_phone.clone().unwrap_or(String::new()),
+                            value=user.work_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputWorkPhone(e.value, type_user)
                         />
                     </td>
@@ -304,17 +300,17 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.mobile_phone.clone().unwrap_or(String::new()),
+                            value=user.mobile_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputMobilePhone(e.value, type_user)
                         />
                     </td>
-                </tr>                    
+                </tr>
                 <tr>
                     <td>{ "Note: " }</td>
                     <td>
                         <textarea
                             rows=5,
-                            value = user.note.clone().unwrap_or(String::new()),
+                            value = user.note.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputNote(e.value, type_user),
                         />
                     </td>
@@ -347,7 +343,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
                 <p>{msg}</p>
             }
@@ -359,7 +355,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
+                        None => { String::new() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
@@ -393,21 +389,21 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         <td>
                             <input
                                 type="text",
-                                // new TrackedUser required to be made when name is inputted
-                                value = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name,
+                                value=self.data.emergency_user.as_ref().map_or(&String::new(), |u| &u.name),
                                 oninput=|e| Msg::InputName(e.value, UserType::Contact)
                             />
                         </td>
                     </tr>
-                    {match &self.data.emergency_user {
-                        Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
-                        None => {
-                            html!{
-                                <></>
-                            }
-                        },
+                    {
+                        match &self.data.emergency_user {
+                            Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
+                            None => {
+                                html!{
+                                    <></>
+                                }
+                            },
+                        }
                     }
-                }
                 </table>
                 <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
                 { add_another_button }

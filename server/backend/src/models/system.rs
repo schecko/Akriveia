@@ -33,7 +33,7 @@ const SCHEMA: [&str; 27] = [
     "CREATE TABLE runtime.users (
         u_id SERIAL PRIMARY KEY,
         u_coordinates DOUBLE PRECISION[2],
-        u_emergency_contact INTEGER REFERENCES runtime.users(u_id) ON DELETE CASCADE,
+        u_attached_user INTEGER REFERENCES runtime.users(u_id) ON DELETE CASCADE,
         u_employee_id VARCHAR(256),
         u_last_active TIMESTAMPTZ NOT NULL,
         u_mac_address MACADDR,

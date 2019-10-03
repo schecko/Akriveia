@@ -51,7 +51,7 @@ impl Component for UserList {
             Msg::RequestGetUsers => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}", users_url()),
+                    &format!("{}?include_contacts=false", users_url()),
                     self.self_link,
                     Msg::ResponseGetUsers
                 );
