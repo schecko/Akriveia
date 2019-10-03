@@ -42,15 +42,15 @@ impl Data {
             emergency_user: None,
             error_messages: Vec::new(),
             id: None,
-            raw_mac: MacAddress::nil().to_hex_string(),
+            raw_mac: ShortAddress::nil().to_string(),
             success_message: None,
         }
     }
 
     fn validate(&mut self) -> bool {
-        let success = match MacAddress::parse_str(&self.raw_mac) {
+        let success = match ShortAddress::parse_str(&self.raw_mac) {
             Ok(m) => {
-                self.user.mac_address = m;
+                self.user.mac_address = Some(m);
                 true
             },
             Err(e) => {
@@ -212,7 +212,7 @@ impl Component for UserAddUpdate {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
                             self.data.user = opt_user.unwrap_or(TrackedUser::new());
-                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
+                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
                             self.data.emergency_user = opt_e_user;
                         }
                         Err(e) => {
@@ -233,7 +233,7 @@ impl Component for UserAddUpdate {
                             self.data.emergency_user = opt_e_user;
 
                             self.data.id = Some(self.data.user.id);
-                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
+                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to add user, reason: {}", e));

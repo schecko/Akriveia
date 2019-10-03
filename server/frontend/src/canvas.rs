@@ -128,7 +128,7 @@ impl Canvas {
                 self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
                 self.context.fill(FillRule::NonZero);
                 match &show_distance {
-                    Some(tag_mac) if tag_mac == &user.mac_address => {
+                    Some(tag_mac) if user.mac_address.map_or(false, |mac| &mac == tag_mac) => {
                         self.context.set_fill_style_color("#00000034");
                         self.context.begin_path();
                         self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * map.scale, 0.0, std::f64::consts::PI * 2.0, true);

@@ -183,7 +183,7 @@ impl Handler<InLocationData> for DataProcessor {
                                 // TODO this should probably eventually be an error if the user
                                 // is missing, but for now just make the user instead
                                 let mut user = common::TrackedUser::new();
-                                user.mac_address = averages[0].tag_mac.clone();
+                                user.mac_address = Some(averages[0].tag_mac.clone());
                                 user.beacon_sources = beacon_sources;
                                 user.coordinates = new_tag_location;
                                 actor.users.insert(averages[0].tag_mac.clone(), user);

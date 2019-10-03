@@ -270,14 +270,14 @@ impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
         let mut render_distance_buttons = self.users.iter().map(|user| {
             let set_border = match &self.show_distance {
-                Some(selected) => selected == &user.mac_address,
+                Some(selected) => user.mac_address.map_or(false, |m| selected == &m),
                 None => false,
             };
             html! {
                 <ValueButton<String>
                     on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
                     border=set_border,
-                    value={user.mac_address.to_string()}
+                    value={user.mac_address.map_or(String::new(), |m| m.to_string())}
                 />
             }
         });

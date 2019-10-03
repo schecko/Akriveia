@@ -18,7 +18,7 @@ fn row_to_user(row: &Row) -> TrackedUser {
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
             "u_mac_address" => {
-                entry.mac_address = ShortAddress::from_pg(row.get(i));
+                entry.mac_address = Some(ShortAddress::from_pg(row.get(i)));
             },
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
@@ -117,6 +117,7 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
         .prepare("
             SELECT *
             FROM runtime.users
+            WHERE u_mac_address IS NOT NULL
             ORDER BY random()
             LIMIT 1
         ")
@@ -173,7 +174,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address.as_pg(),
+                    &user.mac_address.map(|m| m.as_pg()),
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -233,7 +234,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address.as_pg(),
+                    &user.mac_address.map(|m| m.as_pg()),
                     &user.map_id,
                     &user.name,
                     &user.note,
