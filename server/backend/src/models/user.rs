@@ -457,7 +457,7 @@ mod tests {
                 insert_user(client, user)
             })
             .and_then(|(client, opt_user)| {
-                let id = (&opt_user).as_ref().unwrap().id;
+                let id = opt_user.as_ref().unwrap().id;
                 contact.attached_user = Some(id);
                 insert_user(client, contact)
                     .map(move |(client, opt_contact)| {
