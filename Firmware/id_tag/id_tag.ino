@@ -19,6 +19,8 @@ const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
 volatile uint32_t blink_rate = 200;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:00";
+uint16_t netID = 0;
 
 device_configuration_t DEFAULT_CONFIG = {
     false,
@@ -58,14 +60,14 @@ sleep_configuration_t SLEEP_CONFIG = {
 
 void setup() {
     // DEBUG monitoring
-    Serial.begin(115200);
+    Serial.begin(9600);
     Serial.println(F("### DW1000Ng-arduino-ranging-tag ###"));
     DW1000Ng::initializeNoInterrupt(PIN_SS, PIN_RST);
     Serial.println("DW1000Ng initialized ...");
     DW1000Ng::applyConfiguration(DEFAULT_CONFIG);
     DW1000Ng::enableFrameFiltering(TAG_FRAME_FILTER_CONFIG);
-    DW1000Ng::setEUI("AA:BB:CC:DD:EE:FF:00:00");
-    DW1000Ng::setDeviceAddress(0);
+    DW1000Ng::setEUI(EUI);
+    DW1000Ng::setDeviceAddress(netID);
     DW1000Ng::setNetworkId(RTLS_APP_ID);
     DW1000Ng::setAntennaDelay(16436);
     DW1000Ng::applySleepConfiguration(SLEEP_CONFIG);
@@ -89,7 +91,7 @@ void loop() {
     DW1000Ng::deepSleep();
     delay(blink_rate);
     DW1000Ng::spiWakeup();
-    DW1000Ng::setEUI("AA:BB:CC:DD:EE:FF:00:00");
+    DW1000Ng::setEUI(EUI);
     
     RangeInfrastructureResult res = DW1000NgRTLS::tagTwrLocalize(1500);
     if(res.success){  blink_rate = res.new_blink_rate;}
