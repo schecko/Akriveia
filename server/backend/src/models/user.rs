@@ -277,9 +277,11 @@ mod tests {
 
         let task = db_utils::default_connect()
             .and_then(|client| {
+                let expected = user.clone();
                 insert_user(client, user)
-            })
-            .map(|(_client, _opt_user)| {
+                    .map(move |(_client, opt_user)| {
+                        assert!(opt_user.unwrap().mac_address == expected.mac_address);
+                    })
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
