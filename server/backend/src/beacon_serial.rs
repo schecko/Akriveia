@@ -19,6 +19,7 @@ pub struct BeaconSerialConn {
     pub manager: Recipient<TagDataMessage>,
 }
 
+#[allow(dead_code)]
 fn send_command(command: String, port: &mut Box<dyn SerialPort>, attempts: u64) -> bool {
     for i in 0.. {
         if let Ok(_) = port.write(command.as_bytes()) {};
@@ -71,13 +72,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                         _ => { },
                     }
                 }
-                match send_command("start".to_string(), &mut opened_port, 4) {
+                // uncomment after new beacons support commands
+                /*match send_command("start".to_string(), &mut opened_port, 4) {
                     true => {},
                     false => {
                         println!("failed to send start command, reopenining port");
                         continue;
                     },
-                }
+                }*/
 
                 // start polling data
                 let mut serial_buffer: Vec<u8> = Vec::new();
@@ -135,13 +137,14 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     serial_buffer.extend_from_slice(last_line.as_bytes());
                 }
 
-                match send_command("end".to_string(), &mut opened_port, 4) {
+                // uncomment after new beacons support commands
+                /*match send_command("end".to_string(), &mut opened_port, 4) {
                     true => {},
                     false => {
                         println!("failed to send end command to beacon");
                         continue;
                     },
-                }
+                }*/
             }
             Err(e) => {
                 eprintln!("Failed to open arduino port \"{}\". Error: {}", beacon_info.port_name, e);
