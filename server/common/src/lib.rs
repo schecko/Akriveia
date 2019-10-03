@@ -100,7 +100,7 @@ pub struct UserBeaconSourceLocations {
 pub struct TrackedUser {
     pub id: i32,
     pub coordinates: na::Vector2<f64>,
-    pub emergency_contact: Option<i32>,
+    pub attached_user: Option<i32>,
     pub employee_id: Option<String>,
     pub last_active: DateTime<Utc>,
     pub mac_address: MacAddress,
@@ -119,7 +119,7 @@ impl TrackedUser {
         TrackedUser {
             id: -1, // primary key
             coordinates: na::Vector2::new(0.0, 0.0),
-            emergency_contact: None,
+            attached_user: None,
             employee_id: None,
             last_active: Utc.timestamp(0, 0),
             mac_address: MacAddress::nil(),

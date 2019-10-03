@@ -12,7 +12,7 @@ pub enum UserType {
 
 pub enum Msg {
     AddAnotherUser,
-    InputMacAddress(String),   
+    InputMacAddress(String),
     InputName(String, UserType),
     InputEmployeeID(String, UserType),
     InputWorkPhone(String, UserType),
@@ -30,7 +30,7 @@ struct Data {
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
     pub error_messages: Vec<String>,
-    pub id: Option<i32>, 
+    pub id: Option<i32>,
     pub raw_mac: String,
     pub success_message: Option<String>,
 }
@@ -127,14 +127,14 @@ impl Component for UserAddUpdate {
                             None => {},
                         }
                     }
-                }            
+                }
             },
             Msg::InputWorkPhone(work_phone, usertype) => {
                 match usertype {
                     UserType::Normal => self.data.user.work_phone = Some(work_phone),
                     UserType::Contact => {
                         match &mut self.data.emergency_user {
-                            Some(user) => user.work_phone= Some(work_phone),
+                            Some(user) => user.work_phone = Some(work_phone),
                             None => {},
                         }
                     }
@@ -191,9 +191,7 @@ impl Component for UserAddUpdate {
                             Msg::ResponseAddUser
                         );
                     }
-                    _ => {
-                        self.data.error_messages.push("Other cases error in add/updating".to_string());
-                    },
+                    _ => {},
                 }
             },
             Msg::RequestGetUser(id) => {
@@ -206,7 +204,7 @@ impl Component for UserAddUpdate {
             },
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() { 
+                if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
                             self.data.user = opt_user.unwrap_or(TrackedUser::new());
@@ -226,15 +224,10 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully added user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
-                            
-                            match &self.data.emergency_user {
-                                Some(contact) => self.data.user.emergency_contact = Some(contact.id),
-                                None =>self.data.user.emergency_contact = None,
-                            }
+
                             self.data.id = Some(self.data.user.id);
                             self.data.raw_mac = self.data.user.mac_address.to_hex_string();
                         },
@@ -251,7 +244,6 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            Log!("returned user is {:?}", (&opt_user, &opt_e_user));
                             self.data.success_message = Some("successfully updated user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
@@ -276,7 +268,7 @@ impl Component for UserAddUpdate {
 
 impl UserAddUpdate {
     fn render_input_form(&self, user: &TrackedUser, type_user: UserType) -> Html<Self> {
-        
+
         html! {
             <>
                 <tr>
@@ -308,7 +300,7 @@ impl UserAddUpdate {
                             oninput=|e| Msg::InputMobilePhone(e.value, type_user)
                         />
                     </td>
-                </tr>                    
+                </tr>
                 <tr>
                     <td>{ "Note: " }</td>
                     <td>
@@ -399,15 +391,16 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                             />
                         </td>
                     </tr>
-                    {match &self.data.emergency_user {
-                        Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
-                        None => {
-                            html!{
-                                <></>
-                            }
-                        },
+                    {
+                        match &self.data.emergency_user {
+                            Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
+                            None => {
+                                html!{
+                                    <></>
+                                }
+                            },
+                        }
                     }
-                }
                 </table>
                 <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
                 { add_another_button }
