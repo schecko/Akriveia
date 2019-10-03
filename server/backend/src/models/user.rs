@@ -423,11 +423,11 @@ mod tests {
 
         let task = db_utils::default_connect()
             .and_then(|client| {
-                insert_user(client, e_user)
-            })
-            .and_then(|(client, opt_e_user)| {
-                user.emergency_contact = Some(opt_e_user.unwrap().id);
                 insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                e_user.attached_user = Some(opt_user.unwrap().id);
+                insert_user(client, e_user)
             })
             .and_then(|(client, opt_user)| {
                 select_user_prefetch(client, opt_user.unwrap().id)
@@ -479,9 +479,47 @@ mod tests {
                 insert_user(client, user)
             })
             .and_then(|(client, _opt_user)| {
-                select_users(client)
+                select_users(client, true)
             })
             .map(|(_client, _users)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select multiple users");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_many_include_contacts() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut contact = TrackedUser::new();
+        contact.name = "contact_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                contact.attached_user = Some(opt_user.unwrap().id);
+                insert_user(client, contact)
+            })
+            .and_then(|(client, _opt_user)| {
+                select_users(client, true)
+            })
+            .and_then(|(client, users)| {
+                assert!(users.iter().find(|u| u.attached_user.is_some()).is_some());
+                assert!(users.iter().find(|u| u.attached_user.is_none()).is_some());
+                select_users(client, false)
+            })
+            .map(|(_client, users)| {
+                assert!(users.iter().find(|u| u.attached_user.is_some()).is_none());
+                assert!(users.iter().find(|u| u.attached_user.is_none()).is_some());
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
