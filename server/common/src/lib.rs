@@ -108,14 +108,15 @@ pub struct UserBeaconSourceLocations {
 pub struct TrackedUser {
     pub id: i32,
     pub coordinates: na::Vector2<f64>,
-    pub emergency_contact: Option<i32>,
+    pub attached_user: Option<i32>,
     pub employee_id: Option<String>,
     pub last_active: DateTime<Utc>,
     pub mac_address: ShortAddress,
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
-    pub phone_number: Option<String>,
+    pub work_phone: Option<String>,
+    pub mobile_phone: Option<String>,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
@@ -126,14 +127,15 @@ impl TrackedUser {
         TrackedUser {
             id: -1, // primary key
             coordinates: na::Vector2::new(0.0, 0.0),
-            emergency_contact: None,
+            attached_user: None,
             employee_id: None,
             last_active: Utc.timestamp(0, 0),
             mac_address: ShortAddress::nil(),
             map_id: None,
             name: String::new(),
             note: None,
-            phone_number: None,
+            work_phone: None,
+            mobile_phone: None,
 
             beacon_sources: Vec::new(),
         }

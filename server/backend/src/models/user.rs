@@ -5,7 +5,7 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 
-fn row_to_user(row: Row) -> TrackedUser {
+fn row_to_user(row: &Row) -> TrackedUser {
     let mut entry = TrackedUser::new();
     for (i, column) in row.columns().iter().enumerate() {
         match column.name() {
@@ -13,8 +13,8 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_coordinates" => {
                 let coords: Vec<f64> = row.get(i);
                 entry.coordinates = na::Vector2::new(coords[0], coords[1]);
-            }
-            "u_emergency_contact" => entry.emergency_contact = row.get(i),
+            },
+            "u_attached_user" => entry.attached_user = row.get(i),
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
             "u_mac_address" => {
@@ -23,32 +23,42 @@ fn row_to_user(row: Row) -> TrackedUser {
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
-            "u_phone_number" => entry.phone_number = row.get(i),
-            unhandled if unhandled.starts_with("u_") => { panic!("unhandled beacon column {}", unhandled); },
+            "u_work_phone" => entry.work_phone = row.get(i),
+            "u_mobile_phone" => entry.mobile_phone = row.get(i),
+            unhandled if unhandled.starts_with("u_") => { panic!("unhandled user column {}", unhandled); },
             _ => {},
         }
     }
     entry
 }
 
-pub fn select_users(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_users(mut client: tokio_postgres::Client, include_contacts: bool) -> impl Future<Item=(tokio_postgres::Client, Vec<TrackedUser>), Error=tokio_postgres::Error> {
     // TODO paging
-    client
-        .prepare("
+    let query = if include_contacts {
+        "
             SELECT * FROM runtime.users
-        ")
+        "
+    } else {
+        "
+            SELECT * FROM runtime.users
+            WHERE u_attached_user IS NULL
+        "
+    };
+
+    client
+        .prepare(query)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
                 .map(|rows| {
-                    (client, rows.into_iter().map(|row| row_to_user(row)).collect())
+                    (client, rows.into_iter().map(|row| row_to_user(&row)).collect())
                 })
         })
 }
 
-pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
             SELECT * FROM runtime.users
@@ -63,9 +73,41 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r)), None),
+                        _ => (client, None, None),
+                    }
+                })
+        })
+}
+
+pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    client
+        .prepare("
+            SELECT * FROM runtime.users
+            WHERE u_attached_user = $1::INTEGER
+        ")
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&id])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
+                })
+        })
+}
+
+pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    select_user(client, id)
+        .and_then(move |(client, opt_user, _)| {
+            select_by_attached_user(client, id)
+                .map(move |(client, opt_contact)| {
+                    (client, opt_user, opt_contact)
                 })
         })
 }
@@ -87,7 +129,7 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -99,16 +141,17 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         .prepare_typed("
             INSERT INTO runtime.users (
                 u_coordinates,
-                u_emergency_contact,
+                u_attached_user,
                 u_employee_id,
                 u_last_active,
                 u_mac_address,
                 u_map_id,
                 u_name,
                 u_note,
-                u_phone_number
+                u_work_phone,
+                u_mobile_phone
             )
-            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
+            VALUES( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -120,20 +163,22 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
+            Type::VARCHAR,
         ])
         .and_then(move |statement| {
             let coordinates = vec![user.coordinates[0], user.coordinates[1]];
             client
                 .query(&statement, &[
                     &coordinates,
-                    &user.emergency_contact,
+                    &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
                     &user.mac_address.as_pg(),
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.phone_number,
+                    &user.work_phone,
+                    &user.mobile_phone,
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -142,7 +187,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -155,16 +200,17 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             UPDATE runtime.users
             SET
                 u_coordinates = $1,
-                u_emergency_contact = $2,
+                u_attached_user = $2,
                 u_employee_id = $3,
                 u_last_active = $4,
                 u_mac_address = $5,
                 u_map_id = $6,
                 u_name = $7,
                 u_note = $8,
-                u_phone_number = $9
+                u_work_phone = $9,
+                u_mobile_phone = $10
              WHERE
-                u_id = $10
+                u_id = $11
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
@@ -176,6 +222,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::VARCHAR,
             Type::VARCHAR,
             Type::VARCHAR,
+            Type::VARCHAR,
             Type::INT4,
         ])
         .and_then(move |statement| {
@@ -183,14 +230,15 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             client
                 .query(&statement, &[
                     &coordinates,
-                    &user.emergency_contact,
+                    &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
                     &user.mac_address.as_pg(),
                     &user.map_id,
                     &user.name,
                     &user.note,
-                    &user.phone_number,
+                    &user.work_phone,
+                    &user.mobile_phone,
                     &user.id,
                 ])
                 .into_future()
@@ -199,7 +247,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -232,7 +280,7 @@ pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: Shor
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(r))),
+                        Some(r) => (client, Some(row_to_user(&r))),
                         _ => (client, None),
                     }
                 })
@@ -285,7 +333,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert map");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -312,7 +360,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -338,7 +386,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert users");
             });
         runtime.block_on(task).unwrap();
     }
@@ -358,15 +406,82 @@ mod tests {
             .and_then(|(client, opt_user)| {
                 select_user(client, opt_user.unwrap().id)
             })
-            .map(|(_client, _opt_user)| {
+            .map(|(_client, _opt_user, _opt_e_user)| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to select user");
             });
         runtime.block_on(task).unwrap();
     }
 
+    #[test]
+    fn select_prefetch() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut e_user = TrackedUser::new();
+        e_user.name = "user_1".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                e_user.attached_user = Some(opt_user.unwrap().id);
+                insert_user(client, e_user)
+            })
+            .and_then(|(client, opt_user)| {
+                select_user_prefetch(client, opt_user.unwrap().id)
+            })
+            .map(|(_client, _opt_user, _opt_e_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert user");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_attached_user() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut contact = TrackedUser::new();
+        contact.name = "contact_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                let id = opt_user.as_ref().unwrap().id;
+                contact.attached_user = Some(id);
+                insert_user(client, contact)
+                    .map(move |(client, opt_contact)| {
+                        (client, opt_user, opt_contact)
+                    })
+            })
+            .and_then(|(client, opt_user, opt_contact)| {
+                select_by_attached_user(client, opt_user.as_ref().unwrap().id)
+                    .map(|(client, should_be_opt_contact)| {
+                        assert!(should_be_opt_contact.as_ref().unwrap().id == opt_contact.as_ref().unwrap().id);
+                        (client, opt_user, opt_contact)
+                    })
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select multiple users");
+            });
+        runtime.block_on(task).unwrap();
+    }
     #[test]
     fn select_random() {
         let mut runtime = Runtime::new().unwrap();
@@ -387,7 +502,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to insert user");
             });
         runtime.block_on(task).unwrap();
     }
@@ -405,13 +520,51 @@ mod tests {
                 insert_user(client, user)
             })
             .and_then(|(client, _opt_user)| {
-                select_users(client)
+                select_users(client, true)
             })
             .map(|(_client, _users)| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to select multiple users");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_many_include_contacts() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut contact = TrackedUser::new();
+        contact.name = "contact_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                contact.attached_user = Some(opt_user.unwrap().id);
+                insert_user(client, contact)
+            })
+            .and_then(|(client, _opt_user)| {
+                select_users(client, true)
+            })
+            .and_then(|(client, users)| {
+                assert!(users.iter().find(|u| u.attached_user.is_some()).is_some());
+                assert!(users.iter().find(|u| u.attached_user.is_none()).is_some());
+                select_users(client, false)
+            })
+            .map(|(_client, users)| {
+                assert!(users.iter().find(|u| u.attached_user.is_some()).is_none());
+                assert!(users.iter().find(|u| u.attached_user.is_none()).is_some());
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select multiple users");
             });
         runtime.block_on(task).unwrap();
     }
@@ -435,7 +588,7 @@ mod tests {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
-                panic!("failed to insert beacon");
+                panic!("failed to delete user");
             });
         runtime.block_on(task).unwrap();
     }

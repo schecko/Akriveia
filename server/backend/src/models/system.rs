@@ -33,14 +33,15 @@ const SCHEMA: [&str; 27] = [
     "CREATE TABLE runtime.users (
         u_id SERIAL PRIMARY KEY,
         u_coordinates DOUBLE PRECISION[2],
-        u_emergency_contact INTEGER REFERENCES runtime.users(u_id),
+        u_attached_user INTEGER REFERENCES runtime.users(u_id) ON DELETE CASCADE,
         u_employee_id VARCHAR(256),
         u_last_active TIMESTAMPTZ NOT NULL,
         u_mac_address INT2 UNIQUE,
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
         u_note VARCHAR(1024),
-        u_phone_number VARCHAR(20)
+        u_work_phone VARCHAR(20),
+        u_mobile_phone VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
@@ -71,7 +72,7 @@ const SCHEMA: [&str; 27] = [
     "GRANT CONNECT ON DATABASE ak TO ak_responder_role",
     "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_responder_role",
 
-    // update persmissions for admins
+    // update permissions for admins
     "GRANT CONNECT ON DATABASE ak TO ak_admin_role",
     "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
     "GRANT UPDATE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
