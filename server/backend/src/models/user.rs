@@ -78,7 +78,7 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
         })
 }
 
-pub fn select_emergency_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
             SELECT * FROM runtime.users
@@ -93,8 +93,8 @@ pub fn select_emergency_user(mut client: tokio_postgres::Client, id: i32) -> imp
                 })
                 .map(|(row, _next)| {
                     match row {
-                        Some(r) => (client, Some(row_to_user(&r)), None),
-                        _ => (client, None, None),
+                        Some(r) => (client, Some(row_to_user(&r))),
+                        _ => (client, None),
                     }
                 })
         })
@@ -103,8 +103,8 @@ pub fn select_emergency_user(mut client: tokio_postgres::Client, id: i32) -> imp
 pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
     select_user(client, id)
         .and_then(move |(client, opt_user, _)| {
-            select_emergency_user(client, id)
-                .map(move |(client, opt_contact, _)| {
+            select_by_attached_user(client, id)
+                .map(move |(client, opt_contact)| {
                     (client, opt_user, opt_contact)
                 })
         })
@@ -441,6 +441,42 @@ mod tests {
         runtime.block_on(task).unwrap();
     }
 
+    #[test]
+    fn select_attached_user() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+
+        let mut contact = TrackedUser::new();
+        contact.name = "contact_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                let id = (&opt_user).as_ref().unwrap().id;
+                contact.attached_user = Some(id);
+                insert_user(client, contact)
+                    .map(move |(client, opt_contact)| {
+                        (client, opt_user, opt_contact)
+                    })
+            })
+            .and_then(|(client, opt_user, opt_contact)| {
+                select_by_attached_user(client, opt_user.as_ref().unwrap().id)
+                    .map(|(client, should_be_opt_contact)| {
+                        assert!(should_be_opt_contact.as_ref().unwrap().id == opt_contact.as_ref().unwrap().id);
+                        (client, opt_user, opt_contact)
+                    })
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select multiple users");
+            });
+        runtime.block_on(task).unwrap();
+    }
     #[test]
     fn select_random() {
         let mut runtime = Runtime::new().unwrap();
