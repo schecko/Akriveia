@@ -88,10 +88,10 @@ pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, pay
         })
         .and_then(move |(client, opt_user)| {
             match &opt_user {
-                Some(user) => {
+                Some(created_user) => {
                     match opt_e_user {
                         Some(mut e_user) => {
-                            e_user.attached_user = Some(user.id);
+                            e_user.attached_user = Some(created_user.id);
                             Either::A(user::insert_user(client, e_user)
                                 .map(move |(client, created_e_user)| {
                                     (client, opt_user, created_e_user)

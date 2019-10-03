@@ -172,8 +172,12 @@ impl Component for UserAddUpdate {
                 match self.data.id {
                     Some(id) if success => {
                         self.data.user.id = id;
+                        if let Some(e_user) = &mut self.data.emergency_user {
+                            // ensure the emergency user is attached to the user
+                            e_user.attached_user = Some(id);
+                        }
 
-                         self.fetch_task = put_request!(
+                        self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
                             (&self.data.user, &self.data.emergency_user),
