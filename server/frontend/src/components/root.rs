@@ -9,6 +9,8 @@ use super::emergency_buttons::EmergencyButtons;
 use super::diagnostics::Diagnostics;
 use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
+use super::user_list::UserList;
+use super::user_addupdate::UserAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
 use super::status::Status;
@@ -17,6 +19,8 @@ use super::status::Status;
 pub enum Page {
     BeaconAddUpdate(Option<i32>),
     BeaconList,
+    UserAddUpdate(Option<i32>),
+    UserList,
     Diagnostics,
     FrontPage,
     Status,
@@ -215,6 +219,28 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::UserList => {
+                html! {
+                    <div>
+                        <h>{ "User" }</h>
+                        { self.navigation() }
+                        <UserList
+                            change_page=|page| Msg::ChangePage(page),
+                        />
+                    </div>
+                }
+            }
+            Page::UserAddUpdate(id) => {
+                html! {
+                    <div>
+                        <h>{ "User" } </h>
+                        { self.navigation() }
+                        <UserAddUpdate
+                            id=id,
+                        />
+                    </div>
+                }
+            }
             Page::MapList => {
                html! {
                     <div>
@@ -285,7 +311,25 @@ impl RootComponent {
                     </option>
                 </select>
                 <select>
-                    // TODO CSS for navigation bar <option disabled=true,>{ "Map Config(Header)" }</option>
+                    // TODO CSS for navigation bar
+                    // Adding User List
+                    <option disabled=true,>{ "User Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>{ "User List" } </option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::UserAddUpdate {..} => true,
+                                _=> false,
+                            }
+                        },
+                    >
+                        { "Add User" }
+                    </option>
+                </select>
+                <select>
+                    <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
                     <option
                         onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
@@ -302,8 +346,8 @@ impl RootComponent {
                 </select>
             </div>
         }
-
     }
+
 
     fn view_data(&self) -> Html<RootComponent> {
         html! {

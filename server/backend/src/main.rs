@@ -6,8 +6,11 @@ extern crate actix_web;
 extern crate common;
 extern crate env_logger;
 extern crate futures;
+extern crate ipnet;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
+extern crate eui48;
+extern crate eui64;
 
 mod beacon_dummy;
 mod beacon_manager;
@@ -17,25 +20,24 @@ mod controllers;
 mod data_processor;
 mod db_utils;
 mod models;
+mod conn_common;
 
 use controllers::beacon_controller;
 use controllers::map_controller;
 use controllers::system_controller;
 use controllers::user_controller;
+use controllers::network_interface_controller;
 
-//use models::beacon;
-//use models::map;
 use models::system;
-//use models::user;
 
 use actix::prelude::*;
 use actix_files as fs;
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
+use common::*;
 use data_processor::*;
 use std::env;
 use std::sync::*;
-use common::*;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
@@ -49,7 +51,7 @@ impl AkriveiaState {
         let data_processor_addr =  DataProcessor::new().start();
         let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
 
-        beacon_manager_addr.do_send(BeaconCommand::ScanBeacons);
+        beacon_manager_addr.do_send(BMCommand::ScanBeacons);
 
         web::Data::new(Mutex::new(AkriveiaState {
             beacon_manager: beacon_manager_addr,
@@ -73,19 +75,6 @@ fn main() -> std::io::Result<()> {
     tokio::run(create_db_fut);
 
     let state = AkriveiaState::new();
-
-    let _insert = db_utils::default_connect()
-        .and_then(|client| {
-            println!("inserting");
-            models::beacon::insert_beacon(client, common::Beacon::new())
-        })
-        .map(|result_beacon| {
-            println!("result is : {:?}", result_beacon.1);
-        })
-        .map_err(|e| {
-            println!("db error {:?}", e);
-        });
-    //tokio::run(insert);
 
     // start the webserver
     HttpServer::new(move || {
@@ -169,6 +158,23 @@ fn main() -> std::io::Result<()> {
                 web::resource(&system_diagnostics_url())
                     .route(web::get().to_async(system_controller::diagnostics))
             )
+
+            // network
+            .service(
+                web::resource(&networks_url())
+                    .route(web::get().to_async(network_interface_controller::get_network_interfaces))
+            )
+            .service(
+                web::resource(&network_url("{id}"))
+                    .route(web::get().to_async(network_interface_controller::get_network_interface))
+                    .route(web::put().to_async(network_interface_controller::put_network_interface))
+                    .route(web::delete().to_async(network_interface_controller::delete_network_interface))
+            )
+            .service(
+                web::resource(&network_url(""))
+                    .route(web::post().to_async(network_interface_controller::post_network_interface))
+            )
+
             .service(web::resource(&users_realtime_url()).to_async(user_controller::realtime_users))
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))

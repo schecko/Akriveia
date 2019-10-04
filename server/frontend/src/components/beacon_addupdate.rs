@@ -46,13 +46,13 @@ impl Data {
             id: None,
             raw_coord0: "0".to_string(),
             raw_coord1: "0".to_string(),
-            raw_mac: MacAddress::nil().to_hex_string(),
+            raw_mac: MacAddress8::nil().to_hex_string(),
             success_message: None,
         }
     }
 
     fn validate(&mut self) -> bool {
-        let mut success = match MacAddress::parse_str(&self.raw_mac) {
+        let mut success = match MacAddress8::parse_str(&self.raw_mac) {
             Ok(m) => {
                 self.beacon.mac_address = m;
                 true

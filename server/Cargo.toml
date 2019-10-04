@@ -16,3 +16,4 @@ members = [
 # this patch makes the deprecated crate optional.
 [patch.crates-io]
 eui48 = { git = 'https://github.com/adam-rhebo/eui48', branch = 'make-rustc-serialize-optional' }
+eui64 = { git = 'https://github.com/schecko/eui64' }

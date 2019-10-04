@@ -16,11 +16,11 @@ use crate::beacon_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::beacon;
+use crate::models::network_interface;
 use serialport;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
-use futures::future::{ ok, Either, };
 
 pub struct BeaconManager {
     pub emergency: bool,
@@ -34,10 +34,31 @@ impl Actor for BeaconManager {
 }
 
 const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
-
 const USE_DUMMY_BEACONS: bool = true;
 const USE_SERIAL_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
+
+pub enum BMCommand {
+    EndEmergency,
+    GetEmergency,
+    ScanBeacons,
+    StartEmergency,
+}
+
+impl Message for BMCommand {
+    type Result = Result<common::SystemCommandResponse, io::Error>;
+}
+
+pub enum BeaconCommand {
+    EndEmergency,
+    GetEmergency,
+    ScanBeacons,
+    StartEmergency,
+}
+
+impl Message for BeaconCommand {
+    type Result = Result<(), ()>;
+}
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
@@ -56,26 +77,39 @@ impl BeaconManager {
         if USE_UDP_BEACONS { self.find_beacons_udp(context); }
     }
 
-    fn find_beacons_udp(&mut self, _context: &mut Context<Self>) {
-        self.udp_connections.push(BeaconUDP::new("127.0.0.1:0".parse().unwrap()));
+    fn find_beacons_udp(&mut self, context: &mut Context<Self>) {
+        let fut = db_utils::default_connect()
+            .and_then(|client| {
+                network_interface::select_network_interfaces(client)
+                    .map(|(_client, ifaces)| {
+                        ifaces
+                    })
+            })
+            .into_actor(self)
+            .and_then(|ifaces, actor, context| {
+                for iface in ifaces {
+                    match iface.beacon_port {
+                        Some(port) => {
+                            actor.udp_connections.push(BeaconUDP::new(context.address(), iface.ip.clone(), port as u16));
+                        },
+                        None => {},
+                    }
+                }
+                fut::result(Ok(()))
+            })
+            .map_err(|err, _, _| {
+                println!("failed to create udp connection {}", err);
+            });
+        context.spawn(fut);
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
         let beacons_fut = db_utils::default_connect()
-            .then(|res_client| {
-                match res_client {
-                    Ok(client) => {
-                        Either::A(beacon::select_beacons(client)
-                            .map(|(_client, beacons)| {
-                                beacons
-                            })
-                        )
-                    },
-                    Err(postgres_err) => {
-                        println!("failed to connect to postgres for dummy beacons: {}", postgres_err);
-                        Either::B(ok(Vec::new()))
-                    }
-                }
+            .and_then(|client| {
+                beacon::select_beacons(client)
+                    .map(|(_client, beacons)| {
+                        beacons
+                    })
             })
             .into_actor(self)
             .and_then(|beacons, actor, context| {
@@ -89,7 +123,8 @@ impl BeaconManager {
                 }
                 fut::result(Ok(()))
             })
-            .map_err(|_err, _, _| {
+            .map_err(|err, _, _| {
+                println!("failed to create dummy beacons {}", err);
             });
         context.spawn(beacons_fut);
     }
@@ -135,40 +170,37 @@ impl BeaconManager {
     }
 }
 
-pub enum BeaconCommand {
-    GetEmergency,
-    ScanBeacons,
-    StartEmergency,
-    EndEmergency,
-}
-
-impl Message for BeaconCommand {
-    type Result = Result<common::SystemCommandResponse, io::Error>;
-}
-impl Handler<BeaconCommand> for BeaconManager {
+impl Handler<BMCommand> for BeaconManager {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 
-    fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BeaconCommand::GetEmergency => { },
-            BeaconCommand::ScanBeacons => {
+            BMCommand::GetEmergency => { },
+            BMCommand::ScanBeacons => {
                 println!("find beacons called!");
                 self.find_beacons(context);
             },
-            BeaconCommand::StartEmergency => {
+            BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
                 for connection in &self.serial_connections {
                     connection
                         .send(BeaconCommand::StartEmergency)
                         .expect("failed to send start emergency to serial beacon connection");
                 }
+                for connection in &self.udp_connections {
+                    connection.do_send(BeaconCommand::StartEmergency);
+                }
                 self.emergency = true;
             }
-            BeaconCommand::EndEmergency => {
+            BMCommand::EndEmergency => {
                 for connection in &self.serial_connections {
                     connection
                         .send(BeaconCommand::EndEmergency)
                         .expect("failed to send end emergency to serial beacon connection");
+                }
+                for connection in &self.udp_connections {
+                    connection
+                        .do_send(BeaconCommand::EndEmergency);
                 }
                 self.emergency = false;
                 // Send a message to DP to clear hashmap

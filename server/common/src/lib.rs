@@ -1,11 +1,18 @@
 extern crate serde_derive;
 extern crate nalgebra as na;
 extern crate eui48;
+extern crate eui64;
+extern crate ipnet;
 
-use serde_derive::{ Deserialize, Serialize, };
-pub use eui48::MacAddress;
-pub use chrono::{ DateTime, Utc, };
+pub mod short_address;
+
 pub use chrono::offset::TimeZone;
+pub use chrono::{ DateTime, Utc, };
+pub use eui48::MacAddress;
+pub use eui64::MacAddress8;
+pub use short_address::ShortAddress;
+use ipnet::{ Ipv4Net, };
+use serde_derive::{ Deserialize, Serialize, };
 use std::net::{ IpAddr, Ipv4Addr, };
 
 pub fn beacon_url(id: &str) -> String {
@@ -35,11 +42,11 @@ pub fn maps_url() -> String {
     return String::from("/maps");
 }
 
-pub fn system_network_url(id: &str) -> String {
-    return format!("/system/network/{}", id);
+pub fn network_url(id: &str) -> String {
+    return format!("/network/{}", id);
 }
-pub fn system_networks_url() -> String {
-    return String::from("/system/networks");
+pub fn networks_url() -> String {
+    return String::from("/networks");
 }
 
 pub fn system_emergency_url() -> String {
@@ -68,11 +75,12 @@ impl SystemCommandResponse {
     }
 }
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
-    pub beacon_mac: MacAddress,
+    pub beacon_mac: MacAddress8,
     pub tag_distance: f64,
-    pub tag_mac: MacAddress,
+    pub tag_mac: ShortAddress,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -100,14 +108,15 @@ pub struct UserBeaconSourceLocations {
 pub struct TrackedUser {
     pub id: i32,
     pub coordinates: na::Vector2<f64>,
-    pub emergency_contact: Option<i32>,
+    pub attached_user: Option<i32>,
     pub employee_id: Option<String>,
     pub last_active: DateTime<Utc>,
-    pub mac_address: MacAddress,
+    pub mac_address: Option<ShortAddress>,
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
-    pub phone_number: Option<String>,
+    pub work_phone: Option<String>,
+    pub mobile_phone: Option<String>,
 
     // NOTE TEMPORARY
     pub beacon_sources: Vec<UserBeaconSourceLocations>,
@@ -118,14 +127,15 @@ impl TrackedUser {
         TrackedUser {
             id: -1, // primary key
             coordinates: na::Vector2::new(0.0, 0.0),
-            emergency_contact: None,
+            attached_user: None,
             employee_id: None,
             last_active: Utc.timestamp(0, 0),
-            mac_address: MacAddress::nil(),
+            mac_address: None,
             map_id: None,
             name: String::new(),
             note: None,
-            phone_number: None,
+            work_phone: None,
+            mobile_phone: None,
 
             beacon_sources: Vec::new(),
         }
@@ -137,7 +147,7 @@ pub struct Beacon {
     pub id: i32, // primary key
     pub coordinates: na::Vector2<f64>,
     pub ip: IpAddr,
-    pub mac_address: MacAddress,
+    pub mac_address: MacAddress8,
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
@@ -149,7 +159,7 @@ impl Beacon {
             id: -1,
             coordinates: na::Vector2::new(0.0, 0.0),
             ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            mac_address: MacAddress::nil(),
+            mac_address: MacAddress8::nil(),
             map_id: None,
             name: String::new(),
             note: None,
@@ -176,6 +186,29 @@ impl Map {
             name: String::new(),
             note: None,
             scale: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkInterface {
+    pub id: i32, // primary key
+    pub beacon_port: Option<i16>,
+    pub ip: Ipv4Net,
+    pub mac: MacAddress,
+    pub name: String,
+    pub webserver_port: Option<i16>,
+}
+
+impl NetworkInterface {
+    pub fn new() -> NetworkInterface {
+        NetworkInterface {
+            id: -1,
+            beacon_port: None,
+            ip: Ipv4Net::new(Ipv4Addr::new(0, 0, 0, 0), 32).unwrap(),
+            mac: MacAddress::nil(),
+            name: String::new(),
+            webserver_port: None,
         }
     }
 }
