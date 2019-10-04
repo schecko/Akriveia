@@ -17,7 +17,9 @@ fn row_to_user(row: &Row) -> TrackedUser {
             "u_attached_user" => entry.attached_user = row.get(i),
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
-            "u_mac_address" => entry.mac_address = row.get(i),
+            "u_mac_address" => {
+                entry.mac_address = Some(ShortAddress::from_pg(row.get(i)));
+            },
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
             "u_note" => entry.note = row.get(i),
@@ -115,6 +117,7 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
         .prepare("
             SELECT *
             FROM runtime.users
+            WHERE u_mac_address IS NOT NULL
             ORDER BY random()
             LIMIT 1
         ")
@@ -156,7 +159,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::MACADDR,
+            Type::INT2,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -171,7 +174,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address,
+                    &user.mac_address.map(|m| m.as_pg()),
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -180,6 +183,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                 ])
                 .into_future()
                 .map_err(|err| {
+                    println!("error inserting {}", err.0);
                     err.0
                 })
                 .map(|(row, _next)| {
@@ -214,7 +218,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::INT4,
             Type::VARCHAR,
             Type::TIMESTAMPTZ,
-            Type::MACADDR,
+            Type::INT2,
             Type::INT4,
             Type::VARCHAR,
             Type::VARCHAR,
@@ -230,7 +234,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.attached_user,
                     &user.employee_id,
                     &user.last_active,
-                    &user.mac_address,
+                    &user.mac_address.map(|m| m.as_pg()),
                     &user.map_id,
                     &user.name,
                     &user.note,
@@ -251,7 +255,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: ShortAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.users
@@ -262,14 +266,14 @@ pub fn update_user_coords_by_mac(mut client: tokio_postgres::Client, mac: MacAdd
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
-            Type::MACADDR,
+            Type::INT2,
         ])
         .and_then(move |statement| {
             let coordinates = vec![coords[0], coords[1]];
             client
                 .query(&statement, &[
                     &coordinates,
-                    &mac,
+                    &mac.as_pg(),
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -322,9 +326,11 @@ mod tests {
 
         let task = db_utils::default_connect()
             .and_then(|client| {
+                let expected = user.clone();
                 insert_user(client, user)
-            })
-            .map(|(_client, _opt_user)| {
+                    .map(move |(_client, opt_user)| {
+                        assert!(opt_user.unwrap().mac_address == expected.mac_address);
+                    })
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
@@ -367,7 +373,7 @@ mod tests {
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
-        user.mac_address = MacAddress::from_bytes(&[0, 0, 3, 0, 0, 0]).unwrap();
+        user.mac_address = ShortAddress::from_bytes(&[0, 3]).unwrap();
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -375,7 +381,7 @@ mod tests {
             })
             .and_then(|(client, opt_user)| {
                 let mac = opt_user.unwrap().mac_address;
-                update_user_coords_by_mac(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
+                update_user_coords_by_short(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
             })
             .map(|(_client, _user)| {
             })

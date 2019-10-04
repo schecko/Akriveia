@@ -36,7 +36,7 @@ const SCHEMA: [&str; 27] = [
         u_attached_user INTEGER REFERENCES runtime.users(u_id) ON DELETE CASCADE,
         u_employee_id VARCHAR(256),
         u_last_active TIMESTAMPTZ NOT NULL,
-        u_mac_address MACADDR,
+        u_mac_address INT2 UNIQUE,
         u_map_id INTEGER REFERENCES runtime.maps(m_id),
         u_name VARCHAR(256) UNIQUE,
         u_note VARCHAR(1024),
@@ -45,20 +45,21 @@ const SCHEMA: [&str; 27] = [
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
-        b_mac_address MACADDR UNIQUE,
+        b_mac_address MACADDR8 UNIQUE,
         b_ip INET UNIQUE,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024)
     );",
-    "CREATE TABLE system.networks (
+    "CREATE TABLE system.network_interfaces (
         n_id SERIAL PRIMARY KEY,
-        n_mac_address MACADDR,
-        n_host_beacon_udp BOOLEAN NOT NULL,
-        n_host_webserver BOOLEAN NOT NULL,
-        n_ip INET,
-        n_name VARCHAR(255) UNIQUE
+        n_beacon_port SMALLINT,
+        n_ip INET NOT NULL,
+        n_mac MACADDR NOT NULL,
+        n_mask SMALLINT NOT NULL,
+        n_name VARCHAR(255) UNIQUE,
+        n_webserver_port SMALLINT
     )",
 
     // create roles and users
@@ -81,24 +82,24 @@ const SCHEMA: [&str; 27] = [
     "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
     "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "INSERT INTO system.networks(n_mac_address, n_host_beacon_udp, n_host_webserver, n_ip, n_name)
-            VALUES('00:00:00:00:00:00', TRUE, TRUE, '127.0.0.1', 'localhost')
+    "INSERT INTO system.network_interfaces(n_mac, n_beacon_port, n_webserver_port, n_mask, n_ip, n_name)
+            VALUES('00:00:00:00:00:00', 8081, 8080, 24, '127.0.0.1', 'localhost')
     ",
     // TODO remove after implementing frontend
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
-            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], '00:00:00:00:00:01')
+            VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], 8 )
     ",
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 600, 600 ], 'test_map', 100)
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(100, 'CC:DD:EE:FF:00:01', '0.0.0.1', ARRAY [ 1, 4 ], 69, 'top_left')
+            VALUES(100, 'AA:BB:CC:DD:EE:FF:00:01', '0.0.0.1', ARRAY [ 1, 4 ], 69, 'top_left')
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(130, 'CC:DD:EE:FF:00:02', '0.0.0.2', ARRAY [ 1, 1 ], 69, 'origin')
+            VALUES(130, 'AA:BB:CC:DD:EE:FF:00:02', '0.0.0.2', ARRAY [ 1, 1 ], 69, 'origin')
     ",
     "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(103, 'CC:DD:EE:FF:00:03', '0.0.0.3', ARRAY [ 3.97, 1 ], 69, 'bottom_right')
+            VALUES(103, 'AA:BB:CC:DD:EE:FF:00:03', '0.0.0.3', ARRAY [ 3.97, 1 ], 69, 'bottom_right')
     ",
 ];
 
