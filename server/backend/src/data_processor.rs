@@ -1,14 +1,16 @@
 
 use actix::prelude::*;
+use actix::fut as afut;
 use actix_web::Result;
-use std::io;
-use std::collections::{ HashMap, BTreeMap, VecDeque };
-use na;
+use common::{ MacAddress8, ShortAddress, };
 use crate::db_utils;
 use crate::models::beacon;
 use crate::models::user;
-use common::{ MacAddress8, ShortAddress, };
-use futures::future::{ ok, };
+use futures::future as fut;
+use na;
+use std::collections::{ HashMap, BTreeMap, VecDeque };
+use std::io;
+use common::*;
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -27,7 +29,7 @@ pub struct DataProcessor {
     // this tree maps tag mac addresses to users
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
-    users: BTreeMap<ShortAddress, common::TrackedUser>
+    users: BTreeMap<ShortAddress, RealtimeUserData>
 }
 
 impl DataProcessor {
@@ -119,6 +121,9 @@ impl Handler<InLocationData> for DataProcessor {
     fn handle (&mut self, msg: InLocationData, _: &mut Context<Self>) -> Self::Result {
         let tag_data = msg.0;
 
+        // append the data to in memory structures,
+        // then if there are enough data points, return them in opt_averages
+        // so that they can be used to trilaterate
         let opt_averages = match self.tag_hash.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
                 append_history(&mut tag_entry, &tag_data);
@@ -153,51 +158,81 @@ impl Handler<InLocationData> for DataProcessor {
         };
 
         let fut = match opt_averages {
+            // perform trilateration
             Some(averages) => {
                 let beacon_macs: Vec<MacAddress8>  = averages.iter().map(|tagdata| tagdata.beacon_mac).collect();
-                actix::fut::Either::A(db_utils::default_connect()
+                afut::Either::A(db_utils::default_connect()
                     .and_then(|client| {
                         beacon::select_beacons_by_mac(client, beacon_macs)
                     })
                     .into_actor(self)
                     .and_then(move |(client, beacons), actor, _context| {
-                        let mut beacon_sources: Vec<common::UserBeaconSourceLocations> = Vec::new();
+                        // perform trilateration calculation
+                        let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
                         let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
 
                         averages.iter().for_each(|tag_data| {
                             let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
-                            beacon_sources.push(common::UserBeaconSourceLocations {
+                            beacon_sources.push(BeaconTOFToUser {
                                 name: beacon.name.clone(),
                                 location: beacon.coordinates,
                                 distance_to_tag: tag_data.tag_distance,
                             });
                         });
 
+                        // ensure the user exists in memory, go to db if we must.
+                        let tag_mac = tag_data.tag_mac.clone();
+                        let fetch_user_fut = match actor.users.contains_key(&tag_data.tag_mac) {
+                            true => afut::Either::A(fut::ok::<_, tokio_postgres::Error>(client).into_actor(actor)),
+                            false => {
+                                afut::Either::B(user::select_user_by_short(client, tag_data.tag_mac)
+                                    .into_actor(actor)
+                                    .map(move |(client, opt_user), actor, _context| {
+                                        match opt_user {
+                                            Some(u) => {
+                                                let user_data = RealtimeUserData::from(u);
+                                                actor.users.insert(user_data.addr.clone(), user_data);
+                                            },
+                                            None => {
+                                                // user doesn't exist, cannot continue processing.
+                                                println!("tag {} does not have an associated user, make one", tag_mac);
+                                            }
+                                        }
+                                        client
+                                    })
+                                )
+                            }
+                        };
+
+                        fetch_user_fut
+                            .map(move |client, actor, context| {
+                                (client, tag_data.tag_mac, new_tag_location, beacon_sources)
+                            })
+                        //afut::ok((client, tag_data.tag_mac, new_tag_location, beacon_sources))
+                    })
+                    .and_then(|(client, tag_addr, new_tag_location, beacon_sources), actor, context| {
                         // update the user information
-                        match actor.users.get_mut(&averages[0].tag_mac) {
-                            Some(user_ref) => {
-                                user_ref.beacon_sources = beacon_sources;
-                                user_ref.coordinates = new_tag_location;
+                        match actor.users.get_mut(&tag_addr) {
+                            Some(user) => {
+                                user.beacon_tofs = beacon_sources;
+                                user.coordinates = new_tag_location;
+                                afut::Either::A(user::update_user_from_realtime(client, user.clone())
+                                    .map(|(_client, _opt_user)| { })
+                                    .into_actor(actor)
+                                )
                             },
                             None => {
-                                // TODO this should probably eventually be an error if the user
-                                // is missing, but for now just make the user instead
-                                let mut user = common::TrackedUser::new();
-                                user.mac_address = Some(averages[0].tag_mac.clone());
-                                user.beacon_sources = beacon_sources;
-                                user.coordinates = new_tag_location;
-                                actor.users.insert(averages[0].tag_mac.clone(), user);
+                                // if the user doesnt exist by now, then there is a tag without an
+                                // associated user sending us data, just ignore it
+                                afut::Either::B(afut::ok(()))
                             }
                         }
-                        user::update_user_coords_by_short(client, averages[0].tag_mac, new_tag_location)
-                            .map(|(_client, _opt_user)| {
-                            })
-                            .into_actor(actor)
                     })
                 )
             },
+            // not enough data, do nothing for now
             None => {
-                actix::fut::Either::B(ok(()).into_actor(self))
+                afut::Either::B(fut::ok(()).into_actor(self))
             }
         };
 
@@ -208,11 +243,11 @@ impl Handler<InLocationData> for DataProcessor {
 pub struct OutUserData { }
 
 impl Message for OutUserData {
-    type Result = Result<Vec<common::TrackedUser>, io::Error>;
+    type Result = Result<Vec<RealtimeUserData>, io::Error>;
 }
 
 impl Handler<OutUserData> for DataProcessor {
-    type Result = Result<Vec<common::TrackedUser>, io::Error>;
+    type Result = Result<Vec<RealtimeUserData>, io::Error>;
 
     fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
         Ok(self.users.values().cloned().collect())

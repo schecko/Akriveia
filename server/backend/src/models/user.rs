@@ -80,6 +80,28 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
         })
 }
 
+pub fn select_user_by_short(mut client: tokio_postgres::Client, id: ShortAddress) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    client
+        .prepare("
+            SELECT * FROM runtime.users
+            WHERE u_mac_address = $1
+        ")
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&id.as_pg()])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_user(&r))),
+                        _ => (client, None),
+                    }
+                })
+        })
+}
+
 pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare("
@@ -255,25 +277,32 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: ShortAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeUserData) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.users
             SET
-                u_coordinates = $1
+                u_coordinates = $1,
+                u_last_active = $2,
+                u_map_id = $3
              WHERE
-                u_mac_address = $2
+                u_mac_address = $4
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
+            Type::TIMESTAMPTZ,
+            Type::INT4,
             Type::INT2,
+
         ])
         .and_then(move |statement| {
-            let coordinates = vec![coords[0], coords[1]];
+            let coordinates = vec![realtime.coordinates[0], realtime.coordinates[1]];
             client
                 .query(&statement, &[
                     &coordinates,
-                    &mac.as_pg(),
+                    &realtime.last_active,
+                    &realtime.map_id,
+                    &realtime.addr.as_pg(),
                 ])
                 .into_future()
                 .map_err(|err| {
