@@ -17,7 +17,8 @@ fn row_to_user(row: &Row) -> TrackedUser {
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
             "u_mac_address" => {
-                entry.mac_address = Some(ShortAddress::from_pg(row.get(i)));
+                let short: Option<i16> = row.get(i);
+                entry.mac_address = short.map(|m| ShortAddress::from_pg(m));
             },
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
@@ -372,7 +373,7 @@ mod tests {
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
-        user.mac_address = ShortAddress::from_bytes(&[0, 3]).unwrap();
+        user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -380,7 +381,7 @@ mod tests {
             })
             .and_then(|(client, opt_user)| {
                 let mac = opt_user.unwrap().mac_address;
-                update_user_coords_by_short(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
+                update_user_coords_by_short(client, mac.unwrap(), na::Vector2::<f64>::new(5.0, 5.0))
             })
             .map(|(_client, _user)| {
             })
