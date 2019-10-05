@@ -140,7 +140,7 @@ void loop() {
       Serial.println("<end_ack>"); system_on = false;
     }
     else if (String(receivedChars).indexOf("ping") >= 0) {
-      Serial.print("<ping_ack>");
+      Serial.println("<ping_ack>");
       Serial.println('<' + String(EUI) + '>');
     }
     newData = false;
