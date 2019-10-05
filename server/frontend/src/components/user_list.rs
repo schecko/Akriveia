@@ -113,7 +113,7 @@ impl Renderable<UserList> for UserList {
                 <tr>
                     <td>{ &user.name }</td>
                     <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
-                    <td>{ &user.mac_address.to_hex_string() }</td>
+                    <td>{ &user.mac_address.map_or(String::new(), |m| m.to_string()) }</td>
                     <td>{ user.employee_id.clone().unwrap_or(String::new()) }</td>
                     <td>{ &user.last_active}</td>
                     <td>{ user.work_phone.clone().unwrap_or(String::new()) }</td>

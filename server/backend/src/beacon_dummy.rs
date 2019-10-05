@@ -54,6 +54,7 @@ pub fn dummy_beacon_thread(beacon: Beacon,
 
             let data_gen_fut = db_utils::default_connect()
                 .and_then(|client| {
+                    // select_user_random must return a user with a valid address
                     user::select_user_random(client)
                 })
                 .and_then(move |(_client, opt_user)| {
@@ -63,7 +64,7 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                                 data: common::TagData {
                                     beacon_mac: beacon_mac,
                                     tag_distance: user_distance,
-                                    tag_mac: user.mac_address,
+                                    tag_mac: user.mac_address.unwrap(),
                                 }
                             });
                     }
