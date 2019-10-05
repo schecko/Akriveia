@@ -92,9 +92,10 @@ typedef struct RangeInfrastructureResult {
 typedef struct RangeAcceptResult {
     boolean success;
     double range;
+	String data;
 } RangeAcceptResult;
 
-namespace DW1000NgRTLS {
+namespace DW1000NgRTLS_MT {
     /*** TWR functions used in ISO/IEC 24730-62:2013, refer to the standard or the decawave manual for details about TWR ***/
     byte increaseSequenceNumber();
     void transmitTwrShortBlink();

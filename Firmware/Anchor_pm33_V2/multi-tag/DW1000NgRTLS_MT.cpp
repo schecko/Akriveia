@@ -23,7 +23,7 @@
 */
 
 #include <Arduino.h>
-#include "DW1000NgRTLS.hpp"
+#include "DW1000NgRTLS_MT.hpp"
 #include "DW1000Ng.hpp"
 #include "DW1000NgUtils.hpp"
 #include "DW1000NgTime.hpp"
@@ -31,7 +31,7 @@
 
 static byte SEQ_NUMBER = 0;
 
-namespace DW1000NgRTLS {
+namespace DW1000NgRTLS_MT {
 
     byte increaseSequenceNumber(){
         return ++SEQ_NUMBER;
@@ -153,15 +153,15 @@ namespace DW1000NgRTLS {
     }
 
     static boolean waitForNextRangingStep() {
-        DW1000NgRTLS::waitForTransmission();
-        if(!DW1000NgRTLS::receiveFrame()) return false;
+        DW1000NgRTLS_MT::waitForTransmission();
+        if(!DW1000NgRTLS_MT::receiveFrame()) return false;
         return true;
     }
 
     RangeRequestResult tagRangeRequest() {
-        DW1000NgRTLS::transmitTwrShortBlink();
+        DW1000NgRTLS_MT::transmitTwrShortBlink();
         
-        if(!DW1000NgRTLS::waitForNextRangingStep()) return {false, 0};
+        if(!DW1000NgRTLS_MT::waitForNextRangingStep()) return {false, 0};
 
         size_t init_len = DW1000Ng::getReceivedDataLength();
         byte init_recv[init_len];
@@ -180,9 +180,9 @@ namespace DW1000NgRTLS {
 
         byte target_anchor[2];
         DW1000NgUtils::writeValueToBytes(target_anchor, anchor, 2);
-        DW1000NgRTLS::transmitPoll(target_anchor);
+        DW1000NgRTLS_MT::transmitPoll(target_anchor);
         /* Start of poll control for range */
-        if(!DW1000NgRTLS::waitForNextRangingStep()) {
+        if(!DW1000NgRTLS_MT::waitForNextRangingStep()) {
             returnValue = {false, false, 0, 0};
         } else {
 
@@ -192,14 +192,14 @@ namespace DW1000NgRTLS {
 
             if (cont_len > 10 && cont_recv[9] == ACTIVITY_CONTROL && cont_recv[10] == RANGING_CONTINUE) {
                 /* Received Response to poll */
-                DW1000NgRTLS::transmitFinalMessage(
+                DW1000NgRTLS_MT::transmitFinalMessage(
                     &cont_recv[7], 
                     replyDelayUs, 
                     DW1000Ng::getTransmitTimestamp(), // Poll transmit time
                     DW1000Ng::getReceiveTimestamp()  // Response to poll receive time
                 );
 
-                if(!DW1000NgRTLS::waitForNextRangingStep()) {
+                if(!DW1000NgRTLS_MT::waitForNextRangingStep()) {
                     returnValue = {false, false, 0, 0};
                 } else {
 
@@ -270,11 +270,11 @@ namespace DW1000NgRTLS {
     }
 
     RangeInfrastructureResult tagTwrLocalize(uint16_t finalMessageDelay) {
-        RangeRequestResult request_result = DW1000NgRTLS::tagRangeRequest();
+        RangeRequestResult request_result = DW1000NgRTLS_MT::tagRangeRequest();
 
         if(request_result.success) {
             
-            RangeInfrastructureResult result = DW1000NgRTLS::tagRangeInfrastructure(request_result.target_anchor, finalMessageDelay);
+            RangeInfrastructureResult result = DW1000NgRTLS_MT::tagRangeInfrastructure(request_result.target_anchor, finalMessageDelay);
 
             if(result.success)
                 return result;
@@ -284,10 +284,10 @@ namespace DW1000NgRTLS {
 
     RangeAcceptResult anchorRangeAccept(NextActivity next, uint16_t value) {
         RangeAcceptResult returnValue;
-
+		
         double range;
-        if(!DW1000NgRTLS::receiveFrame()) {
-            returnValue = {false, 0};
+        if(!DW1000NgRTLS_MT::receiveFrame()) {
+            returnValue = RangeAcceptResult{false, 0, ""};
         } else {
 
             size_t poll_len = DW1000Ng::getReceivedDataLength();
@@ -296,13 +296,13 @@ namespace DW1000NgRTLS {
 
             if(poll_len > 9 && poll_data[9] == RANGING_TAG_POLL) {
                 uint64_t timePollReceived = DW1000Ng::getReceiveTimestamp();
-                DW1000NgRTLS::transmitResponseToPoll(&poll_data[7]);
-                DW1000NgRTLS::waitForTransmission();
+                DW1000NgRTLS_MT::transmitResponseToPoll(&poll_data[7]);
+                DW1000NgRTLS_MT::waitForTransmission();
                 uint64_t timeResponseToPoll = DW1000Ng::getTransmitTimestamp();
                 delayMicroseconds(1500);
 
-                if(!DW1000NgRTLS::receiveFrame()) {
-                    returnValue = {false, 0};
+                if(!DW1000NgRTLS_MT::receiveFrame()) {
+                    returnValue = RangeAcceptResult{false, 0, ""};
                 } else {
 
                     size_t rfinal_len = DW1000Ng::getReceivedDataLength();
@@ -315,12 +315,12 @@ namespace DW1000NgRTLS {
                         DW1000NgUtils::writeValueToBytes(finishValue, value, 2);
 
                         if(next == NextActivity::RANGING_CONFIRM) {
-                            DW1000NgRTLS::transmitRangingConfirm(&rfinal_data[7], finishValue);
+                            DW1000NgRTLS_MT::transmitRangingConfirm(&rfinal_data[7], finishValue);
                         } else {
-                            DW1000NgRTLS::transmitActivityFinished(&rfinal_data[7], finishValue);
+                            DW1000NgRTLS_MT::transmitActivityFinished(&rfinal_data[7], finishValue);
                         }
                         
-                        DW1000NgRTLS::waitForTransmission();
+                        DW1000NgRTLS_MT::waitForTransmission();
 
                         range = DW1000NgRanging::computeRangeAsymmetric(
                             DW1000NgUtils::bytesAsValue(rfinal_data + 10, LENGTH_TIMESTAMP), // Poll send time
@@ -336,8 +336,19 @@ namespace DW1000NgRTLS {
                         /* In case of wrong read due to bad device calibration */
                         if(range <= 0) 
                             range = 0.000001;
-
-                        returnValue = {true, range};
+						
+						char buffer[rfinal_len];
+						for (unsigned int i = 0; i < rfinal_len; i++)
+						{
+							byte nib1 = (rfinal_data[i] >> 4) & 0x0F;
+							byte nib2 = (rfinal_data[i] >> 0) & 0x0F;
+							buffer[i*2+0] = nib1  < 0xA ? '0' + nib1  : 'A' + nib1  - 0xA;
+							buffer[i*2+1] = nib2  < 0xA ? '0' + nib2  : 'A' + nib2  - 0xA;
+						}
+						buffer[rfinal_len*2] = '\0';
+						
+						// final data could be indexed for smaller data size
+                        returnValue = RangeAcceptResult{true, range, String(buffer)};
                     }
                 }
             }

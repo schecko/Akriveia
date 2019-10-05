@@ -6,7 +6,6 @@
 #if defined(ESP32)
 const uint8_t PIN_SCK = 18;
 const uint8_t PIN_MOSI = 23;
-
 const uint8_t PIN_MISO = 19;
 const uint8_t PIN_SS = 2;
 const uint8_t PIN_RST = 15;
@@ -15,7 +14,7 @@ const uint8_t PIN_IRQ = 17;
 const uint8_t PIN_RST = 9; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
-#endif
+#endif 
 
 
 char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
@@ -28,7 +27,7 @@ uint16_t next_anchor;
 
 double range_self;
 uint16_t blink_rate = 200;
-byte tag_shortAddress[] = {0x05, 0x00};
+byte tag_shortAddress[] = {0x00, 0x00};
 String TAG_EUI = "00";
 
 const byte numChars = 50;
@@ -63,7 +62,7 @@ frame_filtering_configuration_t ANCHOR_FRAME_FILTER_CONFIG = {
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("<Arduino>");
+  Serial.println("<pm33_on>");
 
   if (!is_head) ANCHOR_FRAME_FILTER_CONFIG.allowReservedFive = false;
   netID = dex;
@@ -139,6 +138,10 @@ void loop() {
     }
     else if (String(receivedChars).indexOf("end") >= 0) {
       Serial.println("<end_ack>"); system_on = false;
+    }
+    else if (String(receivedChars).indexOf("ping") >= 0) {
+      Serial.println("<ping_ack>");
+      Serial.println('<' + String(EUI) + '>');
     }
     newData = false;
   }

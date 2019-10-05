@@ -10,7 +10,7 @@ boolean newData = false;
 
 const char* ssid = "akriveia";
 const char* password = "";
-const char* hostAddress = "192.168.1.104";
+const char* hostAddress = "10.0.0.2";
 const int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
 
@@ -37,7 +37,7 @@ void setup() {
   Udp.begin(UdpPort);
 
   Udp.beginPacket(hostAddress, UdpPort);
-  Udp.printf("udp_ack\n");
+  Udp.printf("esp_wifi_on\n");
   Udp.endPacket();
 }
 
