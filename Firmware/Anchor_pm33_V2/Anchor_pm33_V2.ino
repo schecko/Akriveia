@@ -27,7 +27,7 @@ uint16_t next_anchor;
 
 double range_self;
 uint16_t blink_rate = 200;
-byte tag_shortAddress[] = {0x05, 0x00};
+byte tag_shortAddress[] = {0x00, 0x00};
 String TAG_EUI = "00";
 
 const byte numChars = 50;
@@ -62,7 +62,7 @@ frame_filtering_configuration_t ANCHOR_FRAME_FILTER_CONFIG = {
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("<Arduino>");
+  Serial.println("<pm33_on>");
 
   if (!is_head) ANCHOR_FRAME_FILTER_CONFIG.allowReservedFive = false;
   netID = dex;
