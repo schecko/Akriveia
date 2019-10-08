@@ -40,13 +40,21 @@ pub struct Status {
     state: PageState,
     _change_page: Callback<root::Page>,
     fetch_service: FetchService,
-    fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
     users: HashMap<i32, TrackedUser>,
     beacons: HashMap<i32, Beacon>,
     maps: HashMap<i32, Map>,
     self_link: ComponentLink<Self>,
+
+    // ugh.
+    fetch_beacons: Option<FetchTask>,
+    //fetch_beacon: Option<FetchTask>,
+    fetch_users: Option<FetchTask>,
+    fetch_user: Option<FetchTask>,
+    fetch_user_status: Option<FetchTask>,
+    fetch_maps: Option<FetchTask>,
+    fetch_map: Option<FetchTask>,
 }
 
 impl Status {
@@ -81,9 +89,16 @@ impl Component for Status {
             users: HashMap::new(),
             beacons: HashMap::new(),
             maps: HashMap::new(),
-            fetch_task: None,
             self_link: link,
             _change_page: props.change_page,
+
+            //fetch_beacon: None,
+            fetch_beacons: None,
+            fetch_map: None,
+            fetch_maps: None,
+            fetch_user: None,
+            fetch_user_status: None,
+            fetch_users: None,
         };
 
         result.restart_service();
@@ -100,7 +115,7 @@ impl Component for Status {
                 self.change_page.emit(page);
             }*/
             Msg::RequestGetMaps => {
-                self.fetch_task = get_request!(
+                self.fetch_maps = get_request!(
                     self.fetch_service,
                     &maps_url(),
                     self.self_link,
@@ -108,7 +123,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetMap(id) => {
-                self.fetch_task = get_request!(
+                self.fetch_map = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
                     self.self_link,
@@ -116,7 +131,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetBeacons => {
-                self.fetch_task = get_request!(
+                self.fetch_beacons = get_request!(
                     self.fetch_service,
                     &beacons_url(),
                     self.self_link,
@@ -140,7 +155,7 @@ impl Component for Status {
                 );
             },*/
             Msg::RequestGetUsers => {
-                self.fetch_task = get_request!(
+                self.fetch_users = get_request!(
                     self.fetch_service,
                     &users_url(),
                     self.self_link,
@@ -148,7 +163,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetUsersStatus => {
-                self.fetch_task = get_request!(
+                self.fetch_user_status = get_request!(
                     self.fetch_service,
                     &users_status_url(),
                     self.self_link,
@@ -156,7 +171,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetUser(id) => {
-                self.fetch_task = get_request!(
+                self.fetch_user = get_request!(
                     self.fetch_service,
                     &user_url(&id.to_string()),
                     self.self_link,
@@ -333,7 +348,7 @@ impl Status {
             html! {
                 <tr>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
-                    <td>{ format!("{},{}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
+                    <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ &beacon.name }</td>
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
@@ -375,7 +390,7 @@ impl Status {
             html! {
                 <tr>
                     <td>{ &user.name }</td>
-                    <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
+                    <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ "test" }</td>
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
