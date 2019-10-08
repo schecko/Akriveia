@@ -1,4 +1,3 @@
-
 use common::*;
 use futures::{ Stream, Future, IntoFuture, };
 use na;
@@ -18,7 +17,8 @@ fn row_to_user(row: &Row) -> TrackedUser {
             "u_employee_id" => entry.employee_id = row.get(i),
             "u_last_active" => entry.last_active = row.get(i),
             "u_mac_address" => {
-                entry.mac_address = Some(ShortAddress::from_pg(row.get(i)));
+                let short: Option<i16> = row.get(i);
+                entry.mac_address = short.map(|m| ShortAddress::from_pg(m));
             },
             "u_map_id" => entry.map_id = row.get(i),
             "u_name" => entry.name = row.get(i),
@@ -75,6 +75,28 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
                     match row {
                         Some(r) => (client, Some(row_to_user(&r)), None),
                         _ => (client, None, None),
+                    }
+                })
+        })
+}
+
+pub fn select_user_by_short(mut client: tokio_postgres::Client, id: ShortAddress) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+    client
+        .prepare("
+            SELECT * FROM runtime.users
+            WHERE u_mac_address = $1
+        ")
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&id.as_pg()])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_user(&r))),
+                        _ => (client, None),
                     }
                 })
         })
@@ -255,25 +277,31 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user_coords_by_short(mut client: tokio_postgres::Client, mac: ShortAddress, coords: na::Vector2<f64>) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeUserData) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.users
             SET
-                u_coordinates = $1
+                u_coordinates = $1,
+                u_last_active = $2,
+                u_map_id = $3
              WHERE
-                u_mac_address = $2
+                u_mac_address = $4
             RETURNING *
         ", &[
             Type::FLOAT8_ARRAY,
+            Type::TIMESTAMPTZ,
+            Type::INT4,
             Type::INT2,
         ])
         .and_then(move |statement| {
-            let coordinates = vec![coords[0], coords[1]];
+            let coordinates = vec![realtime.coordinates[0], realtime.coordinates[1]];
             client
                 .query(&statement, &[
                     &coordinates,
-                    &mac.as_pg(),
+                    &realtime.last_active,
+                    &realtime.map_id,
+                    &realtime.addr.as_pg(),
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -367,23 +395,25 @@ mod tests {
     }
 
     #[test]
-    fn update_coord_by_mac() {
+    fn update_from_realtime() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
-        user.mac_address = ShortAddress::from_bytes(&[0, 3]).unwrap();
+        user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
 
         let task = db_utils::default_connect()
             .and_then(|client| {
                 insert_user(client, user)
             })
             .and_then(|(client, opt_user)| {
-                let mac = opt_user.unwrap().mac_address;
-                update_user_coords_by_short(client, mac, na::Vector2::<f64>::new(5.0, 5.0))
+                let mut realtime = RealtimeUserData::from(opt_user.unwrap().clone());
+                realtime.coordinates = na::Vector2::new(0.5, 0.5);
+                update_user_from_realtime(client, realtime)
             })
-            .map(|(_client, _user)| {
+            .map(|(_client, user)| {
+                assert!(user.unwrap().coordinates == na::Vector2::new(0.5, 0.5));
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
@@ -408,6 +438,31 @@ mod tests {
                 select_user(client, opt_user.unwrap().id)
             })
             .map(|(_client, _opt_user, _opt_e_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select user");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn select_by_short() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+        user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                select_user_by_short(client, opt_user.unwrap().mac_address.unwrap())
+            })
+            .map(|(_client, _opt_user)| {
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
@@ -483,6 +538,7 @@ mod tests {
             });
         runtime.block_on(task).unwrap();
     }
+
     #[test]
     fn select_random() {
         let mut runtime = Runtime::new().unwrap();

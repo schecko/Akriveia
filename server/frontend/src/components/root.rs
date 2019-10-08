@@ -13,6 +13,7 @@ use super::user_list::UserList;
 use super::user_addupdate::UserAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
+use super::status::Status;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -22,6 +23,7 @@ pub enum Page {
     UserList,
     Diagnostics,
     FrontPage,
+    Status,
     Login,
     MapView(Option<i32>),
     MapList,
@@ -149,6 +151,24 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             }
+            Page::Status => {
+                html! {
+                    <div>
+                        <h>{ "Status" }</h>
+                        { self.navigation() }
+                        <div>
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestPostEmergency(true),
+                                on_end_emergency=|_| Msg::RequestPostEmergency(false),
+                            />
+                        </div>
+                        <Status
+                            change_page=|page| Msg::ChangePage(page),
+                        />
+                    </div>
+                }
+            }
             Page::Login => {
                 html! {
                     <div>
@@ -261,17 +281,7 @@ impl RootComponent {
             <div>
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
-                <button
-                    onclick=|_| Msg::ChangePage(Page::MapView(None)),
-                    disabled={
-                        match self.current_page {
-                            Page::MapView { .. } => true,
-                            _ => false,
-                        }
-                    },
-                >
-                    { "MapView" }
-                </button>
+                <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
                 <select>
                     // TODO CSS for navigation bar
                     <option disabled=true,>{ "Beacon Config(Header)" }</option>
@@ -290,6 +300,7 @@ impl RootComponent {
                     </option>
                 </select>
                 <select>
+                    // TODO CSS for navigation bar
                     // Adding User List
                     <option disabled=true,>{ "User Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>{ "User List" } </option>
@@ -305,8 +316,7 @@ impl RootComponent {
                     >
                         { "Add User" }
                     </option>
-                    </select>
-                    // TODO CSS for navigation bar
+                </select>
                 <select>
                     <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
@@ -318,9 +328,20 @@ impl RootComponent {
                                 Page::MapAddUpdate {..} => true,
                                 _ => false,
                             }
-                        }, 
+                        },
                     >
                         { "Add Map" }
+                    </option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::MapView(None)),
+                        disabled={
+                            match self.current_page {
+                                Page::MapView { .. } => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "MapView" }
                     </option>
                 </select>
             </div>

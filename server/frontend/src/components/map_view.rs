@@ -25,7 +25,7 @@ pub enum Msg {
     ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
     ResponseGetMap(util::Response<Option<Map>>),
     ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseRealtimeUser(util::Response<Vec<TrackedUser>>),
+    ResponseRealtimeUser(util::Response<Vec<RealtimeUserData>>),
 }
 
 pub struct MapViewComponent {
@@ -43,7 +43,7 @@ pub struct MapViewComponent {
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
-    users: Vec<TrackedUser>,
+    users: Vec<RealtimeUserData>,
 }
 
 impl MapViewComponent {
@@ -148,7 +148,7 @@ impl Component for MapViewComponent {
             Msg::RequestRealtimeUser => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &users_realtime_url(),
+                    &users_status_url(),
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );
@@ -270,14 +270,14 @@ impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
         let mut render_distance_buttons = self.users.iter().map(|user| {
             let set_border = match &self.show_distance {
-                Some(selected) => user.mac_address.map_or(false, |m| selected == &m),
+                Some(selected) => &user.addr == selected,
                 None => false,
             };
             html! {
                 <ValueButton<String>
                     on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
                     border=set_border,
-                    value={user.mac_address.map_or(String::new(), |m| m.to_string())}
+                    value={user.addr.to_string()}
                 />
             }
         });

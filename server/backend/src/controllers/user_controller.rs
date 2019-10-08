@@ -15,7 +15,7 @@ pub struct GetParams {
     include_contacts: Option<bool>,
 }
 
-pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn users_status(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.data_processor
         .send(OutUserData{})

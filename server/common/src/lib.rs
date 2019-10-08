@@ -31,8 +31,8 @@ pub fn user_url(id: &str) -> String {
 pub fn users_url() -> String {
     return String::from("/users");
 }
-pub fn users_realtime_url() -> String {
-    return String::from("/users/realtime");
+pub fn users_status_url() -> String {
+    return String::from("/users/status");
 }
 
 pub fn map_url(id: &str) -> String {
@@ -96,12 +96,35 @@ impl DiagnosticData {
     }
 }
 
-// NOTE temporary
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserBeaconSourceLocations {
+pub struct BeaconTOFToUser {
     pub name: String,
     pub location: na::Vector2<f64>,
     pub distance_to_tag: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealtimeUserData {
+    pub id: i32,
+    pub addr: ShortAddress,
+    pub coordinates: na::Vector2<f64>,
+    pub last_active: DateTime<Utc>,
+    pub map_id: Option<i32>,
+
+    pub beacon_tofs: Vec<BeaconTOFToUser>,
+}
+
+impl From<TrackedUser> for RealtimeUserData {
+    fn from(user: TrackedUser) -> Self {
+        RealtimeUserData {
+            id: user.id,
+            addr: user.mac_address.unwrap(), // user must have a mac address to be tracked
+            coordinates: user.coordinates,
+            last_active: user.last_active,
+            map_id: user.map_id,
+            beacon_tofs: Vec::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,9 +140,6 @@ pub struct TrackedUser {
     pub note: Option<String>,
     pub work_phone: Option<String>,
     pub mobile_phone: Option<String>,
-
-    // NOTE TEMPORARY
-    pub beacon_sources: Vec<UserBeaconSourceLocations>,
 }
 
 impl TrackedUser {
@@ -136,9 +156,18 @@ impl TrackedUser {
             note: None,
             work_phone: None,
             mobile_phone: None,
-
-            beacon_sources: Vec::new(),
         }
+    }
+
+    pub fn merge(&mut self, rt: RealtimeUserData) -> Vec<BeaconTOFToUser> {
+        assert!(self.id == rt.id);
+        assert!(self.mac_address.unwrap() == rt.addr); // TODO handle this more gracefully
+
+        self.coordinates = rt.coordinates;
+        self.last_active = rt.last_active;
+        self.map_id = rt.map_id;
+
+        rt.beacon_tofs
     }
 }
 
