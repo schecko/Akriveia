@@ -361,7 +361,7 @@ impl Status {
                     }
                 },
                 None => {
-                    (&*DEFAULT_MAP, false) // this beacon doesnt have a map
+                    (&*DEFAULT_MAP, false) // this user doesnt have a map
                 }
             };
 

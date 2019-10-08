@@ -208,12 +208,11 @@ impl Handler<InLocationData> for DataProcessor {
                         };
 
                         fetch_user_fut
-                            .map(move |client, actor, context| {
+                            .map(move |client, _actor, _context| {
                                 (client, tag_data.tag_mac, new_tag_location, beacon_sources)
                             })
-                        //afut::ok((client, tag_data.tag_mac, new_tag_location, beacon_sources))
                     })
-                    .and_then(|(client, tag_addr, new_tag_location, beacon_sources), actor, context| {
+                    .and_then(|(client, tag_addr, new_tag_location, beacon_sources), actor, _context| {
                         // update the user information
                         match actor.users.get_mut(&tag_addr) {
                             Some(user) => {
