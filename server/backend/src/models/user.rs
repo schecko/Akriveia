@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[test]
-    fn update_coord_by_mac() {
+    fn update_from_realtime() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
@@ -408,10 +408,12 @@ mod tests {
                 insert_user(client, user)
             })
             .and_then(|(client, opt_user)| {
-                let mac = opt_user.unwrap().mac_address;
-                update_user_coords_by_short(client, mac.unwrap(), na::Vector2::<f64>::new(5.0, 5.0))
+                let mut realtime = RealtimeUserData::from(opt_user.unwrap().clone());
+                realtime.coordinates = na::Vector2::new(0.5, 0.5);
+                update_user_from_realtime(client, realtime)
             })
-            .map(|(_client, _user)| {
+            .map(|(_client, user)| {
+                assert!(user.unwrap().coordinates == na::Vector2::new(0.5, 0.5));
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
