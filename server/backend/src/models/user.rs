@@ -447,6 +447,31 @@ mod tests {
     }
 
     #[test]
+    fn select_by_short() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut user = TrackedUser::new();
+        user.name = "user_0".to_string();
+        user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_user(client, user)
+            })
+            .and_then(|(client, opt_user)| {
+                select_user_by_short(client, opt_user.unwrap().mac_address.unwrap())
+            })
+            .map(|(_client, _opt_user)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to select user");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
     fn select_prefetch() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
@@ -513,6 +538,7 @@ mod tests {
             });
         runtime.block_on(task).unwrap();
     }
+
     #[test]
     fn select_random() {
         let mut runtime = Runtime::new().unwrap();
