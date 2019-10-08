@@ -175,7 +175,10 @@ fn main() -> std::io::Result<()> {
                     .route(web::post().to_async(network_interface_controller::post_network_interface))
             )
 
-            .service(web::resource(&users_realtime_url()).to_async(user_controller::realtime_users))
+            .service(
+                web::resource(&users_status_url())
+                    .to_async(user_controller::users_status)
+            )
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))
             .default_service(web::resource("").to(default_route))

@@ -11,7 +11,6 @@ pub struct GetParams {
     prefetch: Option<bool>,
 }
 
-
 pub fn get_beacon(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     let prefetch = params.prefetch.unwrap_or(false);

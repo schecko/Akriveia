@@ -6,6 +6,7 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::prelude::*;
 use std::time::Duration;
+use std::collections::HashMap;
 
 const POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -19,10 +20,20 @@ pub enum Msg {
     ChangeStatus(PageState),
 
     RequestGetBeacons,
+    //RequestGetBeacon(i32),
     RequestGetUsers,
+    RequestGetUser(i32),
+    RequestGetUsersStatus,
+    RequestGetMaps,
+    RequestGetMap(i32),
 
-    ResponseGetBeacons(util::Response<Vec<(Beacon, Map)>>),
-    ResponseGetUsers(util::Response<Vec<(TrackedUser, Map)>>),
+    ResponseGetBeacons(util::Response<Vec<Beacon>>),
+    //ResponseGetBeacon(util::Response<Beacon>),
+    ResponseGetUsers(util::Response<Vec<TrackedUser>>),
+    ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
+    ResponseGetUser(util::Response<TrackedUser>),
+    ResponseGetMaps(util::Response<Vec<Map>>),
+    ResponseGetMap(util::Response<Map>),
 }
 
 pub struct Status {
@@ -32,15 +43,16 @@ pub struct Status {
     fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
-    users: Vec<(TrackedUser, Map)>,
-    beacons: Vec<(Beacon, Map)>,
+    users: HashMap<i32, TrackedUser>,
+    beacons: HashMap<i32, Beacon>,
+    maps: HashMap<i32, Map>,
     self_link: ComponentLink<Self>,
 }
 
 impl Status {
     fn restart_service(&mut self) {
         let callback = match self.state {
-            PageState::UserStatus => self.self_link.send_back(|_| Msg::RequestGetUsers),
+            PageState::UserStatus => self.self_link.send_back(|_| Msg::RequestGetUsersStatus),
             PageState::BeaconStatus => self.self_link.send_back(|_| Msg::RequestGetBeacons),
         };
         self.interval_service_task = Some(self.interval_service.spawn(POLL_RATE, callback));
@@ -59,13 +71,16 @@ impl Component for Status {
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetBeacons);
+        link.send_self(Msg::RequestGetUsers);
+        link.send_self(Msg::RequestGetMaps);
         let mut result = Status {
             state: PageState::UserStatus,
             fetch_service: FetchService::new(),
             interval_service: IntervalService::new(),
             interval_service_task: None,
-            users: Vec::new(),
-            beacons: Vec::new(),
+            users: HashMap::new(),
+            beacons: HashMap::new(),
+            maps: HashMap::new(),
             fetch_task: None,
             self_link: link,
             _change_page: props.change_page,
@@ -84,28 +99,150 @@ impl Component for Status {
             /*Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
             }*/
+            Msg::RequestGetMaps => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &maps_url(),
+                    self.self_link,
+                    Msg::ResponseGetMaps
+                );
+            },
+            Msg::RequestGetMap(id) => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &map_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetMap
+                );
+            },
             Msg::RequestGetBeacons => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}?prefetch=true", beacons_url()),
+                    &beacons_url(),
                     self.self_link,
                     Msg::ResponseGetBeacons
                 );
             },
+            /*Msg::RequestGetBeacon(id) => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &beacon_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetBeacon
+                );
+            },
+            Msg::RequestGetBeaconsStatus => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &beacon_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetBeacon
+                );
+            },*/
             Msg::RequestGetUsers => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}?prefetch=true", users_url()),
+                    &users_url(),
                     self.self_link,
                     Msg::ResponseGetUsers
                 );
+            },
+            Msg::RequestGetUsersStatus => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &users_status_url(),
+                    self.self_link,
+                    Msg::ResponseGetUsersStatus
+                );
+            },
+            Msg::RequestGetUser(id) => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &user_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetUser
+                );
+            },
+            Msg::ResponseGetMaps(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(maps) => {
+                            for map in maps {
+                                self.maps.insert(map.id, map);
+                            }
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to obtain beacon list");
+                }
+            },
+            Msg::ResponseGetMap(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(map) => {
+                            self.maps.insert(map.id, map);
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to obtain beacon list");
+                }
             },
             Msg::ResponseGetBeacons(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(beacons_and_maps) => {
-                            self.beacons = beacons_and_maps;
+                        Ok(beacons) => {
+                            for b in beacons {
+                                if let Some(mid) = b.map_id {
+                                    if !self.maps.contains_key(&mid) {
+                                        let mid = mid.clone();
+                                        self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                    }
+                                }
+                                self.beacons.insert(b.id, b);
+                            }
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to obtain beacon list");
+                }
+            },
+            /*Msg::ResponseGetBeacon(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(beacon) => {
+                            if let Some(mid) = beacon.map_id {
+                                if !self.maps.contains_key(&mid) {
+                                    let mid = mid.clone();
+                                    self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                }
+                            }
+                            self.beacons.insert(beacon.id, beacon);
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to obtain beacon list");
+                }
+            },*/
+            Msg::ResponseGetUser(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(user) => {
+                            if let Some(mid) = user.map_id {
+                                if !self.maps.contains_key(&mid) {
+                                    let mid = mid.clone();
+                                    self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                }
+                            }
+                            self.users.insert(user.id, user);
                         }
                         _ => { }
                     }
@@ -117,8 +254,44 @@ impl Component for Status {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(users_and_maps) => {
-                            self.users = users_and_maps;
+                        Ok(users) => {
+                            for user in users {
+                                if let Some(mid) = user.map_id {
+                                    if !self.maps.contains_key(&mid) {
+                                        let mid = mid.clone();
+                                        self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                    }
+                                }
+                                self.users.insert(user.id, user);
+                            }
+                        }
+                        _ => { }
+                    }
+                } else {
+                    Log!("response - failed to obtain beacon list");
+                }
+            },
+            Msg::ResponseGetUsersStatus(response) => {
+                let (meta, Json(body)) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(realtime_users) => {
+                            println!("realtime is  {:?}", realtime_users);
+                            for ru in realtime_users {
+                                match self.users.get_mut(&ru.id) {
+                                    Some(u) => {
+                                        u.merge(ru);
+                                    },
+                                    None => {
+                                        // just drop the realtime data for now until
+                                        // the user object is retrieved, more realtime data
+                                        // will come eventually and the UI user likely wont
+                                        // notice.
+                                        self.self_link
+                                            .send_back(move |_: ()| Msg::RequestGetUser(ru.id));
+                                    }
+                                }
+                            }
                         }
                         _ => { }
                     }
@@ -135,16 +308,35 @@ impl Component for Status {
     }
 }
 
+lazy_static! {
+    static ref DEFAULT_MAP: Map = Map::new();
+}
+
 impl Status {
+
     fn beacon_table(&self) -> Html<Self> {
-        let mut rows = self.beacons.iter().map(|(beacon, map)| {
+        let mut rows = self.beacons.iter().map(|(_id, beacon)| {
+            let map = match beacon.map_id {
+                Some(mid) => {
+                    match self.maps.get(&mid) {
+                        Some(map) => map,
+                        None => {
+                            &DEFAULT_MAP // render default map until the correct one loads
+                        }
+                    }
+                },
+                None => {
+                    &DEFAULT_MAP // this beacon doesnt have a map
+                }
+            };
+
             html! {
                 <tr>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
                     <td>{ format!("{},{}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ &beacon.name }</td>
-                    <td>{ beacon.note.clone().unwrap_or(String::new()) }</td>
+                    <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                 </tr>
             }
         });
@@ -165,12 +357,29 @@ impl Status {
     }
 
     fn user_table(&self) -> Html<Self> {
-        let mut rows = self.users.iter().map(|(user, map)| {
+        let mut rows = self.users.iter().map(|(_id, user)| {
+            let map = match user.map_id {
+                Some(mid) => {
+                    match self.maps.get(&mid) {
+                        Some(map) => map,
+                        None => {
+                            &DEFAULT_MAP // render default map until the correct one loads
+                        }
+                    }
+                },
+                None => {
+                    &DEFAULT_MAP // this beacon doesnt have a map
+                }
+            };
+
             html! {
                 <tr>
                     <td>{ &user.name }</td>
                     <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
+                    <td>{ "test" }</td>
+                    <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
+                    <td>{ "test" }</td>
                 </tr>
             }
         });
@@ -181,6 +390,9 @@ impl Status {
                     <td>{ "Name" }</td>
                     <td>{ "Coordinates" }</td>
                     <td>{ "Floor" }</td>
+                    <td>{ "Last Seen" }</td>
+                    <td>{ "Note" }</td>
+                    <td>{ "Actions" }</td>
                 </tr>
                 { for rows }
             </>

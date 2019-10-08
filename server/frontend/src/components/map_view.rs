@@ -148,7 +148,7 @@ impl Component for MapViewComponent {
             Msg::RequestRealtimeUser => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &users_realtime_url(),
+                    &users_status_url(),
                     self.self_link,
                     Msg::ResponseRealtimeUser
                 );

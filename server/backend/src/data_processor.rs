@@ -160,7 +160,10 @@ impl Handler<InLocationData> for DataProcessor {
         let fut = match opt_averages {
             // perform trilateration
             Some(averages) => {
-                let beacon_macs: Vec<MacAddress8>  = averages.iter().map(|tagdata| tagdata.beacon_mac).collect();
+                let beacon_macs: Vec<MacAddress8> = averages
+                    .iter()
+                    .map(|tagdata| tagdata.beacon_mac)
+                    .collect();
                 afut::Either::A(db_utils::default_connect()
                     .and_then(|client| {
                         beacon::select_beacons_by_mac(client, beacon_macs)

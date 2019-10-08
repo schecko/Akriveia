@@ -31,8 +31,8 @@ pub fn user_url(id: &str) -> String {
 pub fn users_url() -> String {
     return String::from("/users");
 }
-pub fn users_realtime_url() -> String {
-    return String::from("/users/realtime");
+pub fn users_status_url() -> String {
+    return String::from("/users/status");
 }
 
 pub fn map_url(id: &str) -> String {
@@ -105,6 +105,7 @@ pub struct BeaconTOFToUser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealtimeUserData {
+    pub id: i32,
     pub addr: ShortAddress,
     pub coordinates: na::Vector2<f64>,
     pub last_active: DateTime<Utc>,
@@ -113,21 +114,10 @@ pub struct RealtimeUserData {
     pub beacon_tofs: Vec<BeaconTOFToUser>,
 }
 
-impl RealtimeUserData {
-    fn new() -> RealtimeUserData {
-        RealtimeUserData {
-            addr: ShortAddress::nil(),
-            coordinates: na::Vector2::new(0.0, 0.0),
-            last_active: Utc.timestamp(0, 0),
-            map_id: None,
-            beacon_tofs: Vec::new(),
-        }
-    }
-}
-
 impl From<TrackedUser> for RealtimeUserData {
     fn from(user: TrackedUser) -> Self {
         RealtimeUserData {
+            id: user.id,
             addr: user.mac_address.unwrap(), // user must have a mac address to be tracked
             coordinates: user.coordinates,
             last_active: user.last_active,
@@ -167,6 +157,17 @@ impl TrackedUser {
             work_phone: None,
             mobile_phone: None,
         }
+    }
+
+    pub fn merge(&mut self, rt: RealtimeUserData) -> Vec<BeaconTOFToUser> {
+        assert!(self.id == rt.id);
+        assert!(self.mac_address.unwrap() == rt.addr); // TODO handle this more gracefully
+
+        self.coordinates = rt.coordinates;
+        self.last_active = rt.last_active;
+        self.map_id = rt.map_id;
+
+        rt.beacon_tofs
     }
 }
 
