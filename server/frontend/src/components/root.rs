@@ -282,17 +282,6 @@ impl RootComponent {
                 <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
-                <button
-                    onclick=|_| Msg::ChangePage(Page::MapView(None)),
-                    disabled={
-                        match self.current_page {
-                            Page::MapView { .. } => true,
-                            _ => false,
-                        }
-                    },
-                >
-                    { "MapView" }
-                </button>
                 <select>
                     // TODO CSS for navigation bar
                     <option disabled=true,>{ "Beacon Config(Header)" }</option>
@@ -342,6 +331,17 @@ impl RootComponent {
                         },
                     >
                         { "Add Map" }
+                    </option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::MapView(None)),
+                        disabled={
+                            match self.current_page {
+                                Page::MapView { .. } => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "MapView" }
                     </option>
                 </select>
             </div>

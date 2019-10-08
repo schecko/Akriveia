@@ -1,12 +1,13 @@
 use common::*;
 use crate::util;
+use std::collections::HashMap;
+use std::time::Duration;
 use super::root;
+use super::value_button::{ ValueButton, DisplayButton, };
 use yew::format::Json;
+use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::prelude::*;
-use std::time::Duration;
-use std::collections::HashMap;
 
 const POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -16,11 +17,10 @@ pub enum PageState {
 }
 
 pub enum Msg {
-    //ChangeRootPage(root::Page),
+    ChangeRootPage(root::Page),
     ChangeStatus(PageState),
 
     RequestGetBeacons,
-    //RequestGetBeacon(i32),
     RequestGetUsers,
     RequestGetUser(i32),
     RequestGetUsersStatus,
@@ -28,7 +28,6 @@ pub enum Msg {
     RequestGetMap(i32),
 
     ResponseGetBeacons(util::Response<Vec<Beacon>>),
-    //ResponseGetBeacon(util::Response<Beacon>),
     ResponseGetUsers(util::Response<Vec<TrackedUser>>),
     ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
     ResponseGetUser(util::Response<TrackedUser>),
@@ -38,7 +37,7 @@ pub enum Msg {
 
 pub struct Status {
     state: PageState,
-    _change_page: Callback<root::Page>,
+    change_page: Callback<root::Page>,
     fetch_service: FetchService,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
@@ -49,7 +48,6 @@ pub struct Status {
 
     // ugh.
     fetch_beacons: Option<FetchTask>,
-    //fetch_beacon: Option<FetchTask>,
     fetch_users: Option<FetchTask>,
     fetch_user: Option<FetchTask>,
     fetch_user_status: Option<FetchTask>,
@@ -90,7 +88,7 @@ impl Component for Status {
             beacons: HashMap::new(),
             maps: HashMap::new(),
             self_link: link,
-            _change_page: props.change_page,
+            change_page: props.change_page,
 
             //fetch_beacon: None,
             fetch_beacons: None,
@@ -111,9 +109,9 @@ impl Component for Status {
                 self.state = state;
                 self.restart_service();
             }
-            /*Msg::ChangeRootPage(page) => {
+            Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
-            }*/
+            }
             Msg::RequestGetMaps => {
                 self.fetch_maps = get_request!(
                     self.fetch_service,
@@ -138,22 +136,6 @@ impl Component for Status {
                     Msg::ResponseGetBeacons
                 );
             },
-            /*Msg::RequestGetBeacon(id) => {
-                self.fetch_task = get_request!(
-                    self.fetch_service,
-                    &beacon_url(&id.to_string()),
-                    self.self_link,
-                    Msg::ResponseGetBeacon
-                );
-            },
-            Msg::RequestGetBeaconsStatus => {
-                self.fetch_task = get_request!(
-                    self.fetch_service,
-                    &beacon_url(&id.to_string()),
-                    self.self_link,
-                    Msg::ResponseGetBeacon
-                );
-            },*/
             Msg::RequestGetUsers => {
                 self.fetch_users = get_request!(
                     self.fetch_service,
@@ -227,25 +209,6 @@ impl Component for Status {
                     Log!("response - failed to obtain beacon list");
                 }
             },
-            /*Msg::ResponseGetBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(beacon) => {
-                            if let Some(mid) = beacon.map_id {
-                                if !self.maps.contains_key(&mid) {
-                                    let mid = mid.clone();
-                                    self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
-                                }
-                            }
-                            self.beacons.insert(beacon.id, beacon);
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to obtain beacon list");
-                }
-            },*/
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -331,17 +294,17 @@ impl Status {
 
     fn beacon_table(&self) -> Html<Self> {
         let mut rows = self.beacons.iter().map(|(_id, beacon)| {
-            let map = match beacon.map_id {
+            let (map, valid_map) = match beacon.map_id {
                 Some(mid) => {
                     match self.maps.get(&mid) {
-                        Some(map) => map,
+                        Some(map) => (map, true),
                         None => {
-                            &DEFAULT_MAP // render default map until the correct one loads
+                            (&*DEFAULT_MAP, true) // render default map until the correct one loads
                         }
                     }
                 },
                 None => {
-                    &DEFAULT_MAP // this beacon doesnt have a map
+                    (&*DEFAULT_MAP, false) // this beacon doesnt have a map
                 }
             };
 
@@ -352,6 +315,21 @@ impl Status {
                     <td>{ &map.name }</td>
                     <td>{ &beacon.name }</td>
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
+                    <td>
+                        <ValueButton<i32>
+                            display=Some("Details".to_string()),
+                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
+                            border=false,
+                            value={beacon.id}
+                        />
+                        <DisplayButton<Option<i32>>
+                            display="Map".to_string(),
+                            on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
+                            border=false,
+                            disabled=!valid_map,
+                            value={beacon.map_id}
+                        />
+                    </td>
                 </tr>
             }
         });
@@ -373,17 +351,17 @@ impl Status {
 
     fn user_table(&self) -> Html<Self> {
         let mut rows = self.users.iter().map(|(_id, user)| {
-            let map = match user.map_id {
+            let (map, valid_map) = match user.map_id {
                 Some(mid) => {
                     match self.maps.get(&mid) {
-                        Some(map) => map,
+                        Some(map) => (map, true),
                         None => {
-                            &DEFAULT_MAP // render default map until the correct one loads
+                            (&*DEFAULT_MAP, false) // render default map until the correct one loads
                         }
                     }
                 },
                 None => {
-                    &DEFAULT_MAP // this beacon doesnt have a map
+                    (&*DEFAULT_MAP, false) // this beacon doesnt have a map
                 }
             };
 
@@ -394,7 +372,23 @@ impl Status {
                     <td>{ &map.name }</td>
                     <td>{ "test" }</td>
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
-                    <td>{ "test" }</td>
+                    <td>
+                        <ValueButton<i32>
+                            display=Some("Details".to_string()),
+                            on_click=|value: i32| Msg::ChangeRootPage(root::Page::UserAddUpdate(Some(value))),
+                            border=false,
+                            value={user.id}
+                        />
+                    </td>
+                    <td>
+                        <DisplayButton<Option<i32>>
+                            display="Map".to_string(),
+                            on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
+                            border=false,
+                            disabled=!valid_map,
+                            value={user.map_id}
+                        />
+                    </td>
                 </tr>
             }
         });
