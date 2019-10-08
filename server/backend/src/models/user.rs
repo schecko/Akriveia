@@ -293,7 +293,6 @@ pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: R
             Type::TIMESTAMPTZ,
             Type::INT4,
             Type::INT2,
-
         ])
         .and_then(move |statement| {
             let coordinates = vec![realtime.coordinates[0], realtime.coordinates[1]];

@@ -90,7 +90,6 @@ impl Component for Status {
             self_link: link,
             change_page: props.change_page,
 
-            //fetch_beacon: None,
             fetch_beacons: None,
             fetch_map: None,
             fetch_maps: None,
