@@ -19,8 +19,8 @@ const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
 volatile uint32_t blink_rate = 200;
-char* EUI = "AA:BB:CC:DD:EE:FF:00:02";
-uint16_t netID = 2;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:00";
+uint16_t netID = 0;
 
 device_configuration_t DEFAULT_CONFIG = {
     false,
