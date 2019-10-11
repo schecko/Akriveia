@@ -16,18 +16,16 @@ const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
-uint16_t dex = 10;
-bool is_head = true;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:0B";
+uint16_t dex = 11;
+bool is_head = false;
 bool is_tail = false;
 
 uint16_t netID;
 uint16_t next_anchor;
-byte beacon_list[] = {0x0A, 0x0B};
+byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 
 double range[sizeof(beacon_list)] = {};
-
-bool data_good[sizeof(beacon_list)] = {false};
 
 int blink_rate = 100;
 byte tag_shortAddress[] = {0x00, 0x00};
@@ -36,7 +34,7 @@ byte eui[] = {B00000000, B00000000, B11111111, B11101110, B11011101, B11001100, 
 int n_tag = 2;
 int counter = 0;
 int index_ = 0;
-int count_per_index = 10;
+int count_per_index = 50;
 int max_count = count_per_index  * n_tag - 1;
 
 device_configuration_t DEFAULT_CONFIG = {
@@ -95,57 +93,27 @@ void setup() {
   Serial.print("Device mode: "); Serial.println(msg);
 }
 
-void loop() {
-  if (counter == 0) index_ = 0;
-  else index_ = counter / count_per_index % counter ;
+void transmitRangeReport() {
+  byte rangingReport[] = {DATA, SHORT_SRC_AND_DEST, DW1000NgRTLS::increaseSequenceNumber(), 0, 0, 0, 0, 0, 0, 0x60, 0, 0 };
+  byte main_anchor_address[] = {beacon_list[0], 0x00};
+  DW1000Ng::getNetworkId(&rangingReport[3]);
+  memcpy(&rangingReport[5], main_anchor_address, 2);
+  DW1000Ng::getDeviceAddress(&rangingReport[7]);
+  DW1000NgUtils::writeValueToBytes(&rangingReport[10], static_cast<uint16_t>((range[0] * 1000)), 2);
+  DW1000Ng::setTransmitData(rangingReport, sizeof(rangingReport));
+  DW1000Ng::startTransmit();
+}
 
+void loop() {
   String ranging_info;
   RangeAcceptResult result;
-
-  if (DW1000NgRTLS::receiveFrame()) {
-    size_t recv_len = DW1000Ng::getReceivedDataLength();
-    byte recv_data[recv_len];
-    DW1000Ng::getReceivedData(recv_data, recv_len);
-    if (recv_data[9] == 0x60) {
-      double range_rec = static_cast<double>(DW1000NgUtils::bytesAsValue(&recv_data[10], 2) / 1000.0);
-      for (int i = 1; i < sizeof(beacon_list); i++) {
-        if (recv_data[7] == beacon_list[i]) {
-          range[i] = range_rec;
-//          Serial.println(String(recv_data[7], HEX) + "|" + String(range_rec));
-          data_good[i] = true;
-        }
-      }
-    }
-
-    eui[0] = highByte(index_) << 4 | lowByte(index_);
-    DW1000NgRTLS::transmitRangingInitiation(&eui[0], tag_shortAddress);
-    DW1000NgRTLS::waitForTransmission();
-    result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
-    if (result.success) {
-      range[0] = result.range;
-      data_good[0] = true;
-    }
-  }
-
-
-  bool check = false;
-
-  for  (int j = 0; j < sizeof(beacon_list); j++) {
-    if (data_good[j]) check = true;
-    else check = false;
-  }
-
-  if (check) {
-    ranging_info = "<|" + String(eui[0], HEX)  + "|";
-    for  (int k = 0; k < sizeof(beacon_list); k++){
-      ranging_info += String(beacon_list[k], HEX) + "|" + String(range[k]) + "|"; 
-      data_good[k] = false;
-    }
-    ranging_info += ">";
+  result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
+  if (result.success) {
+    delay(2);
+    range[0] = result.range;
+    transmitRangeReport();
+    ranging_info = "<0x00|" + String(dex, HEX) + "|" + String(result.range) + '>';
     Serial.println(ranging_info);
   }
 
-
-  if (counter >= max_count) counter = 0;
-  else counter++;
 }

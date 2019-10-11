@@ -16,8 +16,8 @@ const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:0B";
-uint16_t dex = 11;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:0C";
+uint16_t dex = 12;
 bool is_head = false;
 bool is_tail = false;
 
@@ -107,7 +107,7 @@ void transmitRangeReport() {
 void loop() {
   String ranging_info;
   RangeAcceptResult result;
-  result = DW1000NgRTLS::anchorRangeAccept(NextActivity::ACTIVITY_FINISHED, blink_rate);
+  result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
   if (result.success) {
     delay(2);
     range[0] = result.range;
