@@ -24,11 +24,10 @@ bool is_tail = false;
 uint16_t netID;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
-byte main_anchor_address[] = {0x0A, 0x00};
 
 double range[sizeof(beacon_list)] = {};
 
-int blink_rate = 200;
+int blink_rate = 100;
 byte tag_shortAddress[] = {0x00, 0x00};
 byte eui[] = {B00000000, B00000000, B11111111, B11101110, B11011101, B11001100, B10111011, B10101010};
 
@@ -95,13 +94,14 @@ void setup() {
 }
 
 void transmitRangeReport() {
-    byte rangingReport[] = {DATA, SHORT_SRC_AND_DEST, DW1000NgRTLS::increaseSequenceNumber(), 0,0,0,0,0,0, 0x60, 0,0 };
-    DW1000Ng::getNetworkId(&rangingReport[3]);
-    memcpy(&rangingReport[5], main_anchor_address, 2);
-    DW1000Ng::getDeviceAddress(&rangingReport[7]);
-    DW1000NgUtils::writeValueToBytes(&rangingReport[10], static_cast<uint16_t>((range[0]*1000)), 2);
-    DW1000Ng::setTransmitData(rangingReport, sizeof(rangingReport));
-    DW1000Ng::startTransmit();
+  byte rangingReport[] = {DATA, SHORT_SRC_AND_DEST, DW1000NgRTLS::increaseSequenceNumber(), 0, 0, 0, 0, 0, 0, 0x60, 0, 0 };
+  byte main_anchor_address[] = {beacon_list[0], 0x00};
+  DW1000Ng::getNetworkId(&rangingReport[3]);
+  memcpy(&rangingReport[5], main_anchor_address, 2);
+  DW1000Ng::getDeviceAddress(&rangingReport[7]);
+  DW1000NgUtils::writeValueToBytes(&rangingReport[10], static_cast<uint16_t>((range[0] * 1000)), 2);
+  DW1000Ng::setTransmitData(rangingReport, sizeof(rangingReport));
+  DW1000Ng::startTransmit();
 }
 
 void loop() {
@@ -112,7 +112,7 @@ void loop() {
     delay(2);
     range[0] = result.range;
     transmitRangeReport();
-    ranging_info = '<' + String(EUI) + '|' + String(00) + '|' + String(result.range) + '>';
+    ranging_info = "<0x00|" + String(dex, HEX) + "|" + String(result.range) + '>';
     Serial.println(ranging_info);
   }
 
