@@ -3,7 +3,7 @@
 #include <DW1000NgTime.hpp>
 #include <DW1000NgConstants.hpp>
 #include <DW1000NgRanging.hpp>
-#include <DW1000NgRTLS.hpp>
+#include "DW1000NgRTLS_MT.hpp"
 
 #if defined(ESP32)
 const uint8_t PIN_SCK = 18;
@@ -19,8 +19,8 @@ const uint8_t PIN_SS = SS; // spi select pin
 #endif
 
 volatile uint32_t blink_rate = 200;
-char* EUI = "AA:BB:CC:DD:EE:FF:00:02";
-uint16_t netID = 2;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:05";
+uint16_t netID = 5;
 
 device_configuration_t DEFAULT_CONFIG = {
     false,
@@ -93,7 +93,7 @@ void loop() {
     DW1000Ng::spiWakeup();
     DW1000Ng::setEUI(EUI);
     
-    RangeInfrastructureResult res = DW1000NgRTLS::tagTwrLocalize(1500);
+    RangeInfrastructureResult res = DW1000NgRTLS_MT::tagTwrLocalize(1500);
     if(res.success){  blink_rate = res.new_blink_rate;}
        
 }

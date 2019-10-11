@@ -14,8 +14,7 @@ const uint8_t PIN_IRQ = 17;
 const uint8_t PIN_RST = 9; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
-#endif 
-
+#endif
 
 char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
 uint16_t dex = 10;
@@ -26,9 +25,10 @@ uint16_t netID;
 uint16_t next_anchor;
 
 double range_self;
+byte anchors[] = {0x0A, 0x00, 0x0B, 0x00, 0x0C, 0x00};
 uint16_t blink_rate = 200;
 byte tag_shortAddress[] = {0x00, 0x00};
-String TAG_EUI = "00";
+String TAG_EUI = "AA:BB:CC:DD:EE:FF:00:00";
 
 const byte numChars = 50;
 char receivedChars[numChars];
@@ -103,10 +103,14 @@ void loop() {
         DW1000Ng::getReceivedData(recv_data, recv_len);
         if (recv_data[0] == BLINK) {
           DW1000NgRTLS::transmitRangingInitiation(&recv_data[2], tag_shortAddress);
-          DW1000NgRTLS::waitForTransmission();
+          //  DW1000NgRTLS::waitForTransmission();
           result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
           if (result.success) {
-            ranging_info = '<' + String(EUI) + '|' + String(TAG_EUI) + '|' + String(result.range) + '>';
+            size_t len = recv_len;
+            byte data[len] = {};
+            memcpy(data, recv_data, len);
+            TAG_EUI = byte_2_hex(data, len);
+            ranging_info = '<' + String(EUI) + '|' + TAG_EUI + '|' + String(result.range) + '>';
             Serial.println(ranging_info);
           }
         }
@@ -123,7 +127,7 @@ void loop() {
     else {
       result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
       if (result.success) {
-        delay(2);
+        delay(1);
         ranging_info = '<' + String(EUI) + '|' + String(TAG_EUI) + '|' + String(result.range) + '>';
         Serial.println(ranging_info);
       }
@@ -134,19 +138,38 @@ void loop() {
   if (newData == true) {
     Serial.println(String(receivedChars));
     if (String(receivedChars).indexOf("start") >= 0) {
-      Serial.println("<start_ack>"); system_on = true;
+      Serial.println("<start_ack>");
+      system_on = true;
     }
     else if (String(receivedChars).indexOf("end") >= 0) {
-      Serial.println("<end_ack>"); system_on = false;
+      Serial.println("<end_ack>");
+      system_on = false;
     }
     else if (String(receivedChars).indexOf("ping") >= 0) {
-      Serial.println("<ping_ack>");
-      Serial.println('<' + String(EUI) + '>');
+      Serial.print("<ping_ack");
+      Serial.print('|' + String(EUI) + '|');
+      Serial.println('>');
     }
     newData = false;
   }
 }
 
+String byte_2_hex(byte data[], size_t n) {
+  size_t len = 16;
+  char buffer[len];
+  for (unsigned int i = 9; i >= 2; i--) {
+    byte nib1 = (data[11 - i] >> 4) & 0x0F;
+    byte nib2 = (data[11 - i] >> 0) & 0x0F;
+    buffer[(i - 2) * 2 + 0] = nib1  < 0xA ? '0' + nib1  : 'A' + nib1  - 0xA;
+    buffer[(i - 2) * 2 + 1] = nib2  < 0xA ? '0' + nib2  : 'A' + nib2  - 0xA;
+  }
+  buffer[len * 2] = '\0';
+  String id0 = String(buffer[0]) + String(buffer[1]) + ':' + String(buffer[2]) + String(buffer[3]) + ':';
+  String id1 = String(buffer[4]) + String(buffer[5]) + ':' + String(buffer[6]) + String(buffer[7]) + ':';
+  String id2 = String(buffer[8]) + String(buffer[9]) + ':' + String(buffer[10]) + String(buffer[11]) + ':';
+  String id3 = String(buffer[12]) + String(buffer[13]) + ':' + String(buffer[14]) + String(buffer[15]);
+  return id0 + id1 + id2 + id3;
+}
 
 void recvWithStartEndMarkers() {
   static boolean recvInProgress = false;
@@ -154,7 +177,6 @@ void recvWithStartEndMarkers() {
   char startMarker = '<';
   char endMarker = '>';
   char rc;
-
   while (Serial.available() > 0 && newData == false) {
     rc = Serial.read();
     if (recvInProgress == true) {
