@@ -86,16 +86,16 @@ void loop() {
       Udp.endPacket();
     }
     if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("<|esp_reboot_ack|>");
-       if (WiFi.status() == WL_CONNECTED) {
-      Udp.beginPacket(hostAddress, UdpPort);
-      Udp.printf(String("<|esp_reboot_ack|>\n").c_str());
-      Udp.endPacket();
-    }
+      Serial.println("|esp_reboot_ack|");
+      if (WiFi.status() == WL_CONNECTED) {
+        Udp.beginPacket(hostAddress, UdpPort);
+        Udp.printf(String("|esp_reboot_ack|\n").c_str());
+        Udp.endPacket();
+      }
       delay(3000);
       ESP.restart();
     }
-    
+
     newData = false;
   }
 
