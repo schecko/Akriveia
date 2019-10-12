@@ -177,7 +177,7 @@ void CMD_EVENT() {
     }
     else if (String(receivedChars).indexOf("reboot") >= 0) {
       Serial.println("<|pm33_reboot_ack|>");
-      delay(100);
+      delay(3000);
     }
     newData = false;
   }
