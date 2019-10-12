@@ -47,7 +47,7 @@ frame_filtering_configuration_t ANCHOR_FRAME_FILTER_CONFIG = {
 void setup() {
   Serial.begin(9600);
   Serial.println("<pm33_on>");
-  Indexer();
+  IndexMapper();
   Serial.print(F("### DW1000Ng-arduino-ranging-anchor-")); Serial.print(netID); Serial.println(" ###");
   DW1000Ng::initializeNoInterrupt(PIN_SS, PIN_RST);
   Serial.println(F("DW1000Ng initialized ..."));
@@ -73,7 +73,7 @@ void setup() {
   Serial.print("Device mode: "); Serial.println(msg);
 }
 
-void Indexer() {
+void IndexMapper() {
   byte netID_b = highByte(netID) << 4 | lowByte(netID);
   for (int i = 0; i < sizeof(beacon_list); i++) {
     if (beacon_list[i] == netID_b) {
