@@ -14,6 +14,7 @@ use super::user_addupdate::UserAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
 use super::status::Status;
+use super::login::Login;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -174,7 +175,7 @@ impl Renderable<RootComponent> for RootComponent {
                     <div>
                         <h>{ "Login" }</h>
                         { self.navigation() }
-                        { self.view_data() }
+                        <Login/>
                     </div>
                 }
             }
@@ -267,7 +268,9 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         <h>{ "FrontPage" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Click" }</button>
+                        <div/>
+                        <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Admin" }</button>
+                        <button onclick=|_| Msg::ChangePage(Page::MapView(None)),>{ "First Responnder" }</button>
                     </div>
                 }
             }
@@ -345,13 +348,6 @@ impl RootComponent {
                     </option>
                 </select>
             </div>
-        }
-    }
-
-
-    fn view_data(&self) -> Html<RootComponent> {
-        html! {
-            <p>{ "Its empty in here." }</p>
         }
     }
 }

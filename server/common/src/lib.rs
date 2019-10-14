@@ -50,11 +50,19 @@ pub fn networks_url() -> String {
 }
 
 pub fn system_emergency_url() -> String {
-    return String::from("/system/emergency/");
+    return String::from("/system/emergency");
 }
 
 pub fn system_diagnostics_url() -> String {
-    return String::from("/system/diagnostics/");
+    return String::from("/system/diagnostics");
+}
+
+pub fn login_url() -> String {
+    return String::from("/login");
+}
+
+pub fn logout_url() -> String {
+    return String::from("/logout");
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -74,7 +82,6 @@ impl SystemCommandResponse {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TagData {
@@ -239,5 +246,24 @@ impl NetworkInterface {
             name: String::new(),
             webserver_port: None,
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoginInfo {
+    pub name: String,
+    pub pw: String,
+}
+
+impl LoginInfo {
+    pub fn new() -> LoginInfo {
+        LoginInfo {
+            name: String::new(),
+            pw: String::new(),
+        }
+    }
+
+    pub fn reset_pw(&mut self) {
+        self.pw = String::new();
     }
 }
