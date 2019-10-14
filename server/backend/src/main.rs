@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
@@ -24,9 +24,10 @@ mod conn_common;
 
 use controllers::beacon_controller;
 use controllers::map_controller;
+use controllers::network_interface_controller;
+use controllers::session_controller;
 use controllers::system_controller;
 use controllers::user_controller;
-use controllers::network_interface_controller;
 
 use models::system;
 
@@ -178,6 +179,16 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&users_status_url())
                     .to_async(user_controller::users_status)
+            )
+
+            // session
+            .service(
+                web::resource(&login_url())
+                    .route(web::post().to_async(session_controller::login))
+            )
+            .service(
+                web::resource(&logout_url())
+                    .route(web::post().to_async(session_controller::logout))
             )
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))
