@@ -1,8 +1,8 @@
 use common::*;
 use crate::util;
-use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
+use yew::services::storage:: { StorageService, Area, };
 
 pub enum Msg {
     InputName(String),
@@ -64,28 +64,29 @@ impl Component for Login {
                 self.data.login.pw = pw;
             },
             Msg::RequestLogin => {
+                self.data.error_messages = Vec::new();
+                self.data.success_message = None;
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &login_url(),
-                    (),
+                    self.data.login,
                     self.self_link,
                     Msg::ResponseLogin
                 );
                 self.data.login.reset_pw(); // ensure the password is deleted asap
             },
             Msg::ResponseLogin(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.data.success_message = Some("successfully logged in".to_string());
-                        },
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to login, reason: {}", e));
-                        }
+                let (meta, _body) = response.into_parts();
+                match meta.status {
+                    StatusCode::OK => {
+                        self.data.success_message = Some("Successfully logged in.".to_string());
+                    },
+                    StatusCode::UNAUTHORIZED => {
+                        self.data.error_messages.push("Failed to login, username or password is incorrect.".to_string());
+                    },
+                    _ => {
+                        self.data.error_messages.push("Failed to login, internal server error.".to_string());
                     }
-                } else {
-                    self.data.error_messages.push("failed to login".to_string());
                 }
             },
         }

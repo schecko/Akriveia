@@ -3,6 +3,7 @@ extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
 extern crate actix_web;
+extern crate actix_identity;
 extern crate common;
 extern crate env_logger;
 extern crate futures;
@@ -33,6 +34,7 @@ use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
+use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use common::*;
@@ -80,6 +82,11 @@ fn main() -> std::io::Result<()> {
     // start the webserver
     HttpServer::new(move || {
         App::new()
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&[0; 32])
+                    .name("session_token")
+                    .secure(false)
+            ))
             .data(
                 web::JsonConfig::default()
                     .limit(4096)
