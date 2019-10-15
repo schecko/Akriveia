@@ -23,7 +23,6 @@ pub enum Page {
     UserAddUpdate(Option<i32>),
     UserList,
     Diagnostics,
-    FrontPage,
     Status,
     Login,
     MapView(Option<i32>),
@@ -61,7 +60,7 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            current_page: Page::FrontPage,
+            current_page: Page::Login,
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -151,7 +150,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::Status => {
                 html! {
                     <div>
@@ -169,16 +168,17 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::Login => {
                 html! {
                     <div>
                         <h>{ "Login" }</h>
-                        { self.navigation() }
-                        <Login/>
+                        <Login
+                            change_page=|page| Msg::ChangePage(page),
+                        />
                     </div>
                 }
-            }
+            },
             Page::MapView(opt_id) => {
                 html! {
                     <div>
@@ -197,7 +197,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::BeaconList => {
                html! {
                     <div>
@@ -208,7 +208,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::BeaconAddUpdate(id) => {
                html! {
                     <div>
@@ -219,7 +219,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::UserList => {
                 html! {
                     <div>
@@ -230,7 +230,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::UserAddUpdate(id) => {
                 html! {
                     <div>
@@ -241,7 +241,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::MapList => {
                html! {
                     <div>
@@ -252,7 +252,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::MapAddUpdate(opt_id) => {
                html! {
                     <div>
@@ -263,17 +263,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
-            Page::FrontPage => {
-                html! {
-                    <div>
-                        <h>{ "FrontPage" }</h>
-                        <div/>
-                        <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Admin" }</button>
-                        <button onclick=|_| Msg::ChangePage(Page::MapView(None)),>{ "First Responnder" }</button>
-                    </div>
-                }
-            }
+            },
         }
     }
 }

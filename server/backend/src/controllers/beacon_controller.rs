@@ -2,9 +2,10 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::beacon;
-use futures::{ future::ok, Future, future::Either, };
+use futures::{ future::err, future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use std::sync::*;
+use actix_identity::Identity;
 
 #[derive(Deserialize)]
 pub struct GetParams {
@@ -108,13 +109,15 @@ pub fn get_beacons(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, p
 }
 
 // new beacon
-pub fn post_beacon(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
-    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+pub fn post_beacon(id: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
+
+    db_utils::connect_id(&id, &state)
         .and_then(move |client| {
             beacon::insert_beacon(client, payload.0)
-        })
-        .map_err(|postgres_err| {
-            error::ErrorBadRequest(postgres_err)
+                .map_err(|postgres_err| {
+                    println!("fail {}", postgres_err);
+                    error::ErrorBadRequest(postgres_err)
+                })
         })
         .and_then(|(_client, beacon)| {
             match beacon {

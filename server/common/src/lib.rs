@@ -57,12 +57,16 @@ pub fn system_diagnostics_url() -> String {
     return String::from("/system/diagnostics");
 }
 
-pub fn login_url() -> String {
-    return String::from("/login");
+pub fn session_login_url() -> String {
+    return String::from("/session/login");
 }
 
-pub fn logout_url() -> String {
-    return String::from("/logout");
+pub fn session_logout_url() -> String {
+    return String::from("/session/logout");
+}
+
+pub fn session_check_url() -> String {
+    return String::from("/session/check");
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

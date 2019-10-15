@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 27] = [
+const SCHEMA: [&str; 32] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -66,22 +66,27 @@ const SCHEMA: [&str; 27] = [
     "CREATE ROLE ak_admin_role",
     "CREATE ROLE ak_responder_role",
     "CREATE USER admin WITH PASSWORD 'admin' SYSID 1 ROLE ak_admin_role",
-    "CREATE USER responder WITH PASSWORD NULL SYSID 2 ROLE ak_responder_role",
+    "CREATE USER responder WITH PASSWORD 'responder' SYSID 2 ROLE ak_responder_role",
 
     // update permissions for responders
     "GRANT CONNECT ON DATABASE ak TO ak_responder_role",
+    "GRANT USAGE ON SCHEMA runtime TO ak_responder_role",
     "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_responder_role",
 
     // update permissions for admins
-    "GRANT CONNECT ON DATABASE ak TO ak_admin_role",
-    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
-    "GRANT UPDATE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
-    "GRANT INSERT ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
-    "GRANT DELETE ON ALL TABLES IN SCHEMA runtime TO ak_admin_role",
-    "GRANT SELECT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "GRANT INSERT ON ALL TABLES IN SCHEMA system TO ak_admin_role",
-    "GRANT DELETE ON ALL TABLES IN SCHEMA system TO ak_admin_role",
+    "GRANT CONNECT ON DATABASE ak TO admin",
+    "GRANT USAGE ON SCHEMA runtime TO admin",
+    "GRANT USAGE ON SCHEMA system TO admin",
+    "GRANT USAGE ON ALL SEQUENCES IN SCHEMA runtime to admin",
+    "GRANT USAGE ON ALL SEQUENCES IN SCHEMA system to admin",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO admin",
+    "GRANT UPDATE ON ALL TABLES IN SCHEMA runtime TO admin",
+    "GRANT INSERT ON ALL TABLES IN SCHEMA runtime TO admin",
+    "GRANT DELETE ON ALL TABLES IN SCHEMA runtime TO admin",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA system TO admin",
+    "GRANT UPDATE ON ALL TABLES IN SCHEMA system TO admin",
+    "GRANT INSERT ON ALL TABLES IN SCHEMA system TO admin",
+    "GRANT DELETE ON ALL TABLES IN SCHEMA system TO admin",
     "INSERT INTO system.network_interfaces(n_mac, n_beacon_port, n_webserver_port, n_mask, n_ip, n_name)
             VALUES('00:00:00:00:00:00', 8081, 8080, 24, '127.0.0.1', 'localhost')
     ",

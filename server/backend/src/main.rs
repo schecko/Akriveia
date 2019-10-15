@@ -41,11 +41,15 @@ use common::*;
 use data_processor::*;
 use std::env;
 use std::sync::*;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
     pub beacon_manager: Addr<BeaconManager>,
     pub data_processor: Addr<DataProcessor>,
+    // I would prefer this was a per user connection pool,
+    // but r2d2 does not work for tokio, and bb8 does not look very mature.
+    pub pools: HashMap<String, LoginInfo>,
 }
 
 impl AkriveiaState {
@@ -59,6 +63,7 @@ impl AkriveiaState {
         web::Data::new(Mutex::new(AkriveiaState {
             beacon_manager: beacon_manager_addr,
             data_processor: data_processor_addr,
+            pools: HashMap::new(),
         }))
     }
 }
@@ -190,11 +195,15 @@ fn main() -> std::io::Result<()> {
 
             // session
             .service(
-                web::resource(&login_url())
+                web::resource(&session_check_url())
+                    .route(web::get().to_async(session_controller::check))
+            )
+            .service(
+                web::resource(&session_login_url())
                     .route(web::post().to_async(session_controller::login))
             )
             .service(
-                web::resource(&logout_url())
+                web::resource(&session_logout_url())
                     .route(web::post().to_async(session_controller::logout))
             )
             // these two last !!
