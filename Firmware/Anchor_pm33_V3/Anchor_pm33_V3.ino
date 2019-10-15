@@ -51,7 +51,7 @@ frame_filtering_configuration_t ANCHOR_FRAME_FILTER_CONFIG = {
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("<|pm33_on|>");
+  Serial.println("<[pm33_on]>");
   IndexMapper();
   Serial.print(F("### DW1000Ng-arduino-ranging-anchor-")); Serial.print(netID); Serial.println(" ###");
   DW1000Ng::initializeNoInterrupt(PIN_SS, PIN_RST);
@@ -125,9 +125,9 @@ void range() {
       DW1000NgRTLS::transmitRangingInitiation(&recv_data[2], tag_shortAddress);
       result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
       if (result.success) {
-        ranging_info = "<|" + String(EUI);
+        ranging_info = "<[" + String(EUI);
         ranging_info += "|0x" + String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX) ;
-        ranging_info += "|" + String(result.range) + "|>";
+        ranging_info += "|" + String(result.range) + "]>";
         Serial.println(ranging_info);
       }
     }
@@ -165,18 +165,18 @@ void CMD_EVENT() {
   if (newData == true) {
     Serial.println(String(receivedChars));
     if (String(receivedChars).indexOf("start") >= 0) {
-      Serial.println("<|start_ack|>");
+      Serial.println("<[start_ack]>");
       system_on = true;
     }
     else if (String(receivedChars).indexOf("end") >= 0) {
-      Serial.println("<|end_ack|>");
+      Serial.println("<[end_ack]>");
       system_on = false;
     }
     else if (String(receivedChars).indexOf("ping") >= 0) {
-      Serial.println("<ping_ack|" + String(EUI) + "|>");
+      Serial.println("<[ping_ack|" + String(EUI) + "]>");
     }
     else if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("<|pm33_reboot_ack|>");
+      Serial.println("<[pm33_reboot_ack]>");
       delay(3000);
     }
     newData = false;
