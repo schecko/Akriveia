@@ -36,7 +36,7 @@ void setup() {
 
   Udp.begin(UdpPort);
   Udp.beginPacket(hostAddress, UdpPort);
-  Udp.printf("|esp_wifi_on|\n");
+  Udp.printf("[esp_wifi_on]\n");
   Udp.endPacket();
 }
 
@@ -86,10 +86,10 @@ void loop() {
       Udp.endPacket();
     }
     if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("|esp_reboot_ack|");
+      Serial.println("[esp_reboot_ack]");
       if (WiFi.status() == WL_CONNECTED) {
         Udp.beginPacket(hostAddress, UdpPort);
-        Udp.printf(String("|esp_reboot_ack|\n").c_str());
+        Udp.printf(String("[esp_reboot_ack]\n").c_str());
         Udp.endPacket();
       }
       delay(3000);
