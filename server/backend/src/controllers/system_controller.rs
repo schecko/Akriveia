@@ -42,7 +42,8 @@ pub fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) 
         }})
 }
 
-pub fn diagnostics(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)
         .then(|res| {

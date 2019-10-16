@@ -19,8 +19,10 @@ pub enum Msg {
 
     RequestLogin,
     RequestLoginAnon,
+    RequestLogout,
 
     ResponseLogin(util::Response<()>),
+    ResponseLogout(util::Response<()>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -54,13 +56,17 @@ pub struct Login {
 pub struct LoginProps {
     #[props(required)]
     pub change_page: Callback<root::Page>,
+    pub logout: bool,
 }
 
 impl Component for Login {
     type Message = Msg;
     type Properties = LoginProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
+        if props.logout {
+            link.send_self(Msg::RequestLogout);
+        }
         let result = Login {
             state: State::Switch,
             change_page: props.change_page,
@@ -111,6 +117,18 @@ impl Component for Login {
                 );
                 self.data.login.reset_pw(); // ensure the password is deleted asap
             },
+            Msg::RequestLogout => {
+                self.data.error_messages = Vec::new();
+                self.data.success_message = None;
+                self.fetch_task = post_request!(
+                    self.fetch_service,
+                    &session_logout_url(),
+                    (),
+                    self.self_link,
+                    Msg::ResponseLogout
+                );
+                self.data.login.reset_pw(); // ensure the password is deleted asap
+            },
             Msg::ResponseLogin(response) => {
                 let (meta, _body) = response.into_parts();
                 match meta.status {
@@ -122,7 +140,18 @@ impl Component for Login {
                         self.data.error_messages.push("Failed to login, username or password is incorrect.".to_string());
                     },
                     _ => {
-                        self.data.error_messages.push("Failed to login, internal server error.".to_string());
+                        self.data.error_messages.push("Failed to loginerror.".to_string());
+                    }
+                }
+            },
+            Msg::ResponseLogout(response) => {
+                let (meta, _body) = response.into_parts();
+                match meta.status {
+                    StatusCode::OK | StatusCode::UNAUTHORIZED => {
+                        self.data.success_message = Some("Successfully logged out.".to_string());
+                    },
+                    _ => {
+                        self.data.error_messages.push("Failed to logout.".to_string());
                     }
                 }
             },
@@ -130,7 +159,10 @@ impl Component for Login {
         true
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        if props.logout {
+            self.self_link.send_self(Msg::RequestLogout);
+        }
         true
     }
 }

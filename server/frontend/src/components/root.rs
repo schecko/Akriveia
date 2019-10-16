@@ -272,7 +272,7 @@ impl RootComponent {
     fn navigation(&self) -> Html<Self> {
         html! {
             <div>
-                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
+                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Logout" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
                 <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
                 <select>
