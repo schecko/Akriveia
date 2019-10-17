@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 32] = [
+const SCHEMA: [&str; 30] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -62,18 +62,16 @@ const SCHEMA: [&str; 32] = [
         n_webserver_port SMALLINT
     )",
 
-    // create roles and users
-    "CREATE ROLE ak_admin_role",
-    "CREATE ROLE ak_responder_role",
-    "CREATE USER admin WITH PASSWORD 'admin' SYSID 1 ROLE ak_admin_role",
-    "CREATE USER responder WITH PASSWORD 'responder' SYSID 2 ROLE ak_responder_role",
+    // create users
+    "CREATE USER admin WITH PASSWORD 'admin' SYSID 1",
+    "CREATE USER responder WITH PASSWORD 'responder' SYSID 2",
 
-    // update permissions for responders
-    "GRANT CONNECT ON DATABASE ak TO ak_responder_role",
-    "GRANT USAGE ON SCHEMA runtime TO ak_responder_role",
-    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO ak_responder_role",
+    // set permissions for responders
+    "GRANT CONNECT ON DATABASE ak TO responder",
+    "GRANT USAGE ON SCHEMA runtime TO responder",
+    "GRANT SELECT ON ALL TABLES IN SCHEMA runtime TO responder",
 
-    // update permissions for admins
+    // set permissions for admins
     "GRANT CONNECT ON DATABASE ak TO admin",
     "GRANT USAGE ON SCHEMA runtime TO admin",
     "GRANT USAGE ON SCHEMA system TO admin",
