@@ -165,11 +165,16 @@ void wait() {
       if (recv_data[9] == 0x60) break;
     }
     counter++;
-    CMD_EVENT();
+    cmd_event();
   }
 }
 
-void CMD_EVENT() {
+void softwareReset(uint8_t prescaller) {
+  wdt_enable(prescaller);
+  while (1) {}
+}
+
+void cmd_event() {
   recvWithStartEndMarkers();
   if (newData == true) {
     Serial.println(String(receivedChars));
@@ -189,6 +194,7 @@ void CMD_EVENT() {
     else if (String(receivedChars).indexOf("reboot") >= 0) {
       Serial.println("<[pm33_reboot_ack]>");
       delay(3000);
+      //softwareReset(WDTO_60MS);
     }
     newData = false;
   }
@@ -202,6 +208,5 @@ void loop() {
     wait();
   }
 
-
-  CMD_EVENT();
+  cmd_event();
 }
