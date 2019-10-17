@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use yew::services::storage:: { StorageService, Area, };
@@ -46,6 +46,7 @@ impl Data {
 pub struct Login {
     state: State,
     change_page: Callback<root::Page>,
+    change_user_type: Callback<WebUserType>,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
@@ -56,6 +57,8 @@ pub struct Login {
 pub struct LoginProps {
     #[props(required)]
     pub change_page: Callback<root::Page>,
+    #[props(required)]
+    pub change_user_type: Callback<WebUserType>,
     pub logout: bool,
 }
 
@@ -70,6 +73,7 @@ impl Component for Login {
         let result = Login {
             state: State::Switch,
             change_page: props.change_page,
+            change_user_type: props.change_user_type,
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -104,6 +108,7 @@ impl Component for Login {
                     self.self_link,
                     Msg::ResponseLogin
                 );
+                self.change_user_type.emit(WebUserType::Responder);
             },
             Msg::RequestLogin => {
                 self.data.error_messages = Vec::new();
@@ -116,6 +121,7 @@ impl Component for Login {
                     Msg::ResponseLogin
                 );
                 self.data.login.reset_pw(); // ensure the password is deleted asap
+                self.change_user_type.emit(WebUserType::Admin);
             },
             Msg::RequestLogout => {
                 self.data.error_messages = Vec::new();

@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
@@ -96,11 +96,14 @@ pub struct BeaconAddUpdate {
     // TODO more robust way of handling concurrent requests
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    user_type: WebUserType,
 }
 
 #[derive(Properties)]
 pub struct BeaconAddUpdateProps {
     pub id: Option<i32>,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for BeaconAddUpdate {
@@ -118,6 +121,7 @@ impl Component for BeaconAddUpdate {
             fetch_task: None,
             get_fetch_task: None,
             self_link: link,
+            user_type: props.user_type,
         };
         result.data.id = props.id;
         result
@@ -274,6 +278,7 @@ impl Component for BeaconAddUpdate {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.id = props.id;
+        self.user_type = props.user_type;
         true
     }
 }
@@ -392,8 +397,19 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         </td>
                     </tr>
                 </table>
-                <button onclick=|_| Msg::RequestAddUpdateBeacon,>{ submit_name }</button>
-                { add_another_button }
+                {
+                    match self.user_type {
+                        WebUserType::Admin => html! {
+                            <>
+                                <button onclick=|_| Msg::RequestAddUpdateBeacon,>{ submit_name }</button>
+                                { add_another_button }
+                            </>
+                        },
+                        WebUserType::Responder => html! {
+                            <></>
+                        },
+                    }
+                }
             </>
         }
     }

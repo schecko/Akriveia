@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
@@ -68,11 +68,14 @@ pub struct UserAddUpdate {
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    user_type: WebUserType,
 }
 
-#[derive(Clone, Default, PartialEq, Properties)]
+#[derive(Properties)]
 pub struct UserAddUpdateProps {
     pub id: Option<i32>,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for UserAddUpdate {
@@ -90,6 +93,7 @@ impl Component for UserAddUpdate {
             fetch_task: None,
             get_fetch_task: None,
             self_link: link,
+            user_type: props.user_type,
         };
         result.data.id = props.id;
         result
@@ -266,6 +270,7 @@ impl Component for UserAddUpdate {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.id = props.id;
+        self.user_type = props.user_type;
         true
     }
 }
@@ -405,8 +410,19 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         }
                     }
                 </table>
-                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
-                { add_another_button }
+                {
+                    match self.user_type {
+                        WebUserType::Admin => html! {
+                            <>
+                                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
+                                { add_another_button }
+                            </>
+                        },
+                        WebUserType::Responder => html! {
+                            <></>
+                        },
+                    }
+                }
             </>
         }
     }
