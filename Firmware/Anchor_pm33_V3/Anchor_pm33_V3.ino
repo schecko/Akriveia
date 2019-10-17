@@ -1,4 +1,4 @@
-#include <avr/wdt.h>
+#include <EEPROM.h>
 #include <DW1000Ng.hpp>
 #include <DW1000NgUtils.hpp>
 #include <DW1000NgRanging.hpp>
@@ -13,7 +13,6 @@ uint16_t netID = 10;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 int next_index = 0;
-bool is_head = true;
 
 int blink_rate = 200;
 int wait_timeout = 200;
@@ -22,7 +21,10 @@ byte tag_shortAddress[] = {0x00, 0x00};
 const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
+
 bool system_on = false;
+int eeprom_address = 0;
+byte system_state;
 
 device_configuration_t DEFAULT_CONFIG = {
   false,
@@ -76,6 +78,10 @@ void setup() {
   Serial.print("Network ID & Device Address: "); Serial.println(msg);
   DW1000Ng::getPrintableDeviceMode(msg);
   Serial.print("Device mode: "); Serial.println(msg);
+
+  system_state = EEPROM.read(eeprom_address);
+  if (system_state == 0x01) system_on = true;
+  else system_on = false;
 }
 
 void IndexMapper() {
@@ -125,9 +131,12 @@ void range() {
       DW1000NgRTLS::transmitRangingInitiation(&recv_data[2], tag_shortAddress);
       result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
       if (result.success) {
+        double range = result.range;
+        if ( range <= 0.01) range = 0.01;
+        else if (range > 300) range = 300.00;
         ranging_info = "<[" + String(EUI);
         ranging_info += "|0x" + String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX) ;
-        ranging_info += "|" + String(result.range) + "]>";
+        ranging_info += "|" + String(range) + "]>";
         Serial.println(ranging_info);
       }
     }
@@ -156,21 +165,28 @@ void wait() {
       if (recv_data[9] == 0x60) break;
     }
     counter++;
-    CMD_EVENT();
+    cmd_event();
   }
 }
 
-void CMD_EVENT() {
+void softwareReset(uint8_t prescaller) {
+  wdt_enable(prescaller);
+  while (1) {}
+}
+
+void cmd_event() {
   recvWithStartEndMarkers();
   if (newData == true) {
     Serial.println(String(receivedChars));
     if (String(receivedChars).indexOf("start") >= 0) {
       Serial.println("<[start_ack]>");
       system_on = true;
+      EEPROM.write(eeprom_address, 0x01);
     }
     else if (String(receivedChars).indexOf("end") >= 0) {
       Serial.println("<[end_ack]>");
       system_on = false;
+      EEPROM.write(eeprom_address, 0x00);
     }
     else if (String(receivedChars).indexOf("ping") >= 0) {
       Serial.println("<[ping_ack|" + String(EUI) + "]>");
@@ -178,6 +194,7 @@ void CMD_EVENT() {
     else if (String(receivedChars).indexOf("reboot") >= 0) {
       Serial.println("<[pm33_reboot_ack]>");
       delay(3000);
+      //softwareReset(WDTO_60MS);
     }
     newData = false;
   }
@@ -191,6 +208,5 @@ void loop() {
     wait();
   }
 
-
-  CMD_EVENT();
+  cmd_event();
 }
