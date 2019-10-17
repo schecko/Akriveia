@@ -1,4 +1,4 @@
-#include <avr/wdt.h>
+#include <EEPROM.h>
 #include <DW1000Ng.hpp>
 #include <DW1000NgUtils.hpp>
 #include <DW1000NgRanging.hpp>
@@ -22,7 +22,10 @@ byte tag_shortAddress[] = {0x00, 0x00};
 const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
+
 bool system_on = false;
+int eeprom_address = 0;
+byte system_state;
 
 device_configuration_t DEFAULT_CONFIG = {
   false,
@@ -76,6 +79,10 @@ void setup() {
   Serial.print("Network ID & Device Address: "); Serial.println(msg);
   DW1000Ng::getPrintableDeviceMode(msg);
   Serial.print("Device mode: "); Serial.println(msg);
+
+  system_state = EEPROM.read(eeprom_address);
+  if (system_state == 0x01) system_on = true;
+  else system_on = false;
 }
 
 void IndexMapper() {
@@ -127,7 +134,7 @@ void range() {
       if (result.success) {
         double range = result.range;
         if ( range <= 0.01) range = 0.01;
-        else if (range > 300) range = 300;
+        else if (range > 300) range = 300.00;
         ranging_info = "<[" + String(EUI);
         ranging_info += "|0x" + String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX) ;
         ranging_info += "|" + String(range) + "]>";
@@ -170,10 +177,12 @@ void CMD_EVENT() {
     if (String(receivedChars).indexOf("start") >= 0) {
       Serial.println("<[start_ack]>");
       system_on = true;
+      EEPROM.write(eeprom_address, 0x01);
     }
     else if (String(receivedChars).indexOf("end") >= 0) {
       Serial.println("<[end_ack]>");
       system_on = false;
+      EEPROM.write(eeprom_address, 0x00);
     }
     else if (String(receivedChars).indexOf("ping") >= 0) {
       Serial.println("<[ping_ack|" + String(EUI) + "]>");
