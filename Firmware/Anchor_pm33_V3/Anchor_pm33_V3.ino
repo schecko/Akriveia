@@ -125,9 +125,12 @@ void range() {
       DW1000NgRTLS::transmitRangingInitiation(&recv_data[2], tag_shortAddress);
       result = DW1000NgRTLS::anchorRangeAccept(NextActivity::RANGING_CONFIRM, next_anchor);
       if (result.success) {
+        double range = result.range;
+        if ( range <= 0.01) range = 0.01;
+        else if (range > 300) range = 300;
         ranging_info = "<[" + String(EUI);
         ranging_info += "|0x" + String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX) ;
-        ranging_info += "|" + String(result.range) + "]>";
+        ranging_info += "|" + String(range) + "]>";
         Serial.println(ranging_info);
       }
     }
