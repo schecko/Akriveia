@@ -1,3 +1,4 @@
+#include <avr/wdt.h>
 #include <EEPROM.h>
 #include <DW1000Ng.hpp>
 #include <DW1000NgUtils.hpp>
