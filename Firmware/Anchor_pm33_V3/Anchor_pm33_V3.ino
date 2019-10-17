@@ -13,7 +13,6 @@ uint16_t netID = 10;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 int next_index = 0;
-bool is_head = true;
 
 int blink_rate = 200;
 int wait_timeout = 200;
