@@ -1,8 +1,8 @@
 use tokio_postgres::NoTls;
 use common::LoginInfo;
-use futures::{ future::err, future::ok, Future, future::Either, };
+use futures::{ future::err, Future, future::Either, };
 use crate::AkriveiaState;
-use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
+use actix_web::{ error, web, };
 use std::sync::Mutex;
 use actix_identity::Identity;
 

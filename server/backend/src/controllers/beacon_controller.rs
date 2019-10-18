@@ -2,7 +2,7 @@ use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::beacon;
-use futures::{ future::err, future::ok, Future, future::Either, };
+use futures::{ future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use std::sync::*;
 use actix_identity::Identity;

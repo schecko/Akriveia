@@ -2,7 +2,6 @@ use common::*;
 use crate::util::{ self, WebUserType, };
 use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
-use yew::services::storage:: { StorageService, Area, };
 use super::root;
 
 pub enum State {

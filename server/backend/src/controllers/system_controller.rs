@@ -1,10 +1,9 @@
 use actix_web::{ Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
-use futures::{ future::Either, future::ok, Future, };
+use futures::{ future::ok, Future, };
 use std::sync::*;
 use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
 use common::*;
-use actix_identity::Identity;
 
 pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();

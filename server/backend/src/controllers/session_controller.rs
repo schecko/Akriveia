@@ -4,11 +4,10 @@ use actix_identity::Identity;
 use common::*;
 use crate::AkriveiaState;
 use crate::db_utils;
-use serde_derive::{ Deserialize, };
 use std::sync::*;
-use futures::future::{ Either, err, ok, Future, };
+use futures::future::{ Either, ok, Future, };
 
-pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<LoginInfo>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     if payload.name == "responder" {
         let mut info = LoginInfo::new();
         info.name = payload.name.clone();
@@ -19,7 +18,7 @@ pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web:
         Either::A(ok(HttpResponse::Ok().finish()))
     } else {
         Either::B(db_utils::connect_login(&payload.0)
-            .and_then(move |client| {
+            .and_then(move |_client| {
                 id.remember(payload.name.clone());
                 let mut s = state.lock().unwrap();
                 s.pools.insert(payload.name.clone(), payload.0);
@@ -32,8 +31,8 @@ pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web:
     }
 }
 
-pub fn check(id: Identity, _state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<LoginInfo>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    if let Some(name) = id.identity() {
+pub fn check(id: Identity, _state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    if let Some(_name) = id.identity() {
         ok(HttpResponse::Ok().finish())
     } else {
         ok(HttpResponse::Unauthorized().finish())
