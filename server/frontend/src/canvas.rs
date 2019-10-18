@@ -4,6 +4,7 @@ use na;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
+//use chrono::Utc;
 use yew::prelude::*;
 
 const USER_RADIUS: f64 = 5.0;
@@ -123,6 +124,8 @@ impl Canvas {
                     beacon_source.location.x * map.scale,
                     beacon_source.location.y * map.scale,
                 );
+                let now = stdweb::web::Date::now();
+                Log!("user active: {:?} ", now - user.last_active.timestamp_millis() as f64);
                 self.context.set_fill_style_color("#000000FF");
                 self.context.begin_path();
                 self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);

@@ -178,6 +178,14 @@ impl Handler<InLocationData> for DataProcessor {
                         // perform trilateration calculation
                         let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
                         let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
+                        let timestamp = averages.iter().fold(Utc.timestamp(0, 0), |max, tag_point| {
+                            if max < tag_point.timestamp {
+                                tag_point.timestamp
+                            } else {
+                                max
+                            }
+                        });
+                        let map_id = beacons[0].map_id; // TODO HACK.
 
                         averages.iter().for_each(|tag_data| {
                             let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
@@ -214,15 +222,17 @@ impl Handler<InLocationData> for DataProcessor {
 
                         fetch_user_fut
                             .map(move |client, _actor, _context| {
-                                (client, tag_data.tag_mac, new_tag_location, beacon_sources)
+                                (client, tag_data.tag_mac, timestamp, map_id, new_tag_location, beacon_sources)
                             })
                     })
-                    .and_then(|(client, tag_addr, new_tag_location, beacon_sources), actor, _context| {
+                    .and_then(|(client, tag_addr, timestamp, map_id, new_tag_location, beacon_sources), actor, _context| {
                         // update the user information
                         match actor.users.get_mut(&tag_addr) {
                             Some(user) => {
                                 user.beacon_tofs = beacon_sources;
                                 user.coordinates = new_tag_location;
+                                user.last_active = timestamp;
+                                user.map_id = map_id;
                                 afut::Either::A(user::update_user_from_realtime(client, user.clone())
                                     .map(|(_client, _opt_user)| { })
                                     .into_actor(actor)

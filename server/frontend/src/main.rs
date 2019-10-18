@@ -9,6 +9,7 @@ extern crate stdweb;
 extern crate nalgebra as na;
 #[macro_use]
 extern crate lazy_static;
+extern crate chrono;
 
 #[macro_use]
 mod util;
