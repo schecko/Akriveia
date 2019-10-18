@@ -7,6 +7,11 @@
 ## Install instructions:
 - Extract to arduino/libraries folder
 
+# Mini Core
+
+## Core Code:
+https://github.com/MCUdude/MiniCore
+
 # ESP32
 
 ## ESP32 Core Code:
