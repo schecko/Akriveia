@@ -51,7 +51,7 @@ impl Component for MapList {
             Msg::RequestGetMaps => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}", maps_url()), //TODO prefetch?
+                    &maps_url(),
                     self.self_link,
                     Msg::ResponseGetMaps
                 );

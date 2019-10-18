@@ -1,6 +1,6 @@
 
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
@@ -14,6 +14,7 @@ use super::user_addupdate::UserAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
 use super::status::Status;
+use super::login::Login;
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -22,7 +23,6 @@ pub enum Page {
     UserAddUpdate(Option<i32>),
     UserList,
     Diagnostics,
-    FrontPage,
     Status,
     Login,
     MapView(Option<i32>),
@@ -31,6 +31,7 @@ pub enum Page {
 }
 
 pub struct RootComponent {
+    user_type: WebUserType,
     current_page: Page,
     emergency: bool,
     fetch_service: FetchService,
@@ -43,6 +44,7 @@ pub enum Msg {
 
     // page changes
     ChangePage(Page),
+    ChangeWebUserType(WebUserType),
 
     // requests
     RequestPostEmergency(bool),
@@ -60,7 +62,8 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            current_page: Page::FrontPage,
+            user_type: WebUserType::Responder,
+            current_page: Page::Login,
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -73,9 +76,9 @@ impl Component for RootComponent {
         match msg {
             Msg::ChangePage(page) => {
                 self.current_page = page;
-                match self.current_page {
-                    _ => { }
-                }
+            },
+            Msg::ChangeWebUserType(user_type) => {
+                self.user_type = user_type;
             },
 
             // requests
@@ -150,7 +153,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::Status => {
                 html! {
                     <div>
@@ -168,16 +171,18 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::Login => {
                 html! {
                     <div>
                         <h>{ "Login" }</h>
-                        { self.navigation() }
-                        { self.view_data() }
+                        <Login
+                            change_page=|page| Msg::ChangePage(page),
+                            change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
+                        />
                     </div>
                 }
-            }
+            },
             Page::MapView(opt_id) => {
                 html! {
                     <div>
@@ -196,7 +201,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::BeaconList => {
                html! {
                     <div>
@@ -207,7 +212,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::BeaconAddUpdate(id) => {
                html! {
                     <div>
@@ -215,10 +220,11 @@ impl Renderable<RootComponent> for RootComponent {
                         { self.navigation() }
                         <BeaconAddUpdate
                             id=id,
+                            user_type=self.user_type,
                         />
                     </div>
                 }
-            }
+            },
             Page::UserList => {
                 html! {
                     <div>
@@ -229,7 +235,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::UserAddUpdate(id) => {
                 html! {
                     <div>
@@ -237,10 +243,11 @@ impl Renderable<RootComponent> for RootComponent {
                         { self.navigation() }
                         <UserAddUpdate
                             id=id,
+                            user_type=self.user_type,
                         />
                     </div>
                 }
-            }
+            },
             Page::MapList => {
                html! {
                     <div>
@@ -251,7 +258,7 @@ impl Renderable<RootComponent> for RootComponent {
                         />
                     </div>
                 }
-            }
+            },
             Page::MapAddUpdate(opt_id) => {
                html! {
                     <div>
@@ -259,49 +266,20 @@ impl Renderable<RootComponent> for RootComponent {
                         { self.navigation() }
                         <MapAddUpdate
                             opt_id=opt_id,
+                            user_type=self.user_type,
                         />
                     </div>
                 }
-            }
-            Page::FrontPage => {
-                html! {
-                    <div>
-                        <h>{ "FrontPage" }</h>
-                        <button onclick=|_| Msg::ChangePage(Page::Login),>{ "Click" }</button>
-                    </div>
-                }
-            }
+            },
         }
     }
 }
 
 impl RootComponent {
     fn navigation(&self) -> Html<Self> {
-        html! {
-            <div>
-                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Login Page" }</button>
-                <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
-                <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
+        let select_user = match self.user_type {
+            WebUserType::Admin => html! {
                 <select>
-                    // TODO CSS for navigation bar
-                    <option disabled=true,>{ "Beacon Config(Header)" }</option>
-                    <option onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "Beacon List" }</option>
-                    <option
-                        onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
-                        disabled={
-                            match self.current_page {
-                                // match ignoring the fields
-                                Page::BeaconAddUpdate {..} => true,
-                                _ => false,
-                            }
-                        },
-                    >
-                        { "Add Beacon" }
-                    </option>
-                </select>
-                <select>
-                    // TODO CSS for navigation bar
-                    // Adding User List
                     <option disabled=true,>{ "User Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>{ "User List" } </option>
                     <option
@@ -317,6 +295,38 @@ impl RootComponent {
                         { "Add User" }
                     </option>
                 </select>
+            },
+            WebUserType::Responder => html! {
+                <></>
+            },
+        };
+
+        let select_beacon = match self.user_type {
+            WebUserType::Admin => html! {
+                <select>
+                    <option disabled=true,>{ "Beacon Config(Header)" }</option>
+                    <option onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>{ "Beacon List" }</option>
+                    <option
+                        onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
+                        disabled={
+                            match self.current_page {
+                                // match ignoring the fields
+                                Page::BeaconAddUpdate {..} => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "Add Beacon" }
+                    </option>
+                </select>
+            },
+            WebUserType::Responder => html! {
+                <></>
+            }
+        };
+
+        let select_map = match self.user_type {
+            WebUserType::Admin => html! {
                 <select>
                     <option disabled=true,>{ "Map Config(Header)" }</option>
                     <option onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>{ "Map List" }</option>
@@ -344,14 +354,40 @@ impl RootComponent {
                         { "MapView" }
                     </option>
                 </select>
-            </div>
-        }
-    }
+            },
+            WebUserType::Responder => html! {
+                <button
+                    onclick=|_| Msg::ChangePage(Page::MapView(None)),
+                    disabled={
+                        match self.current_page {
+                            Page::MapView { .. } => true,
+                            _ => false,
+                        }
+                    },
+                >
+                    { "MapView" }
+                </button>
+            }
+        };
 
+        let diagnostics = match self.user_type {
+            WebUserType::Admin => html! {
+                <button onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</button>
+            },
+            WebUserType::Responder => html! {
+                <></>
+            }
+        };
 
-    fn view_data(&self) -> Html<RootComponent> {
         html! {
-            <p>{ "Its empty in here." }</p>
+            <div>
+                <button onclick=|_| Msg::ChangePage(Page::Login), disabled={self.current_page == Page::Login},>{ "Logout" }</button>
+                { diagnostics }
+                <button onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</button>
+                { select_user }
+                { select_beacon }
+                { select_map }
+            </div>
         }
     }
 }

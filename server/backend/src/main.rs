@@ -3,6 +3,7 @@ extern crate actix;
 extern crate actix_files;
 extern crate actix_session;
 extern crate actix_web;
+extern crate actix_identity;
 extern crate common;
 extern crate env_logger;
 extern crate futures;
@@ -24,25 +25,31 @@ mod conn_common;
 
 use controllers::beacon_controller;
 use controllers::map_controller;
+use controllers::network_interface_controller;
+use controllers::session_controller;
 use controllers::system_controller;
 use controllers::user_controller;
-use controllers::network_interface_controller;
 
 use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
+use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use common::*;
 use data_processor::*;
 use std::env;
 use std::sync::*;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct AkriveiaState {
     pub beacon_manager: Addr<BeaconManager>,
     pub data_processor: Addr<DataProcessor>,
+    // I would prefer this was a per user connection pool,
+    // but r2d2 does not work for tokio, and bb8 does not look very mature.
+    pub pools: HashMap<String, LoginInfo>,
 }
 
 impl AkriveiaState {
@@ -56,6 +63,7 @@ impl AkriveiaState {
         web::Data::new(Mutex::new(AkriveiaState {
             beacon_manager: beacon_manager_addr,
             data_processor: data_processor_addr,
+            pools: HashMap::new(),
         }))
     }
 }
@@ -79,6 +87,11 @@ fn main() -> std::io::Result<()> {
     // start the webserver
     HttpServer::new(move || {
         App::new()
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&[0; 32])
+                    .name("session_token")
+                    .secure(false)
+            ))
             .data(
                 web::JsonConfig::default()
                     .limit(4096)
@@ -178,6 +191,20 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&users_status_url())
                     .to_async(user_controller::users_status)
+            )
+
+            // session
+            .service(
+                web::resource(&session_check_url())
+                    .route(web::get().to_async(session_controller::check))
+            )
+            .service(
+                web::resource(&session_login_url())
+                    .route(web::post().to_async(session_controller::login))
+            )
+            .service(
+                web::resource(&session_logout_url())
+                    .route(web::post().to_async(session_controller::logout))
             )
             // these two last !!
             .service(fs::Files::new("/", "static").index_file("index.html"))
