@@ -13,6 +13,10 @@
 ### Core Code:
 https://github.com/MCUdude/MiniCore
 
+### Guide:
+- https://www.circuito.io/blog/atmega328p-bootloader/
+- https://andreasrohner.at/posts/Electronics/How-to-make-the-Watchdog-Timer-work-on-an-Arduino-Pro-Mini-by-replacing-the-bootloader/
+
 # ESP32
 
 ### ESP32 Core Code:

@@ -9,8 +9,8 @@ const uint8_t PIN_RST = 9; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
-uint16_t netID = 10;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:0C";
+uint16_t netID = 12;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 int next_index = 0;
@@ -195,7 +195,7 @@ void cmd_event() {
     else if (String(receivedChars).indexOf("reboot") >= 0) {
       Serial.println("<[pm33_reboot_ack]>");
       delay(3000);
-      //softwareReset(WDTO_60MS);
+      softwareReset(WDTO_60MS);
     }
     newData = false;
   }
