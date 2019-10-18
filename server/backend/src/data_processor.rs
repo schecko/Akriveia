@@ -11,12 +11,14 @@ use na;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use std::io;
 use common::*;
+use chrono::{ DateTime, Utc, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHistory {
+    pub timestamp: DateTime<Utc>,
     pub tag_mac: ShortAddress,
     pub beacon_history: BTreeMap<MacAddress8, VecDeque<f64>>,
 }
@@ -113,6 +115,7 @@ fn append_history(tag_entry: &mut Box<TagHistory>, tag_data: &common::TagData) {
         deque.push_back(tag_data.tag_distance);
         tag_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
     }
+    tag_entry.timestamp = tag_data.timestamp;
 }
 
 impl Handler<InLocationData> for DataProcessor {
@@ -135,6 +138,7 @@ impl Handler<InLocationData> for DataProcessor {
                             tag_mac: tag_entry.tag_mac.clone(),
                             beacon_mac: beacon_mac.clone(),
                             tag_distance: hist_vec.into_iter().sum::<f64>() / hist_vec.len() as f64,
+                            timestamp: tag_entry.timestamp,
                         }
                     }).collect();
 
@@ -148,6 +152,7 @@ impl Handler<InLocationData> for DataProcessor {
                 let mut hash_entry = TagHistory {
                     tag_mac: tag_data.tag_mac.clone(),
                     beacon_history: BTreeMap::new(),
+                    timestamp: tag_data.timestamp,
                 };
                 let mut deque = VecDeque::new();
                 deque.push_back(tag_data.tag_distance);

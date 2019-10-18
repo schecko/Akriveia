@@ -3,6 +3,7 @@ use common::{ MacAddress8, ShortAddress, };
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
+use chrono::Utc;
 
 #[derive(Debug)]
 pub enum MessageError {
@@ -66,6 +67,7 @@ pub fn parse_message(message: &str) -> Result<common::TagData, MessageError> {
             beacon_mac: beacon_mac.clone(),
             tag_distance: distance_numeric,
             tag_mac,
+            timestamp: Utc::now(),
         })
     } else {
         // incomplete transmission

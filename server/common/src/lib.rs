@@ -92,6 +92,7 @@ pub struct TagData {
     pub beacon_mac: MacAddress8,
     pub tag_distance: f64,
     pub tag_mac: ShortAddress,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

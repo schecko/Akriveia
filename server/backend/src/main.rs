@@ -12,6 +12,7 @@ extern crate nalgebra as na;
 extern crate tokio_postgres;
 extern crate eui48;
 extern crate eui64;
+extern crate chrono;
 
 mod beacon_dummy;
 mod beacon_manager;
