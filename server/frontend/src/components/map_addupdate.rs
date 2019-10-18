@@ -1,6 +1,6 @@
 use common::*;
 use crate::canvas::{ Canvas, screen_space };
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::{ Node, };
 use yew::format::Json;
@@ -103,11 +103,14 @@ pub struct MapAddUpdate {
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    user_type: WebUserType,
 }
 
 #[derive(Properties)]
 pub struct MapAddUpdateProps {
     pub opt_id: Option<i32>,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for MapAddUpdate {
@@ -129,6 +132,7 @@ impl Component for MapAddUpdate {
             fetch_task: None,
             get_fetch_task: None,
             self_link: link,
+            user_type: props.user_type,
         };
 
         result.canvas.reset(&result.data.map);
@@ -355,6 +359,7 @@ impl Component for MapAddUpdate {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.opt_id = props.opt_id;
+        self.user_type = props.user_type;
         if let Some(id) = props.opt_id {
             self.self_link.send_self(Msg::RequestGetMap(id));
             self.self_link.send_self(Msg::RequestGetBeaconsForMap(id));
@@ -528,8 +533,19 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         </td>
                     </tr>
                 </table>
-                <button onclick=|_| Msg::RequestAddUpdateMap,>{ submit_name }</button>
-                { add_another_map }
+                {
+                    match self.user_type {
+                        WebUserType::Admin => html! {
+                            <>
+                                <button onclick=|_| Msg::RequestAddUpdateMap,>{ submit_name }</button>
+                                { add_another_map }
+                            </>
+                        },
+                        WebUserType::Responder => html! {
+                            <></>
+                        },
+                    }
+                }
                 { self.render_beacon_placement() }
             </>
         }

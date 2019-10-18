@@ -3,17 +3,14 @@ extern crate regex;
 
 use actix::prelude::*;
 use crate::beacon_manager::*;
+use crate::conn_common::{ self, MessageError, };
 use serialport::*;
+use std::io::*;
 use std::io::{ self, Write };
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
-use std::io::*;
-use std::str;
-use regex::Regex;
-use common::MacAddress;
 
-#[allow(dead_code)] // remove this once vid/pid are actually used.
 pub struct BeaconSerialConn {
     pub port_name: String,
     pub vid: u16,
@@ -85,7 +82,6 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                 }*/
 
                 // start polling data
-                //println!("Receiving data on {} :", &beacon_info.port_name);
                 let mut serial_buffer: Vec<u8> = Vec::new();
                 loop {
                     match beacon_info.receive.try_recv() {
@@ -119,39 +115,22 @@ pub fn serial_beacon_thread(beacon_info: BeaconSerialConn) {
                     let mut last_line = "";
                     for line in serial_string.split("\n") {
 
-                        let split: Vec<&str> = line.split("|").collect();
-                        if split.len() == 3 {
-                            let beacon_mac = MacAddress::parse_str(split[0]).unwrap();
-                            let tag_mac = MacAddress::parse_str(split[1]).unwrap();
-                            let distance = split[2];
-                            let reg = Regex::new(r"/[^$0-9]+/").unwrap();
-                            let distance_stripped = reg.replace_all(&distance, "");
-
-                            // remove the last character every time, idk why but there is always
-                            // a newline at the end of rssi_stripped. from_str_radix REQUIRES
-                            // all numeric characters.
-                            if distance_stripped.len() <= 0 {
-                                continue;
-                            }
-                            match distance_stripped[..distance_stripped.len() - 1].parse::<f64>() {
-                                Ok(distance_numeric) => {
-                                    let msg = TagDataMessage {
-                                        data: common::TagData {
-                                            beacon_mac: beacon_mac.clone(),
-                                            tag_distance: distance_numeric,
-                                            tag_mac,
-                                        }
-                                    };
-                                    beacon_info.manager.do_send(msg).expect("serial beacon could not send message to manager");
-                                },
-                                Err(e) => {
-                                    println!("parsed a bad number: {}, error {}", distance_stripped, e);
+                        match conn_common::parse_message(line) {
+                            Ok(msg) => {
+                                beacon_info.manager
+                                    .do_send(TagDataMessage { data: msg })
+                                    .expect("serial beacon could not send message to manager");
+                            },
+                            Err(e) => {
+                                match e {
+                                    // ignore bad data
+                                    MessageError::ParseFloat | MessageError::ParseMac => continue,
+                                    // preserve partial serial data
+                                    MessageError::ParseFormat => {
+                                        last_line = line;
+                                    },
                                 }
                             }
-                        } else {
-                            // incomplete transmission, keep the data and append to the
-                            // serial_buffer after its reset
-                            last_line = line;
                         }
                     }
                     serial_buffer = Vec::new();

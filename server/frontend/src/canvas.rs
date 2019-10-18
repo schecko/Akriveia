@@ -108,7 +108,7 @@ impl Canvas {
         self.context.restore();
     }
 
-    pub fn draw_users(&mut self, map: &Map, users: &Vec<TrackedUser>, show_distance: Option<MacAddress>) {
+    pub fn draw_users(&mut self, map: &Map, users: &Vec<RealtimeUserData>, show_distance: Option<ShortAddress>) {
         self.context.save();
         for user in users.iter() {
             let user_pos = screen_space(
@@ -117,7 +117,7 @@ impl Canvas {
                 user.coordinates.y as f64 * map.scale,
             );
 
-            for beacon_source in &user.beacon_sources {
+            for beacon_source in &user.beacon_tofs {
                 let beacon_loc = screen_space(
                     map,
                     beacon_source.location.x * map.scale,
@@ -128,7 +128,7 @@ impl Canvas {
                 self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
                 self.context.fill(FillRule::NonZero);
                 match &show_distance {
-                    Some(tag_mac) if tag_mac == &user.mac_address => {
+                    Some(tag_mac) if &user.addr == tag_mac => {
                         self.context.set_fill_style_color("#00000034");
                         self.context.begin_path();
                         self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * map.scale, 0.0, std::f64::consts::PI * 2.0, true);

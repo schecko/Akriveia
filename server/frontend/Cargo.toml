@@ -8,6 +8,7 @@ version = "0.1.0"
 [dependencies]
 common = { path = "../common" }
 failure = "0.1"
+lazy_static = "1.4.0"
 nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
 serde = "1.0"
 serde_derive = "1.0"

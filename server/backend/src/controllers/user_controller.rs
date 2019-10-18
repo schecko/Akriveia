@@ -2,14 +2,21 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AkriveiaState;
-// What does the OutUserData stuct do?
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
 use futures::{ future::ok, Future, future::Either, };
+use serde_derive::{ Deserialize, };
 use std::sync::*;
+use actix_identity::Identity;
 
-pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+#[derive(Deserialize)]
+pub struct GetParams {
+    prefetch: Option<bool>,
+    include_contacts: Option<bool>,
+}
+
+pub fn users_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.data_processor
         .send(OutUserData{})
@@ -24,21 +31,30 @@ pub fn realtime_users(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest)
         }})
 }
 
-pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
+    let prefetch = params.prefetch.unwrap_or(false);
     match id {
         Ok(id) if id != -1 => {
-            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+            Either::A(db_utils::connect_id(&uid, &state)
                 .and_then(move |client| {
-                    user::select_user(client, id)
+                    let fut = if prefetch {
+                        Either::A(user::select_user_prefetch(client, id))
+                    } else {
+                        Either::B(user::select_user(client, id))
+                    };
+
+                    ok(fut).flatten()
+                        .map_err(|postgres_err| {
+                            // TODO can this be better?
+                            error::ErrorBadRequest(postgres_err)
+                        })
                 })
-                .map_err(|postgres_err| {
-                    // TODO can this be better?
-                    error::ErrorBadRequest(postgres_err)
-                })
-                .and_then(|(_client, user)| {
-                    match user {
-                        Some(u) => HttpResponse::Ok().json(u),
+                .and_then(|(_client, opt_user, opt_e_user)| {
+                    match opt_user {
+                        Some(u) => {
+                                HttpResponse::Ok().json((Some(u), opt_e_user))
+                        },
                         None => HttpResponse::NotFound().finish(),
                     }
                 })
@@ -50,16 +66,15 @@ pub fn get_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> im
     }
 }
 
-// TODO add prefetch to get emergency_user
-pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+pub fn get_users(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let include_contacts = params.include_contacts.unwrap_or(true);
+    db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
-            user::select_users(client)
-        })
-        .map_err(|postgres_err| {
-            // TODO can this be better?
-            // More specific error message (UserRequestError)
-            error::ErrorBadRequest(postgres_err)
+            user::select_users(client, include_contacts)
+                .map_err(|postgres_err| {
+                    // TODO can this be better?
+                    error::ErrorBadRequest(postgres_err)
+                })
         })
         .and_then(|(_client, users)| {
             HttpResponse::Ok().json(users)
@@ -67,114 +82,74 @@ pub fn get_users(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> 
 }
 
 // new user
-// How to send a tuple of TrackedUser as a Json<original_user, emergency_user>?
-// How to find a way to add two users instead of just one
-pub fn post_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
-    let users = payload.into_inner();
-    let mut user = users.0;
-    let e_user = users.1;
+pub fn post_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let (user, opt_e_user) = payload.into_inner();
 
-    db_utils::connect(db_utils::DEFAULT_CONNECTION)
+    db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
-            // What is payload? How come the parameters of post_user() is not called in /backend/main
-            // and_then must return a result
-            match e_user {
-                Some(e_user) => Either::A(user::insert_user(client, e_user)),
-                None => Either::B(ok((client, None))),
-            }
+            user::insert_user(client, user)
+                .and_then(move |(client, opt_user)| {
+                    match &opt_user {
+                        Some(created_user) => {
+                            match opt_e_user {
+                                Some(mut e_user) => {
+                                    e_user.attached_user = Some(created_user.id);
+                                    Either::A(user::insert_user(client, e_user)
+                                        .map(move |(client, created_e_user)| {
+                                            (client, opt_user, created_e_user)
+                                        })
+                                    )
+                                },
+                                None => Either::B(ok((client, opt_user, None))),
+                            }
+
+                        },
+                        None => {
+                            Either::B(ok((client, None, None)))
+                        },
+                    }
+                })
+                .map_err(|postgres_err| {
+                    println!("{}", postgres_err);
+                    error::ErrorBadRequest(postgres_err)
+                })
         })
-        // and_then wraps the function input and returns the wrapped value
-        // https://doc.rust-lang.org/rust-by-example/error/option_unwrap/and_then.html
-        // TODO add to Anki
-        .and_then(|(_client, opt_e_user)| {
-            match &opt_e_user {
-                Some(emergency_user) => user.emergency_contact = Some(emergency_user.id),
-                None => {},
-            }
-            user::insert_user(_client, user)
-            .map(|(_client, user)|{ 
-                (user, opt_e_user)
-            })
-        })
-        .map_err(|postgres_err| {
-            println!("{}", postgres_err);
-            error::ErrorBadRequest(postgres_err)
-        })
-        .and_then(|(_client, user)| {
+        .and_then(|(_client, user, opt_e_user)| {
             match user {
-                Some(u) => HttpResponse::Ok().json(u),
+                Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
                 None => HttpResponse::NotFound().finish(),
             }
         })
 }
 
-// update user
-pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let (user, opt_e_user) = payload.into_inner();
 
-    let users = payload.into_inner();
-    let mut user = users.0;
-    let e_user = users.1;
+    db_utils::connect_id(&uid, &state)
+        .and_then(|client| {
+            user::update_user(client, user)
+                .and_then(move |(client, opt_user)| {
+                    match opt_e_user {
+                        Some(e_user) => {
+                            let fut = if e_user.id != -1 {
+                                Either::A(user::update_user(client, e_user))
+                            } else {
+                                Either::B(user::insert_user(client, e_user))
+                            };
 
-    db_utils::connect(db_utils::DEFAULT_CONNECTION)
-        .and_then(move |client| {
-        // How do I check if the emergency user exists already and not to insert a new one?
-            match user.emergency_contact {
-                Some(contact) => { 
-                    let futA = match e_user {
-                        // update the emergency user with new info
-                        Some(e) => Either::A(user::update_user(client, e)
-                            .map(move |(client, opt_e)| (client, user, opt_e))),
-                        // emergency user exists, but does not need to be update
-                        None => Either::B(ok((client, user, None))),
-                    };
-                    Either::A(ok(futA))
-                },
-                None => {
-                    let futB = match e_user {
-                        Some(e) => Either::A(user::insert_user(client, e)
-                                .and_then(move |(client, opt_e)| {
-                                    if let Some(new_contact) = & opt_e {
-                                        user.emergency_contact = Some(new_contact.id);
-                                    }
-                                    (client, user, opt_e)
+                            Either::A(fut.map(move |(client, opt_e_user)| {
+                                    (client, opt_user, opt_e_user)
                                 })
-                        ),
-                        None => Either::B(ok(client, user, None)),
-                    };
-                    Either::B(ok(futB))
-                },
-            }
-        })
-       /* .and_then(move |client| {
-            match e_user {
-                Some(opt_e) => { 
-                    // update the emergency user with new info
-                    match user.emergency_contact {
-                        Some(contact) => Either::A(user::update_user(client, opt_e)
-                            .map(move |(client, opt_e)| (client, user, opt_e))),
-                        // emergency user exists but needs to be inserted
+                            )
+                        },
                         None => {
-                            Either::B(user::insert_user(client, opt_e)
-                                .and_then(move |(client, opt_e)| {
-                                    if let Some(new_contact) = & opt_e {
-                                        user.emergency_contact = Some(new_contact.id);
-                                    }
-                                    (client, user, opt_e)
-                                })
-                        )}
+                            Either::B(ok((client, opt_user, None)))
+                        }
                     }
-                },
-                None => ok((client, user, None)),
-            }
-        })*/
-        .and_then(|(_client, user, opt_e_user)| {
-            user::update_user(_client, user)
-                .map(move |(client, opt_user)| {
-                    (client, opt_user, opt_e_user)
                 })
-        })
-        .map_err(|postgres_err| {
-            error::ErrorBadRequest(postgres_err)
+                .map_err(|postgres_err| {
+                    error::ErrorBadRequest(postgres_err)
+                })
         })
         .and_then(|(_client, opt_user, opt_e_user)| {
             match opt_user {
@@ -184,17 +159,17 @@ pub fn put_user(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payl
         })
 }
 
-pub fn delete_user(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) => {
-            Either::A(db_utils::connect(db_utils::DEFAULT_CONNECTION)
+            Either::A(db_utils::connect_id(&uid, &state)
                 .and_then(move |client| {
                     user::delete_user(client, id)
-                })
-                .map_err(|postgres_err| {
-                    // TODO can this be better?
-                    error::ErrorBadRequest(postgres_err)
+                        .map_err(|postgres_err| {
+                            // TODO can this be better?
+                            error::ErrorBadRequest(postgres_err)
+                        })
                 })
                 .and_then(|_client| {
                     HttpResponse::Ok().finish()

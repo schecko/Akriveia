@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
@@ -12,7 +12,7 @@ pub enum UserType {
 
 pub enum Msg {
     AddAnotherUser,
-    InputMacAddress(String),   
+    InputMacAddress(String),
     InputName(String, UserType),
     InputEmployeeID(String, UserType),
     InputWorkPhone(String, UserType),
@@ -21,24 +21,16 @@ pub enum Msg {
 
     RequestAddUpdateUser,
     RequestGetUser(i32),
-    // Do we need the map for it as well? Probably not
-    // Response holds HTTP response from request
-    ResponseAddUser(util::Response<TrackedUser>),
-    ResponseGetUser(util::Response<Option<TrackedUser>>),
-    ResponseUpdateUser(util::Response<TrackedUser>),
+    ResponseAddUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
+    ResponseGetUser(util::Response<(Option<TrackedUser>, Option<TrackedUser>)>),
+    ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
 }
 
-// keep all of the transient data together, since its not easy to create
-// a "new" method for a component.
 struct Data {
-    // Where do you get the type User?
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
     pub error_messages: Vec<String>,
-    // What's the difference b/w str (string slice) and String?
-
     pub id: Option<i32>,
-    // This should be the ID tag Mac address
     pub raw_mac: String,
     pub success_message: Option<String>,
 }
@@ -50,17 +42,15 @@ impl Data {
             emergency_user: None,
             error_messages: Vec::new(),
             id: None,
-            raw_mac: MacAddress::nil().to_hex_string(),
+            raw_mac: ShortAddress::nil().to_string(),
             success_message: None,
         }
     }
 
-    // How do we validate that the user data is valid?
-    // Check raw Mac address of the ID tag
     fn validate(&mut self) -> bool {
-        let success = match MacAddress::parse_str(&self.raw_mac) {
+        let success = match ShortAddress::parse_str(&self.raw_mac) {
             Ok(m) => {
-                self.user.mac_address = m;
+                self.user.mac_address = Some(m);
                 true
             },
             Err(e) => {
@@ -68,46 +58,42 @@ impl Data {
                 false
             }
         };
-        // Don't need to validate the emergency contact since it can be NOne  
         success
     }
 }
 
-// What does fetch_service/task and self_link do?
 pub struct UserAddUpdate {
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    user_type: WebUserType,
 }
 
-#[derive(Clone, Default, PartialEq, Properties)]
+#[derive(Properties)]
 pub struct UserAddUpdateProps {
     pub id: Option<i32>,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for UserAddUpdate {
     type Message = Msg;
     type Properties = UserAddUpdateProps;
 
-    // mut link or
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        // Perhaps I'm missing the command to fetch the user IDs
         if let Some(id) = props.id {
             link.send_self(Msg::RequestGetUser(id));
         }
 
         let mut result = UserAddUpdate {
             data: Data::new(),
-            // what does these fetch services do?
-            // Assume: Call for requests to the web services endpoints
             fetch_service: FetchService::new(),
             fetch_task: None,
-            // What does get_fetch_task do?
-            // Is it to get the results of the fetch task?
             get_fetch_task: None,
             self_link: link,
+            user_type: props.user_type,
         };
         result.data.id = props.id;
         result
@@ -145,14 +131,14 @@ impl Component for UserAddUpdate {
                             None => {},
                         }
                     }
-                }            
+                }
             },
             Msg::InputWorkPhone(work_phone, usertype) => {
                 match usertype {
                     UserType::Normal => self.data.user.work_phone = Some(work_phone),
                     UserType::Contact => {
                         match &mut self.data.emergency_user {
-                            Some(user) => user.work_phone= Some(work_phone),
+                            Some(user) => user.work_phone = Some(work_phone),
                             None => {},
                         }
                     }
@@ -180,24 +166,22 @@ impl Component for UserAddUpdate {
                     }
                 }
             },
-            // Send a web parameter as in beacon_list.rs
-            // self.fetch_service,
-            // &format!("{}?emergency=true", user_url()),
 
             Msg::RequestAddUpdateUser => {
                 self.data.error_messages = Vec::new();
                 self.data.success_message = None;
 
-                // Do we need to validate the data?
                 let success = self.data.validate();
 
                 match self.data.id {
                     Some(id) if success => {
-                        // Ensure the beacon id does not mismatch.
-                        // Where do we compare the list of user ID tags?
                         self.data.user.id = id;
+                        if let Some(e_user) = &mut self.data.emergency_user {
+                            // ensure the emergency user is attached to the user
+                            e_user.attached_user = Some(id);
+                        }
 
-                         self.fetch_task = put_request!(
+                        self.fetch_task = put_request!(
                             self.fetch_service,
                             &user_url(&self.data.user.id.to_string()),
                             (&self.data.user, &self.data.emergency_user),
@@ -206,42 +190,34 @@ impl Component for UserAddUpdate {
                         );
 
                     },
-                    // Is this the same service that is called in main.rs?
                     None if success => {
                         self.fetch_task = post_request!(
                             self.fetch_service,
                             &user_url(""),
                             (&self.data.user, &self.data.emergency_user),
-                            //self.data.user,
                             self.self_link,
                             Msg::ResponseAddUser
                         );
                     }
-                    _ => {
-                        self.data.error_messages.push("Other cases error in add/updating".to_string());
-                    },
+                    _ => {},
                 }
             },
             Msg::RequestGetUser(id) => {
                 self.get_fetch_task = get_request! (
                     self.fetch_service,
-                    &user_url(&id.to_string()),
+                    &format!("{}?prefetch=true", user_url(&id.to_string())),
                     self.self_link,
                     Msg::ResponseGetUser
-                    );
+                );
             },
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() { 
+                if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
-                            self.data.user = result.unwrap_or(TrackedUser::new());
-                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
-                            match &self.data.emergency_user {
-                                Some(opt_e_user) => 
-                                    self.data.user.emergency_contact = Some(opt_e_user.id),
-                                None => {},
-                            }
+                        Ok((opt_user, opt_e_user)) => {
+                            self.data.user = opt_user.unwrap_or(TrackedUser::new());
+                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
+                            self.data.emergency_user = opt_e_user;
                         }
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to find user, reason: {}", e));
@@ -255,38 +231,30 @@ impl Component for UserAddUpdate {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
-                            Log!("returned user is {:?}", result);
+                        Ok((opt_user, opt_e_user)) => {
                             self.data.success_message = Some("successfully added user".to_string());
-                            self.data.user = result;
-                            // How do I set it where it returns None if
-                            match &self.data.emergency_user {
-                                Some(e_user) => {
-                                    self.data.user.emergency_contact = Some(e_user.id);  
-                                }
-                                None => {
-                                    self.data.user.emergency_contact = None;
-                                }
-                            }
+                            self.data.user = opt_user;
+                            self.data.emergency_user = opt_e_user;
+
                             self.data.id = Some(self.data.user.id);
-                            self.data.raw_mac = self.data.user.mac_address.to_hex_string();
+                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to add user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add user. Meta.status failed".to_string());
+                    self.data.error_messages.push("failed to add user".to_string());
                 }
             },
             Msg::ResponseUpdateUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
-                            Log!("returned user is {:?}", result);
+                        Ok((opt_user, opt_e_user)) => {
                             self.data.success_message = Some("successfully updated user".to_string());
-                            self.data.user = result;
+                            self.data.user = opt_user;
+                            self.data.emergency_user = opt_e_user;
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to update user, reason: {}", e));
@@ -302,16 +270,14 @@ impl Component for UserAddUpdate {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.data.id = props.id;
+        self.user_type = props.user_type;
         true
     }
 }
 
-// should user be a reference or should it just be the value?
-// b/c it doesn't matter what is being passed through value
-
 impl UserAddUpdate {
     fn render_input_form(&self, user: &TrackedUser, type_user: UserType) -> Html<Self> {
-        
+
         html! {
             <>
                 <tr>
@@ -319,10 +285,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text"
-                            // string literal is immutable; stored on the stack
-                            // Is there a faster method to copy the input of the keyed input
-                            // Is value then a placeholder?
-                            value = user.employee_id.clone().unwrap_or(String::new()),
+                            value=user.employee_id.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputEmployeeID(e.value, type_user),
                         />
                     </td>
@@ -332,7 +295,7 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.work_phone.clone().unwrap_or(String::new()),
+                            value=user.work_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputWorkPhone(e.value, type_user)
                         />
                     </td>
@@ -342,17 +305,17 @@ impl UserAddUpdate {
                     <td>
                         <input
                             type="text",
-                            value = user.mobile_phone.clone().unwrap_or(String::new()),
+                            value=user.mobile_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputMobilePhone(e.value, type_user)
                         />
                     </td>
-                </tr>                    
+                </tr>
                 <tr>
                     <td>{ "Note: " }</td>
                     <td>
                         <textarea
                             rows=5,
-                            value = user.note.clone().unwrap_or(String::new()),
+                            value = user.note.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputNote(e.value, type_user),
                         />
                     </td>
@@ -385,7 +348,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
                 <p>{msg}</p>
             }
@@ -397,7 +360,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
+                        None => { String::new() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
@@ -424,33 +387,42 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                             />
                         </td>
                     </tr>
-                    {   //let normal_user = &self.data.user.clone();
-                        self.render_input_form(&self.data.user, UserType::Normal )}
-                    // Emergency Contact Informationemergency_user
+                    { self.render_input_form(&self.data.user, UserType::Normal) }
                     <tr> { "Emergency Contact Information"} </tr>
                     <tr>
                         <td>{ "Name: " }</td>
                         <td>
                             <input
                                 type="text",
-                                // Do you clone the reference to data.emergency_user or clone emergency_user 
-                                value = self.data.emergency_user.clone().unwrap_or(TrackedUser::new()).name,
+                                value=self.data.emergency_user.as_ref().map_or(&String::new(), |u| &u.name),
                                 oninput=|e| Msg::InputName(e.value, UserType::Contact)
                             />
                         </td>
                     </tr>
-                    {match &self.data.emergency_user {
-                        Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
-                        None => {
-                            html!{
-                                <></>
-                            }
+                    {
+                        match &self.data.emergency_user {
+                            Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
+                            None => {
+                                html!{
+                                    <></>
+                                }
+                            },
+                        }
+                    }
+                </table>
+                {
+                    match self.user_type {
+                        WebUserType::Admin => html! {
+                            <>
+                                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
+                                { add_another_button }
+                            </>
+                        },
+                        WebUserType::Responder => html! {
+                            <></>
                         },
                     }
                 }
-                </table>
-                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
-                { add_another_button }
             </>
         }
     }

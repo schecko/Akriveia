@@ -3,21 +3,38 @@ extern crate tokio;
 extern crate futures;
 extern crate bytes;
 
-use bytes::{ BytesMut, Bytes };
-use std::io;
-use std::net::SocketAddr;
-use futures::{ stream, Stream, Sink, };
-use futures::stream::SplitSink;
-use tokio::net::{ UdpSocket, UdpFramed };
-use tokio::codec::BytesCodec;
+use actix::io::{ WriteHandler, SinkWrite, };
 use actix::prelude::*;
-use actix::{ Actor, Context, StreamHandler };
+use actix::{ Actor, Context, StreamHandler, };
+use bytes::{ BytesMut, Bytes };
 use crate::beacon_manager::*;
-
+use crate::conn_common;
+use futures::stream::SplitSink;
+use futures::{ Stream, };
+use ipnet::Ipv4Net;
+use std::io;
+use std::net::IpAddr;
+use std::net::SocketAddr;
+use tokio::codec::BytesCodec;
+use tokio::net::{ UdpSocket, UdpFramed };
 
 pub struct BeaconUDP {
-    sink: SplitSink<UdpFramed<BytesCodec>>,
-    beacon_ips: Vec<SocketAddr>,
+    bound_ip: Ipv4Net,
+    bound_port: u16,
+    manager: Addr<BeaconManager>,
+    sink: SinkWrite<SplitSink<UdpFramed<BytesCodec>>>,
+}
+
+impl WriteHandler<io::Error> for BeaconUDP {
+    fn error(&mut self, err: io::Error, _context: &mut Self::Context) -> Running {
+        println!("beacon udp encountered an error {}", err);
+        Running::Stop
+    }
+
+    fn finished(&mut self, _context: &mut Self::Context) {
+        // override the finish method of the trait, because the default will stop the actor...
+        println!("finish sending data");
+    }
 }
 
 impl Actor for BeaconUDP {
@@ -35,51 +52,63 @@ impl StreamHandler<Frame, io::Error> for BeaconUDP {
         match String::from_utf8_lossy(&msg.data).into_owned().as_str() {
             "ack" => { println!("beacon {} ack'd", msg.addr); }
             other => {
-                println!("Received: ({:?}, {:?})", other, msg.addr);
                 // process data or error
+                match conn_common::parse_message(other) {
+                    Ok(msg) => {
+                        self.manager
+                            .do_send(TagDataMessage { data: msg });
+                    },
+                    Err(e) => {
+                        println!("failed to parse message from udp beacon: {}", e);
+                    }
+                }
+                println!("Received: ({:?}, {:?})", other, msg.addr);
             }
         }
     }
 }
 
 impl Handler<BeaconCommand> for BeaconUDP {
-    type Result = Result<common::SystemCommandResponse, io::Error>;
+    type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: BeaconCommand, _: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BeaconCommand, _context: &mut Context<Self>) -> Self::Result {
+
+        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port + 1);
         match msg {
             BeaconCommand::StartEmergency => {
-                let stream_data = self.beacon_ips.iter()
-                    .map(|&ip| (Bytes::from("start"), ip));
-                let stream = stream::iter_ok::<_, io::Error>(stream_data);
-                // TODO handle
-                let _ = (&mut self.sink).send_all(stream);
-                Ok(common::SystemCommandResponse{ emergency: true })
+                self.sink
+                    .write((Bytes::from("start"), broadcast))
+                    .expect("failed to send start");
             },
             BeaconCommand::EndEmergency => {
-                let stream_data = self.beacon_ips.iter()
-                    .map(|&ip| (Bytes::from("end"), ip));
-                let stream = stream::iter_ok::<_, io::Error>(stream_data);
-                // TODO handle
-                let _ = (&mut self.sink).send_all(stream);
-                Ok(common::SystemCommandResponse{ emergency: false })
+                self.sink
+                    .write((Bytes::from("end"), broadcast))
+                    .expect("failed to send end");
             },
             _ => {
-                Ok(common::SystemCommandResponse{ emergency: true })
             }
         }
+
+        Ok(())
     }
 }
 
 impl BeaconUDP {
-    pub fn new(addr: SocketAddr) -> Addr<BeaconUDP> {
-        let sock = UdpSocket::bind(&addr).unwrap();
-        println!("{:?}", sock);
+    pub fn new(manager: Addr<BeaconManager>, ip: Ipv4Net, port: u16) -> Addr<BeaconUDP> {
+        let bind_addr = SocketAddr::new(IpAddr::V4(ip.addr()), port);
+
+        let sock = UdpSocket::bind(&bind_addr).unwrap();
+        sock.set_broadcast(true).expect("could not set broadcast");
+
         let (sink, stream) = UdpFramed::new(sock, BytesCodec::new()).split();
-        BeaconUDP::create(|context| {
+        BeaconUDP::create(move |context| {
             context.add_stream(stream.map(|(data, sender)| Frame { data, addr: sender }));
+            let sw = SinkWrite::new(sink, context);
             BeaconUDP {
-                sink,
-                beacon_ips: Vec::new(),
+                bound_ip: ip,
+                bound_port: port,
+                manager,
+                sink: sw,
             }
         })
     }

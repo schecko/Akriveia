@@ -26,7 +26,6 @@ pub struct UserList {
 
 #[derive(Properties)]
 pub struct UserListProps {
-    // What is a callback?
     #[props(required)]
     pub change_page: Callback<root::Page>,
 }
@@ -52,7 +51,7 @@ impl Component for UserList {
             Msg::RequestGetUsers => {
                 self.fetch_task = get_request!(
                     self.fetch_service,
-                    &format!("{}", users_url()),
+                    &format!("{}?include_contacts=false", users_url()),
                     self.self_link,
                     Msg::ResponseGetUsers
                 );
@@ -90,7 +89,6 @@ impl Component for UserList {
                 } else {
                     Log!("response - failed to delete User");
                 }
-                // now that the User is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetUsers);
             },
             Msg::ChangeRootPage(page) => {
@@ -115,12 +113,11 @@ impl Renderable<UserList> for UserList {
                 <tr>
                     <td>{ &user.name }</td>
                     <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
-                    <td>{ &user.mac_address.to_hex_string() }</td>
+                    <td>{ &user.mac_address.map_or(String::new(), |m| m.to_string()) }</td>
                     <td>{ user.employee_id.clone().unwrap_or(String::new()) }</td>
                     <td>{ &user.last_active}</td>
                     <td>{ user.work_phone.clone().unwrap_or(String::new()) }</td>
                     <td>{ user.mobile_phone.clone().unwrap_or(String::new()) }</td>
-                    //<td>{ user.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
                             display=Some("Edit".to_string()),
@@ -151,7 +148,6 @@ impl Renderable<UserList> for UserList {
                     <td>{ "Last Active" }</td>
                     <td>{ "Work Phone" }</td>
                     <td>{ "Mobile Phone" }</td>
-                    //<td>{ "Note" }</td> 
                 </tr>
                 { for rows }
                 </table>

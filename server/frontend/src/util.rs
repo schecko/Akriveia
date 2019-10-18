@@ -4,6 +4,12 @@ use yew::format::Json;
 
 pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum WebUserType {
+    Admin,
+    Responder,
+}
+
 macro_rules! Log {
     ($($arg:tt)*) => (
         {
