@@ -1,20 +1,21 @@
+
 # DWM1000
 
-## Libraries
+### Libraries
 - https://github.com/F-Army/arduino-dw1000-ng
 - https://github.com/thotro/arduino-dw1000
 
-## Install instructions:
+### Install instructions:
 - Extract to arduino/libraries folder
 
 # Mini Core
 
-## Core Code:
+### Core Code:
 https://github.com/MCUdude/MiniCore
 
 # ESP32
 
-## ESP32 Core Code:
+### ESP32 Core Code:
 https://github.com/espressif/arduino-esp32
 
 ### Installing with Boards Manager
@@ -29,7 +30,7 @@ Development release link: `https://dl.espressif.com/dl/package_esp32_dev_index.j
 
 # ESP8266
 
-## ESP8266 Core Code:
+### ESP8266 Core Code:
 https://github.com/esp8266/Arduino
 
 ### Installing with Boards Manager
@@ -42,15 +43,14 @@ https://github.com/esp8266/Arduino
 
 # Anchor Beacons
 
-## Examples:
+### Examples:
 - https://github.com/nkolban/ESP32_BLE_Arduino
 - https://github.com/jarkko-hautakorpi/iBeacon-indoor-positioning-demo
 - https://www.instructables.com/id/JARVAS-Indoor-Positioning-System/
 
 # ID TAG
 
-## Examples:
+### Examples:
 - https://lastminuteengineers.com/esp32-sleep-modes-power-consumption/
 - https://randomnerdtutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
 - https://randomnerdtutorials.com/esp32-deep-sleep-arduino-ide-wake-up-sources/
-
