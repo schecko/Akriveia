@@ -9,6 +9,7 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
+use palette::{ LinSrgb, };
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -31,6 +32,7 @@ pub enum Msg {
 pub struct MapViewComponent {
     beacons: Vec<Beacon>,
     canvas: Canvas,
+    legend_canvas: Canvas,
     emergency: bool,
     error_messages: Vec<String>,
     fetch_service: FetchService,
@@ -65,6 +67,13 @@ impl MapViewComponent {
             self.canvas.reset(map);
             self.canvas.draw_users(map, &self.users, self.show_distance);
             self.canvas.draw_beacons(map, &self.beacons);
+            let grad = vec![
+                LinSrgb::new(1.0f64, 0.0, 0.0),
+                LinSrgb::new(1.0, 1.0, 0.0),
+                LinSrgb::new(1.0, 1.0, 0.0),
+                LinSrgb::new(0.0, 1.0, 0.0),
+            ];
+            self.legend_canvas.legend(100, 600, grad);
         }
     }
 }
@@ -89,7 +98,8 @@ impl Component for MapViewComponent {
 
         let mut result = MapViewComponent {
             beacons: Vec::new(),
-            canvas: Canvas::new("map_canvas", click_callback),
+            canvas: Canvas::new("map_canvas", click_callback.clone()),
+            legend_canvas: Canvas::new("legend_canvas", click_callback),
             emergency: props.emergency,
             error_messages: Vec::new(),
             fetch_service: FetchService::new(),
@@ -325,7 +335,12 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     </p>
                     { for render_distance_buttons }
                 </div>
-                { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                <table>
+                    <tr><td>
+                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
+                    </td></tr>
+                </table>
             </div>
         }
     }

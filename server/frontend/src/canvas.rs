@@ -4,8 +4,8 @@ use na;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::html_element::CanvasElement;
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
-//use chrono::Utc;
 use yew::prelude::*;
+use palette::{ Gradient, LinSrgb, };
 
 const USER_RADIUS: f64 = 5.0;
 const BEACON_RADIUS: f64 = 8.0;
@@ -17,6 +17,17 @@ pub struct Canvas {
 
 pub fn screen_space(map: &Map, x: f64, y: f64) -> na::Vector2<f64> {
     na::Vector2::new(x, map.bounds.y as f64 - y)
+}
+
+fn color_to_hex(c: &LinSrgb<f64>) -> String {
+    let comps = c.into_components();
+    let color_string = format!(
+        "#{:0<2X}{:0<2X}{:0<2X}",
+        (comps.0 * 255.0) as u8,
+        (comps.1 * 255.0) as u8,
+        (comps.2 * 255.0) as u8
+    );
+    color_string
 }
 
 impl Canvas {
@@ -47,6 +58,21 @@ impl Canvas {
             canvas,
             context,
         }
+    }
+
+    pub fn legend(&self, width: u32, height: u32, grad_colors: Vec<LinSrgb<f64>>) {
+        self.canvas.set_width(width);
+        self.canvas.set_height(height);
+
+        // create a gradient from the top middle to the bottom middle.
+        let grad = self.context.create_linear_gradient(width as f64 / 2.0f64, 0.0, width as f64 / 2.0, height.into());
+
+        grad_colors.iter().enumerate().for_each(|(i, color)| {
+            grad.add_color_stop((i as f64 + 0.5) / grad_colors.len() as f64, &color_to_hex(color)).unwrap();
+        });
+        self.context.set_fill_style_gradient(&grad);
+        self.context.fill_rect(0.0, 0.0, width.into(), height.into());
+
     }
 
     pub fn reset(&mut self, map: &Map) {
@@ -124,9 +150,15 @@ impl Canvas {
                     beacon_source.location.x * map.scale,
                     beacon_source.location.y * map.scale,
                 );
-                let now = stdweb::web::Date::now();
-                Log!("user active: {:?} ", now - user.last_active.timestamp_millis() as f64);
-                self.context.set_fill_style_color("#000000FF");
+                let diff = stdweb::web::Date::now() - user.last_active.timestamp_millis() as f64;
+                let grad = Gradient::new(vec![
+                    LinSrgb::new(1.0f64, 0.0, 1.0),
+                    LinSrgb::new(0.0, 0.0, 1.0),
+                    LinSrgb::new(0.0, 1.0, 0.0),
+                ]);
+                let freshness = grad.get(num::clamp(diff / 10000.0, 0.0, 1.0));
+                let color_string = color_to_hex(&freshness);
+                self.context.set_fill_style_color(&color_string);
                 self.context.begin_path();
                 self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
                 self.context.fill(FillRule::NonZero);
