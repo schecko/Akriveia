@@ -3,12 +3,32 @@ use stdweb::traits::*;
 use na;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{ CanvasRenderingContext2d, FillRule, };
+use stdweb::web::{ CanvasRenderingContext2d, FillRule, TextAlign, };
 use yew::prelude::*;
 use palette::{ Gradient, LinSrgb, };
 
 const USER_RADIUS: f64 = 5.0;
 const BEACON_RADIUS: f64 = 8.0;
+
+struct GradColor {
+    grad: Gradient<LinSrgb<f64>>,
+    colors: Vec<LinSrgb<f64>>,
+}
+
+lazy_static! {
+    static ref GRAD_COLOR: GradColor = {
+        let colors = vec![
+            LinSrgb::new(0.0, 1.0, 0.0),
+            LinSrgb::new(1.0, 1.0, 0.0),
+            LinSrgb::new(1.0, 1.0, 0.0),
+            LinSrgb::new(1.0, 0.0, 0.0),
+        ];
+        let grad = Gradient::new(colors.clone());
+
+        GradColor { colors, grad }
+    };
+}
+
 
 pub struct Canvas {
     pub canvas: CanvasElement,
@@ -60,19 +80,71 @@ impl Canvas {
         }
     }
 
-    pub fn legend(&self, width: u32, height: u32, grad_colors: Vec<LinSrgb<f64>>) {
+    // loc specifies top middle of the gradient
+    fn build_gradient(&self, loc: na::Vector2<f64>, bounds: na::Vector2<f64>) {
+        self.context.save();
+
+        // create a gradient from the top middle to the bottom middle.
+        let grad = self.context.create_linear_gradient(loc.x, loc.y, loc.x, loc.y + bounds.y);
+
+        GRAD_COLOR.colors.iter().enumerate().for_each(|(i, color)| {
+            grad.add_color_stop((i as f64 + 0.5) / GRAD_COLOR.colors.len() as f64, &color_to_hex(color)).unwrap();
+        });
+        self.context.set_fill_style_gradient(&grad);
+        self.context.fill_rect(loc.x - bounds.x / 2.0, loc.y, bounds.x, bounds.y);
+
+        self.context.set_fill_style_color("#000");
+        self.context.set_text_align(TextAlign::Center);
+        self.context.set_font("12px sans-serif");
+        self.context.fill_text("Data Freshness", loc.x, loc.y - 5.0, None);
+        self.context.set_font("10px sans-serif");
+        self.context.fill_text("Newest", loc.x, loc.y + 20.0, None);
+        self.context.fill_text("Oldest", loc.x, loc.y + bounds.y - 10.0, None);
+
+        self.context.restore();
+    }
+
+    pub fn legend(&self, width: u32, height: u32) {
         self.canvas.set_width(width);
         self.canvas.set_height(height);
 
-        // create a gradient from the top middle to the bottom middle.
-        let grad = self.context.create_linear_gradient(width as f64 / 2.0f64, 0.0, width as f64 / 2.0, height.into());
+        self.build_gradient(na::Vector2::new(width as f64 / 2.0, height as f64 / 2.0), na::Vector2::new(width as f64 * 0.8, height as f64 / 2.0));
 
-        grad_colors.iter().enumerate().for_each(|(i, color)| {
-            grad.add_color_stop((i as f64 + 0.5) / grad_colors.len() as f64, &color_to_hex(color)).unwrap();
-        });
-        self.context.set_fill_style_gradient(&grad);
-        self.context.fill_rect(0.0, 0.0, width.into(), height.into());
+        self.context.save();
 
+        let legend_spacing = 30.0;
+        let x_row_entry = 30.0;
+        let x_row_text = 60.0;
+
+        self.context.set_fill_style_color("#000");
+        self.context.set_text_align(TextAlign::Left);
+        self.context.set_font("10px sans-serif");
+
+        // Beacon
+        let mut current_y = legend_spacing;
+        self.context.set_fill_style_color("#0F0");
+        self.context.begin_path();
+        self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+        self.context.fill(FillRule::NonZero);
+        self.context.set_fill_style_color("#000");
+        self.context.fill_rect(x_row_entry - BEACON_RADIUS / 4.0, current_y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
+        self.context.fill_text("Beacon", x_row_text, current_y, None);
+
+        // Tag
+        current_y += legend_spacing;
+        self.context.set_fill_style_color("#0F0");
+        self.context.begin_path();
+        self.context.arc(x_row_entry, current_y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+        self.context.fill(FillRule::NonZero);
+        self.context.set_fill_style_color("#000");
+        self.context.fill_text("Tag", x_row_text, current_y, None);
+
+        // Title
+        self.context.set_fill_style_color("#000");
+        self.context.set_text_align(TextAlign::Center);
+        self.context.set_font("12px sans-serif");
+        self.context.fill_text("Legend", width as f64 / 2.0, 10.0, None);
+        self.context.restore();
     }
 
     pub fn reset(&mut self, map: &Map) {
@@ -80,8 +152,14 @@ impl Canvas {
         self.canvas.set_height(map.bounds[1] as u32);
 
         self.context.set_line_dash(vec![]);
-        self.context.clear_rect(0.0, 0.0, self.canvas.width().into(), self.canvas.height().into());
-        self.context.stroke_rect(0.0, 0.0, self.canvas.width().into(), self.canvas.height().into());
+        self.context.clear_rect(
+            0.0, 0.0,
+            self.canvas.width().into(), self.canvas.height().into()
+        );
+        self.context.stroke_rect(
+            0.0, 0.0,
+            self.canvas.width().into(), self.canvas.height().into()
+        );
 
         self.context.save();
         self.context.set_line_dash(vec![5.0, 15.0]);
@@ -127,10 +205,14 @@ impl Canvas {
                 beacon.coordinates.x * map.scale,
                 beacon.coordinates.y * map.scale,
             );
-            self.context.set_fill_style_color("#0000FFFF");
+
+            let freshness = GRAD_COLOR.grad.get(0.0);
+            self.context.set_fill_style_color(&color_to_hex(&freshness));
             self.context.begin_path();
             self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
             self.context.fill(FillRule::NonZero);
+            self.context.set_fill_style_color("#000");
+            self.context.fill_rect(beacon_loc.x - BEACON_RADIUS / 4.0, beacon_loc.y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
         }
         self.context.restore();
     }
@@ -151,12 +233,7 @@ impl Canvas {
                     beacon_source.location.y * map.scale,
                 );
                 let diff = stdweb::web::Date::now() - user.last_active.timestamp_millis() as f64;
-                let grad = Gradient::new(vec![
-                    LinSrgb::new(1.0f64, 0.0, 1.0),
-                    LinSrgb::new(0.0, 0.0, 1.0),
-                    LinSrgb::new(0.0, 1.0, 0.0),
-                ]);
-                let freshness = grad.get(num::clamp(diff / 10000.0, 0.0, 1.0));
+                let freshness = GRAD_COLOR.grad.get(num::clamp(diff / 10000.0, 0.0, 1.0));
                 let color_string = color_to_hex(&freshness);
                 self.context.set_fill_style_color(&color_string);
                 self.context.begin_path();

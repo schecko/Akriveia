@@ -9,7 +9,6 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
-use palette::{ LinSrgb, };
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -67,13 +66,7 @@ impl MapViewComponent {
             self.canvas.reset(map);
             self.canvas.draw_users(map, &self.users, self.show_distance);
             self.canvas.draw_beacons(map, &self.beacons);
-            let grad = vec![
-                LinSrgb::new(1.0f64, 0.0, 0.0),
-                LinSrgb::new(1.0, 1.0, 0.0),
-                LinSrgb::new(1.0, 1.0, 0.0),
-                LinSrgb::new(0.0, 1.0, 0.0),
-            ];
-            self.legend_canvas.legend(100, 600, grad);
+            self.legend_canvas.legend(100, 600);
         }
     }
 }
