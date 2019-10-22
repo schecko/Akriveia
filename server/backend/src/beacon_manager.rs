@@ -43,17 +43,24 @@ pub enum BMCommand {
     GetEmergency,
     ScanBeacons,
     StartEmergency,
+
+    // internal
+    Ping,
+    Reboot,
 }
 
 impl Message for BMCommand {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 }
 
+#[derive(Clone, Copy)]
 pub enum BeaconCommand {
     EndEmergency,
     GetEmergency,
     ScanBeacons,
     StartEmergency,
+    Ping,
+    Reboot,
 }
 
 impl Message for BeaconCommand {
@@ -168,6 +175,17 @@ impl BeaconManager {
             print!("Error listing serial ports");
         }
     }
+
+    fn mass_send(&self, msg: BeaconCommand) {
+        for connection in &self.serial_connections {
+            connection.send(msg)
+                .expect("failed to send message to serial connection");
+        }
+
+        for connection in &self.udp_connections {
+            connection.do_send(msg);
+        }
+    }
 }
 
 impl Handler<BMCommand> for BeaconManager {
@@ -182,29 +200,19 @@ impl Handler<BMCommand> for BeaconManager {
             },
             BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
-                for connection in &self.serial_connections {
-                    connection
-                        .send(BeaconCommand::StartEmergency)
-                        .expect("failed to send start emergency to serial beacon connection");
-                }
-                for connection in &self.udp_connections {
-                    connection.do_send(BeaconCommand::StartEmergency);
-                }
+                self.mass_send(BeaconCommand::StartEmergency);
                 self.emergency = true;
             }
             BMCommand::EndEmergency => {
-                for connection in &self.serial_connections {
-                    connection
-                        .send(BeaconCommand::EndEmergency)
-                        .expect("failed to send end emergency to serial beacon connection");
-                }
-                for connection in &self.udp_connections {
-                    connection
-                        .do_send(BeaconCommand::EndEmergency);
-                }
+                self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
-                // Send a message to DP to clear hashmap
                 self.data_processor.do_send(DPMessage::ResetData);
+            },
+            BMCommand::Ping => {
+                self.mass_send(BeaconCommand::Ping);
+            },
+            BMCommand::Reboot => {
+                self.mass_send(BeaconCommand::Reboot);
             },
 
         }
