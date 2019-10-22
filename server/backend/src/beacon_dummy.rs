@@ -65,6 +65,7 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                                     beacon_mac: beacon_mac,
                                     tag_distance: user_distance,
                                     tag_mac: user.mac_address.unwrap(),
+                                    timestamp: Utc::now(),
                                 }
                             });
                     }

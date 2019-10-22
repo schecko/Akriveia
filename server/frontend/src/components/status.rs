@@ -310,6 +310,7 @@ impl Status {
             html! {
                 <tr>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
+                    <td>{ &beacon.last_active }</td>
                     <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ &beacon.name }</td>
@@ -337,6 +338,7 @@ impl Status {
             <>
                 <tr>
                     <td>{ "Mac" }</td>
+                    <td>{ "Last Active" }</td>
                     <td>{ "Coordinates" }</td>
                     <td>{ "Floor" }</td>
                     <td>{ "Name" }</td>
@@ -367,6 +369,7 @@ impl Status {
             html! {
                 <tr>
                     <td>{ &user.name }</td>
+                    <td>{ &user.last_active }</td>
                     <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ "test" }</td>
@@ -396,6 +399,7 @@ impl Status {
             <>
                 <tr>
                     <td>{ "Name" }</td>
+                    <td>{ "Last Active" }</td>
                     <td>{ "Coordinates" }</td>
                     <td>{ "Floor" }</td>
                     <td>{ "Last Seen" }</td>

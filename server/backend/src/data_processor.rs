@@ -11,12 +11,14 @@ use na;
 use std::collections::{ HashMap, BTreeMap, VecDeque };
 use std::io;
 use common::*;
+use chrono::{ DateTime, Utc, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHistory {
+    pub timestamp: DateTime<Utc>,
     pub tag_mac: ShortAddress,
     pub beacon_history: BTreeMap<MacAddress8, VecDeque<f64>>,
 }
@@ -113,6 +115,7 @@ fn append_history(tag_entry: &mut Box<TagHistory>, tag_data: &common::TagData) {
         deque.push_back(tag_data.tag_distance);
         tag_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
     }
+    tag_entry.timestamp = tag_data.timestamp;
 }
 
 impl Handler<InLocationData> for DataProcessor {
@@ -135,6 +138,7 @@ impl Handler<InLocationData> for DataProcessor {
                             tag_mac: tag_entry.tag_mac.clone(),
                             beacon_mac: beacon_mac.clone(),
                             tag_distance: hist_vec.into_iter().sum::<f64>() / hist_vec.len() as f64,
+                            timestamp: tag_entry.timestamp,
                         }
                     }).collect();
 
@@ -148,6 +152,7 @@ impl Handler<InLocationData> for DataProcessor {
                 let mut hash_entry = TagHistory {
                     tag_mac: tag_data.tag_mac.clone(),
                     beacon_history: BTreeMap::new(),
+                    timestamp: tag_data.timestamp,
                 };
                 let mut deque = VecDeque::new();
                 deque.push_back(tag_data.tag_distance);
@@ -173,6 +178,14 @@ impl Handler<InLocationData> for DataProcessor {
                         // perform trilateration calculation
                         let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
                         let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
+                        let timestamp = averages.iter().fold(Utc.timestamp(0, 0), |max, tag_point| {
+                            if max < tag_point.timestamp {
+                                tag_point.timestamp
+                            } else {
+                                max
+                            }
+                        });
+                        let map_id = beacons[0].map_id; // TODO HACK.
 
                         averages.iter().for_each(|tag_data| {
                             let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
@@ -209,15 +222,17 @@ impl Handler<InLocationData> for DataProcessor {
 
                         fetch_user_fut
                             .map(move |client, _actor, _context| {
-                                (client, tag_data.tag_mac, new_tag_location, beacon_sources)
+                                (client, tag_data.tag_mac, timestamp, map_id, new_tag_location, beacon_sources)
                             })
                     })
-                    .and_then(|(client, tag_addr, new_tag_location, beacon_sources), actor, _context| {
+                    .and_then(|(client, tag_addr, timestamp, map_id, new_tag_location, beacon_sources), actor, _context| {
                         // update the user information
                         match actor.users.get_mut(&tag_addr) {
                             Some(user) => {
                                 user.beacon_tofs = beacon_sources;
                                 user.coordinates = new_tag_location;
+                                user.last_active = timestamp;
+                                user.map_id = map_id;
                                 afut::Either::A(user::update_user_from_realtime(client, user.clone())
                                     .map(|(_client, _opt_user)| { })
                                     .into_actor(actor)
