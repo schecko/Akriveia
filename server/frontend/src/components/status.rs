@@ -369,10 +369,9 @@ impl Status {
             html! {
                 <tr>
                     <td>{ &user.name }</td>
-                    <td>{ &user.last_active }</td>
                     <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
-                    <td>{ "test" }</td>
+                    <td>{ &user.last_active }</td>
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
@@ -399,7 +398,6 @@ impl Status {
             <>
                 <tr>
                     <td>{ "Name" }</td>
-                    <td>{ "Last Active" }</td>
                     <td>{ "Coordinates" }</td>
                     <td>{ "Floor" }</td>
                     <td>{ "Last Seen" }</td>
