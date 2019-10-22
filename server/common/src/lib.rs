@@ -185,9 +185,10 @@ impl TrackedUser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
-    pub id: i32, // primary key
     pub coordinates: na::Vector2<f64>,
+    pub id: i32, // primary key
     pub ip: IpAddr,
+    pub last_active: DateTime<Utc>,
     pub mac_address: MacAddress8,
     pub map_id: Option<i32>,
     pub name: String,
@@ -200,6 +201,7 @@ impl Beacon {
             id: -1,
             coordinates: na::Vector2::new(0.0, 0.0),
             ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            last_active: Utc.timestamp(0, 0),
             mac_address: MacAddress8::nil(),
             map_id: None,
             name: String::new(),

@@ -9,6 +9,7 @@ use palette::{ Gradient, LinSrgb, };
 
 const USER_RADIUS: f64 = 5.0;
 const BEACON_RADIUS: f64 = 8.0;
+const MAX_TIME: f64 = 10000.0; // milliseconds
 
 struct GradColor {
     grad: Gradient<LinSrgb<f64>>,
@@ -98,8 +99,8 @@ impl Canvas {
         self.context.set_font("12px sans-serif");
         self.context.fill_text("Data Freshness", loc.x, loc.y - 5.0, None);
         self.context.set_font("10px sans-serif");
-        self.context.fill_text("Newest", loc.x, loc.y + 20.0, None);
-        self.context.fill_text("Oldest", loc.x, loc.y + bounds.y - 10.0, None);
+        self.context.fill_text("Newest - 0s", loc.x, loc.y + 20.0, None);
+        self.context.fill_text(&format!("Oldest - {}s+", MAX_TIME / 1000.0), loc.x, loc.y + bounds.y - 10.0, None);
 
         self.context.restore();
     }
@@ -206,7 +207,8 @@ impl Canvas {
                 beacon.coordinates.y * map.scale,
             );
 
-            let freshness = GRAD_COLOR.grad.get(0.0);
+            let diff = stdweb::web::Date::now() - beacon.last_active.timestamp_millis() as f64;
+            let freshness = GRAD_COLOR.grad.get(num::clamp(diff / MAX_TIME, 0.0, 1.0));
             self.context.set_fill_style_color(&color_to_hex(&freshness));
             self.context.begin_path();
             self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
@@ -233,7 +235,7 @@ impl Canvas {
                     beacon_source.location.y * map.scale,
                 );
                 let diff = stdweb::web::Date::now() - user.last_active.timestamp_millis() as f64;
-                let freshness = GRAD_COLOR.grad.get(num::clamp(diff / 10000.0, 0.0, 1.0));
+                let freshness = GRAD_COLOR.grad.get(num::clamp(diff / MAX_TIME, 0.0, 1.0));
                 let color_string = color_to_hex(&freshness);
                 self.context.set_fill_style_color(&color_string);
                 self.context.begin_path();

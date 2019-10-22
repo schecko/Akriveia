@@ -38,8 +38,9 @@ pub struct MapViewComponent {
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
-    interval_service: Option<IntervalService>,
+    interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
+    interval_service_task_beacon: Option<IntervalTask>,
     current_map: Option<Map>,
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
@@ -49,16 +50,20 @@ pub struct MapViewComponent {
 
 impl MapViewComponent {
     fn start_service(&mut self) {
-        let mut interval_service = IntervalService::new();
         self.interval_service_task = Some(
-            interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(|_| Msg::RequestRealtimeUser))
+            self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(|_| Msg::RequestRealtimeUser))
         );
-        self.interval_service = Some(interval_service);
+        if let Some(map) = &self.current_map {
+            let id = map.id;
+            self.interval_service_task_beacon = Some(
+                self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(move |_| Msg::RequestGetBeaconsForMap(id)))
+            );
+        }
     }
 
     fn end_service(&mut self) {
-        self.interval_service = None;
         self.interval_service_task = None;
+        self.interval_service_task_beacon = None;
     }
 
     fn render(&mut self) {
@@ -99,8 +104,9 @@ impl Component for MapViewComponent {
             fetch_task: None,
             get_fetch_task: None,
             get_many_fetch_task: None,
-            interval_service: None,
+            interval_service: IntervalService::new(),
             interval_service_task: None,
+            interval_service_task_beacon: None,
             maps: Vec::new(),
             current_map: None,
             self_link: link,
@@ -145,7 +151,10 @@ impl Component for MapViewComponent {
 
                 if let Some(map) = &self.current_map {
                     self.self_link.send_self(Msg::RequestGetMap(map.id));
-                    self.self_link.send_self(Msg::RequestGetBeaconsForMap(map.id));
+                }
+
+                if self.emergency {
+                    self.start_service();
                 }
             },
             Msg::RequestRealtimeUser => {
