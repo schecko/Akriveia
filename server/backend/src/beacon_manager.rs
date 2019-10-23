@@ -13,6 +13,7 @@ use actix_web::Result;
 use crate::beacon_dummy::*;
 use crate::beacon_serial::*;
 use crate::beacon_udp::*;
+use crate::dummy_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::beacon;
@@ -24,12 +25,13 @@ use std::thread;
 use std::time::Duration;
 
 pub struct BeaconManager {
+    emergency: bool,
     data_processor: Addr<DataProcessor>,
     diagnostic_data: common::DiagnosticData,
-    emergency: bool,
-    pinger: SpawnHandle,
     serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
     udp_connections: Vec<Addr<BeaconUDP>>,
+    dummy_udp_connections: Vec<Addr<DummyUDP>>,
+    pinger: SpawnHandle,
 }
 
 impl Actor for BeaconManager {
@@ -81,6 +83,7 @@ impl BeaconManager {
                 emergency: false, // TODO get from db!
                 serial_connections: Vec::new(),
                 udp_connections: Vec::new(),
+                dummy_udp_connections: Vec::new(),
                 pinger: Default::default(),
             };
             manager.ping_self(context, *PING_INTERVAL);
@@ -151,6 +154,7 @@ impl BeaconManager {
                 println!("failed to create dummy beacons {}", err);
             });
         context.spawn(beacons_fut);
+        self.dummy_udp_connections.push(DummyUDP::new(context.address()));
     }
 
     fn find_beacons_serial(&mut self, context: &mut Context<Self>) {
@@ -200,6 +204,10 @@ impl BeaconManager {
         }
 
         for connection in &self.udp_connections {
+            connection.do_send(msg);
+        }
+
+        for connection in &self.dummy_udp_connections {
             connection.do_send(msg);
         }
     }

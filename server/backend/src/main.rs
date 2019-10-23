@@ -20,6 +20,7 @@ mod beacon_dummy;
 mod beacon_manager;
 mod beacon_serial;
 mod beacon_udp;
+mod dummy_udp;
 mod controllers;
 mod data_processor;
 mod db_utils;
