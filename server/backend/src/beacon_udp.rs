@@ -1,3 +1,5 @@
+// Unfortunately, due to using UDP sockets and broadcasts, it is difficult to associate a single
+// message from the manager with a set of responses to the j
 extern crate actix;
 extern crate tokio;
 extern crate futures;
@@ -76,27 +78,17 @@ impl Handler<BeaconCommand> for BeaconUDP {
     fn handle(&mut self, msg: BeaconCommand, _context: &mut Context<Self>) -> Self::Result {
 
         let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port + 1);
-        match msg {
-            BeaconCommand::StartEmergency => {
-                self.sink
-                    .write((Bytes::from("start"), broadcast))
-                    .expect("failed to send start");
-            },
-            BeaconCommand::EndEmergency => {
-                self.sink
-                    .write((Bytes::from("end"), broadcast))
-                    .expect("failed to send end");
-            },
-            BeaconCommand::Ping => {
-                self.sink
-                    .write((Bytes::from("ping"), broadcast))
-                    .expect("failed to send end");
-            },
-            _ => {
-            }
-        }
+        let command = match msg {
+            BeaconCommand::StartEmergency => "start",
+            BeaconCommand::EndEmergency => "end",
+            BeaconCommand::Ping => "ping",
+            BeaconCommand::Reboot => "reboot",
+        };
 
-        Ok(())
+        self.sink
+            .write((Bytes::from(command), broadcast))
+            .map(|_s| {})
+            .map_err(|_e| {})
     }
 }
 

@@ -24,13 +24,14 @@ use std::thread;
 use std::time::Duration;
 
 pub struct BeaconManager {
-    pub data_processor: Addr<DataProcessor>,
-    pub diagnostic_data: common::DiagnosticData,
-    pub emergency: bool,
-    pub pinger: SpawnHandle,
-    pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
-    pub udp_connections: Vec<Addr<BeaconUDP>>,
+    data_processor: Addr<DataProcessor>,
+    diagnostic_data: common::DiagnosticData,
+    emergency: bool,
+    pinger: SpawnHandle,
+    serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
+    udp_connections: Vec<Addr<BeaconUDP>>,
 }
+
 impl Actor for BeaconManager {
     type Context = Context<Self>;
 }
@@ -62,8 +63,6 @@ impl Message for BMCommand {
 #[derive(Clone, Copy)]
 pub enum BeaconCommand {
     EndEmergency,
-    GetEmergency,
-    ScanBeacons,
     StartEmergency,
     Ping,
     Reboot,
@@ -218,9 +217,9 @@ impl Handler<BMCommand> for BeaconManager {
             },
             BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
-                self.mass_send(BeaconCommand::StartEmergency);
                 self.emergency = true;
                 self.ping_self(context, *EMERGENCY_PING_INTERVAL);
+                self.mass_send(BeaconCommand::StartEmergency);
             }
             BMCommand::EndEmergency => {
                 self.mass_send(BeaconCommand::EndEmergency);

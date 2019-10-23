@@ -37,7 +37,7 @@ use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_identity::{ CookieIdentityPolicy, IdentityService, };
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use common::*;
