@@ -11,7 +11,7 @@ boolean newData = false;
 
 const char* ssid = "akriveia";
 const char* password = "";
-const char* hostAddress = "10.0.0.3;
+const char* hostAddress = "10.0.0.3";
 const int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
 
@@ -85,11 +85,12 @@ void loop() {
     int len = Udp.read(incomingPacket, 255);
     if (len > 0) incomingPacket[len] = 0;
     Serial.printf("UDP Packet Contents: %s", incomingPacket);
-    if (String(incomingPacket).indexOf("reset") >= 0) {
+    if (String(incomingPacket).indexOf("reboot") >= 0) {
       digitalWrite(TRIGGER_PIN, LOW);
       delay(3000);
       digitalWrite(TRIGGER_PIN, HIGH);
-      udp_send(String("[reset_ack]"));
+      udp_send(String("[reboot_ack]"));
+      ESP.restart();
     }
     Serial2.println("<" + String(incomingPacket) + '>');
   }
@@ -98,9 +99,9 @@ void loop() {
   if (newData == true) {
     Serial.println(String(receivedChars));
     udp_send((String(receivedChars)));
-    if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("[esp_reboot_ack]");
-      udp_send(String("[esp_reboot_ack]"));
+    if (String(receivedChars).indexOf("reset") >= 0) {
+      Serial.println("[esp_reset_ack]");
+      udp_send(String("[esp_reset_ack]"));
       delay(3000);
       ESP.restart();
     }
