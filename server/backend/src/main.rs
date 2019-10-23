@@ -16,9 +16,7 @@ extern crate lazy_static;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
 
-mod beacon_dummy;
 mod beacon_manager;
-mod beacon_serial;
 mod beacon_udp;
 mod dummy_udp;
 mod controllers;
