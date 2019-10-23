@@ -30,6 +30,9 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                 Ok(BeaconCommand::StartEmergency) => {
                     break;
                 },
+                Ok(BeaconCommand::Ping) => {
+                    println!("hello health check non emergency");
+                },
                 _ => { },
             }
         }
@@ -40,6 +43,9 @@ pub fn dummy_beacon_thread(beacon: Beacon,
                 Ok(BeaconCommand::EndEmergency) => {
                     // stop sending data
                     break;
+                },
+                Ok(BeaconCommand::Ping) => {
+                    println!("hello health check in emergency");
                 },
                 Err(mpsc::TryRecvError::Empty) => { } // do nothing, dont care
                 Err(mpsc::TryRecvError::Disconnected) => {

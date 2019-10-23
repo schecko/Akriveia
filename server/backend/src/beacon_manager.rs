@@ -21,11 +21,13 @@ use serialport;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 
 pub struct BeaconManager {
-    pub emergency: bool,
     pub data_processor: Addr<DataProcessor>,
     pub diagnostic_data: common::DiagnosticData,
+    pub emergency: bool,
+    pub pinger: SpawnHandle,
     pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
     pub udp_connections: Vec<Addr<BeaconUDP>>,
 }
@@ -37,6 +39,10 @@ const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const USE_DUMMY_BEACONS: bool = true;
 const USE_SERIAL_BEACONS: bool = false;
 const USE_UDP_BEACONS: bool = true;
+lazy_static! {
+    static ref PING_INTERVAL: Duration = Duration::from_millis(10000);
+    static ref EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
+}
 
 pub enum BMCommand {
     EndEmergency,
@@ -68,14 +74,26 @@ impl Message for BeaconCommand {
 }
 
 impl BeaconManager {
-    pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
-        BeaconManager {
-            emergency: false, // TODO get from db!
-            udp_connections: Vec::new(),
-            data_processor: dp,
-            diagnostic_data: common::DiagnosticData::new(),
-            serial_connections: Vec::new(),
-        }
+    pub fn new(dp: Addr<DataProcessor>) -> Addr<BeaconManager> {
+        BeaconManager::create(move |context| {
+            let mut manager = BeaconManager {
+                data_processor: dp,
+                diagnostic_data: common::DiagnosticData::new(),
+                emergency: false, // TODO get from db!
+                serial_connections: Vec::new(),
+                udp_connections: Vec::new(),
+                pinger: Default::default(),
+            };
+            manager.ping_self(context, *PING_INTERVAL);
+            manager
+        })
+    }
+
+    fn ping_self(&mut self, ctx: &mut Context<Self>, dur: Duration) {
+        ctx.cancel_future(self.pinger);
+        self.pinger = ctx.run_interval(dur, |_actor, context| {
+            context.notify(BMCommand::Ping);
+        });
     }
 
     fn find_beacons(&mut self, context: &mut Context<Self>) {
@@ -202,11 +220,13 @@ impl Handler<BMCommand> for BeaconManager {
                 self.diagnostic_data = common::DiagnosticData::new();
                 self.mass_send(BeaconCommand::StartEmergency);
                 self.emergency = true;
+                self.ping_self(context, *EMERGENCY_PING_INTERVAL);
             }
             BMCommand::EndEmergency => {
                 self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
                 self.data_processor.do_send(DPMessage::ResetData);
+                self.ping_self(context, *PING_INTERVAL);
             },
             BMCommand::Ping => {
                 self.mass_send(BeaconCommand::Ping);

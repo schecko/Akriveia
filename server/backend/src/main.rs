@@ -1,18 +1,20 @@
 #![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
+extern crate actix_identity;
 extern crate actix_session;
 extern crate actix_web;
-extern crate actix_identity;
+extern crate chrono;
 extern crate common;
 extern crate env_logger;
-extern crate futures;
-extern crate ipnet;
-extern crate nalgebra as na;
-extern crate tokio_postgres;
 extern crate eui48;
 extern crate eui64;
-extern crate chrono;
+extern crate futures;
+extern crate ipnet;
+#[macro_use]
+extern crate lazy_static;
+extern crate nalgebra as na;
+extern crate tokio_postgres;
 
 mod beacon_dummy;
 mod beacon_manager;
@@ -57,7 +59,7 @@ impl AkriveiaState {
     pub fn new() -> web::Data<Mutex<AkriveiaState>> {
 
         let data_processor_addr =  DataProcessor::new().start();
-        let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
+        let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone());
 
         beacon_manager_addr.do_send(BMCommand::ScanBeacons);
 

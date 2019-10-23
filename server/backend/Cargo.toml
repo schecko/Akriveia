@@ -16,14 +16,15 @@ actix-identity = "0.1.0"
 actix-session = "0.1.0"
 actix-web = "1.0.0"
 bytes = "0.4.12"
-common = { path = "../common", features = ["with_postgres"] }
 chrono = { version = "0.4.0", features = ["serde"] }
+common = { path = "../common", features = ["with_postgres"] }
 env_logger = "0.6.1"
 eui48 = { version = "0.4.6", default-features = false, features = ["serde", "serde_json"] }
 eui64 = { version = "0.4.6", features = ["serde", "serde_json"] }
 futures = "0.1.25"
 ipnet = { version = "2.0.0", features = ["serde"] }
 itertools = "0.8.0"
+lazy_static = "1.4.0"
 nalgebra = "0.18.0"
 rand = "0.7.0"
 regex = "1.1.7"

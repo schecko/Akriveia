@@ -50,7 +50,9 @@ struct Frame {
 impl StreamHandler<Frame, io::Error> for BeaconUDP {
     fn handle(&mut self, msg: Frame, _: &mut Context<Self>) {
         match String::from_utf8_lossy(&msg.data).into_owned().as_str() {
-            "ack" => { println!("beacon {} ack'd", msg.addr); }
+            "start_ack" => { println!("beacon {} start ack'd", msg.addr); }
+            "end_ack" => { println!("beacon {} end ack'd", msg.addr); }
+            "ping_ack" => { println!("beacon {} ping ack'd", msg.addr); }
             other => {
                 // process data or error
                 match conn_common::parse_message(other) {
@@ -83,6 +85,11 @@ impl Handler<BeaconCommand> for BeaconUDP {
             BeaconCommand::EndEmergency => {
                 self.sink
                     .write((Bytes::from("end"), broadcast))
+                    .expect("failed to send end");
+            },
+            BeaconCommand::Ping => {
+                self.sink
+                    .write((Bytes::from("ping"), broadcast))
                     .expect("failed to send end");
             },
             _ => {
