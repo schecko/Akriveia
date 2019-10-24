@@ -3,7 +3,7 @@
 
 #define RXD2 16
 #define TXD2 17
-#define TRIGGER_PIN 21
+#define TRIGGER_PIN 32
 
 const byte numChars = 50;
 char receivedChars[numChars];
@@ -86,10 +86,13 @@ void loop() {
     if (len > 0) incomingPacket[len] = 0;
     Serial.printf("UDP Packet Contents: %s", incomingPacket);
     if (String(incomingPacket).indexOf("reboot") >= 0) {
+      delay(1000);
       digitalWrite(TRIGGER_PIN, LOW);
       delay(3000);
       digitalWrite(TRIGGER_PIN, HIGH);
       udp_send(String("[reboot_ack]"));
+      delay(3000);
+      ESP.restart();
     }
     Serial2.println("<" + String(incomingPacket) + '>');
   }
@@ -98,12 +101,6 @@ void loop() {
   if (newData == true) {
     Serial.println(String(receivedChars));
     udp_send((String(receivedChars)));
-    if (String(receivedChars).indexOf("reset") >= 0) {
-      Serial.println("[esp_reset_ack]");
-      udp_send(String("[esp_reset_ack]"));
-      delay(3000);
-      ESP.restart();
     }
     newData = false;
-  }
 }
