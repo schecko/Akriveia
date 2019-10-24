@@ -152,6 +152,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         <td>{ &row.beacon_mac }</td>
                         <td>{ &row.tag_mac }</td>
                         <td>{ &row.tag_distance }</td>
+                        <td>{ &row.timestamp }</td>
                     </tr>
                 }
             });
@@ -172,6 +173,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                             <td>{"Beacon Mac" }</td>
                             <td>{"User Mac" }</td>
                             <td>{"Distance" }</td>
+                            <td>{"Timestamp" }</td>
                         </tr>
                         { for diagnostic_rows }
                     </table>

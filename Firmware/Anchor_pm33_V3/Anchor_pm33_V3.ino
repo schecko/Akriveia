@@ -9,8 +9,8 @@ const uint8_t PIN_RST = 9; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
 const uint8_t PIN_SS = SS; // spi select pin
 
-char* EUI = "AA:BB:CC:DD:EE:FF:00:0C";
-uint16_t netID = 12;
+char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
+uint16_t netID = 10;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 int next_index = 0;
@@ -54,7 +54,6 @@ frame_filtering_configuration_t ANCHOR_FRAME_FILTER_CONFIG = {
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("<[pm33_on]>");
   IndexMapper();
   Serial.print(F("### DW1000Ng-arduino-ranging-anchor-")); Serial.print(netID); Serial.println(" ###");
   DW1000Ng::initializeNoInterrupt(PIN_SS, PIN_RST);
@@ -83,6 +82,8 @@ void setup() {
   system_state = EEPROM.read(eeprom_address);
   if (system_state == 0x01) system_on = true;
   else system_on = false;
+  
+  Serial.println("<[pm33_on]>");
 }
 
 void IndexMapper() {
@@ -171,8 +172,8 @@ void wait() {
 }
 
 void softwareReset(uint8_t prescaller) {
-  wdt_enable(prescaller);
-  while (1) {}
+  // wdt_enable(prescaller);
+  // while (1) {}
 }
 
 void cmd_event() {
@@ -193,9 +194,9 @@ void cmd_event() {
       Serial.println("<[ping_ack|" + String(EUI) + "]>");
     }
     else if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("<[pm33_reboot_ack]>");
-      delay(3000);
-      softwareReset(WDTO_60MS);
+      // Serial.println("<[pm33_reboot_ack]>");
+      // delay(3000);
+      // softwareReset(WDTO_15ms);
     }
     newData = false;
   }
