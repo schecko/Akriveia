@@ -90,8 +90,8 @@ void loop() {
       digitalWrite(TRIGGER_PIN, LOW);
       delay(3000);
       digitalWrite(TRIGGER_PIN, HIGH);
-      udp_send(String("[reboot_ack]"));
       delay(3000);
+      udp_send(String("[reboot_ack]"));
       ESP.restart();
     }
     Serial2.println("<" + String(incomingPacket) + '>');
@@ -101,6 +101,6 @@ void loop() {
   if (newData == true) {
     Serial.println(String(receivedChars));
     udp_send((String(receivedChars)));
-    }
-    newData = false;
+  }
+  newData = false;
 }
