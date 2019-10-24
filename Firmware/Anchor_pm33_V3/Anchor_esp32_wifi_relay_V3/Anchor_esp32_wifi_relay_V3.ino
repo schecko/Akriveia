@@ -90,7 +90,9 @@ void loop() {
       digitalWrite(TRIGGER_PIN, LOW);
       delay(3000);
       digitalWrite(TRIGGER_PIN, HIGH);
-      udp_send(String("[pm33_reboot_ack]"));
+      udp_send(String("[reboot_ack]"));
+      delay(3000);
+      ESP.restart();
     }
     Serial2.println("<" + String(incomingPacket) + '>');
   }

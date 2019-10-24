@@ -193,8 +193,8 @@ void cmd_event() {
       Serial.println("<[ping_ack|" + String(EUI) + "]>");
     }
     else if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("<[pm33_reboot_ack]>");
-      delay(3000);
+      // Serial.println("<[pm33_reboot_ack]>");
+      // delay(3000);
       // softwareReset(WDTO_15ms);
     }
     newData = false;
