@@ -98,6 +98,7 @@ void loop() {
   recvWithStartEndMarkers();
   if (newData == true) {
     Serial.println(String(receivedChars));
+    udp_send((String(receivedChars)));
     }
     newData = false;
 }
