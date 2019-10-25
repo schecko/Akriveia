@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 30] = [
+const SCHEMA: [&str; 31] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -62,6 +62,9 @@ const SCHEMA: [&str; 30] = [
         n_name VARCHAR(255) UNIQUE,
         n_webserver_port SMALLINT
     )",
+
+    // indices
+    "CREATE UNIQUE INDEX mac_address_idx ON runtime.beacons (b_mac_address)",
 
     // create users
     "CREATE USER admin WITH PASSWORD 'admin' SYSID 1",

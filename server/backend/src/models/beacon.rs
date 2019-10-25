@@ -267,7 +267,7 @@ pub fn update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAd
             UPDATE runtime.beacons
             SET
                 b_last_active = $1
-             WHERE
+            WHERE
                 b_mac_address = $2
             RETURNING *
         ", &[
@@ -282,9 +282,11 @@ pub fn update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAd
                 ])
                 .into_future()
                 .map_err(|err| {
+                    println!("failed stamp update");
                     err.0
                 })
                 .map(|(row, _next)| {
+                    println!("completed stamp update");
                     match row {
                         Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),

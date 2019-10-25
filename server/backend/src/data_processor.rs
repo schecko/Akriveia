@@ -122,11 +122,21 @@ impl Handler<InLocationData> for DataProcessor {
 
     fn handle (&mut self, msg: InLocationData, _: &mut Context<Self>) -> Self::Result {
         let tag_data = msg.0.clone();
+        let stamp_tag = tag_data.clone();
         let tag_data_update = msg.0;
 
         // append the data to in memory structures,
         // then if there are enough data points, return them in opt_averages
         // so that they can be used to trilaterate
+        let stamp_update = db_utils::default_connect()
+                    .and_then(move |client| {
+                        beacon::update_beacon_stamp_by_mac(client, stamp_tag.beacon_mac, stamp_tag.timestamp)
+                        /*let mut b = Beacon::new();
+                        b.id = 1;
+                        beacon::update_beacon(client, b)*/
+                    })
+                    .map_err(|e| {});
+
         let prep_fut = match self.users.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
                 append_history(&mut tag_entry, &tag_data);
@@ -141,6 +151,7 @@ impl Handler<InLocationData> for DataProcessor {
                             timestamp: tag_entry.user.last_active,
                         }
                     }).collect();
+                    println!("averaged distances : {:?}", averaged_data.iter().map(|x| x.tag_distance).collect::<Vec<_>>());
 
                     afut::Either::A(fut::ok(averaged_data).into_actor(self))
                 } else {
@@ -184,10 +195,11 @@ impl Handler<InLocationData> for DataProcessor {
             },
         };
 
-        //let () = prep_fut.map(|x, _, _| {});
-
-        //prep_fut
-        let fut = prep_fut
+        let fut = stamp_update
+            .into_actor(self)
+            .and_then(|x, _, _| {
+                prep_fut
+            })
             .and_then(move |averages, actor, _context| {
                 // perform trilateration
                 let beacon_macs: Vec<MacAddress8> = averages
@@ -227,13 +239,15 @@ impl Handler<InLocationData> for DataProcessor {
                         let update_db_fut = match actor.users.get_mut(&tag_data_update.tag_mac) {
                             Some(hist) => {
                                 hist.user.beacon_tofs = beacon_sources;
+                                println!("upating tag location");
                                 hist.user.coordinates = new_tag_location;
                                 hist.user.last_active = timestamp;
                                 hist.user.map_id = map_id;
-                                afut::Either::A(user::update_user_from_realtime(client, hist.user.clone())
-                                    .map_err(|_e| {})
-                                    .map(|(_client, _opt_user)| { })
-                                    .into_actor(actor)
+                                afut::Either::A(
+                                    user::update_user_from_realtime(client, hist.user.clone())
+                                        .map_err(|_e| {})
+                                        .map(|(_client, _opt_user)| { })
+                                        .into_actor(actor)
                                 )
                             },
                             None => {
