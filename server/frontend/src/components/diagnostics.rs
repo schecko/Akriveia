@@ -158,28 +158,38 @@ impl Renderable<Diagnostics> for Diagnostics {
 
             html! {
                 <>
-                    <button
+                    <button type="button" class="btn btn-warning"
                         onclick=|_| Msg::ClearBuffer,
                     >
                         {"Reset Data"}
                     </button>
                     <div>
-                        { "Select Beacons: " }
+                        <p><strong>{ "Select Beacons:  " }</strong></p>
                         { for beacon_selections }
                     </div>
-                    <table>
-                        <tr>
-                            <td>{"Beacon Mac" }</td>
-                            <td>{"User Mac" }</td>
-                            <td>{"Distance" }</td>
-                        </tr>
-                        { for diagnostic_rows }
-                    </table>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <table class="table table-bordered">
+                                <thead>                 
+                                    <tr>
+                                        <th>{ "Beacon Mac" }</th>
+                                        <th>{ "User Mac" }</th>
+                                        <th>{ "Distance" }</th>                                
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    { for diagnostic_rows }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </>
+
+
             }
         } else {
             html! {
-                <p>{ "No diagnostics yet..." }</p>
+                <h4>{ "No diagnostics yet..." }</h4>
             }
         }
     }

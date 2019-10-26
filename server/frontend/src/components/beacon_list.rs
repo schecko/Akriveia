@@ -135,18 +135,26 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                <p>{ "Beacon List" }</p>
-                <table>
-                <tr>
-                    <td>{ "Mac" }</td>
-                    <td>{ "Coordinates" }</td>
-                    <td>{ "Floor" }</td>
-                    <td>{ "Name" }</td>
-                    <td>{ "Note" }</td>
-                    <td>{ "Actions" }</td>
-                </tr>
-                { for rows }
-                </table>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-striped">
+                            <thead>
+                                <h3>{ "Beacon List" }</h3>                 
+                                <tr>
+                                    <th>{ "Mac" }</th>
+                                    <th>{ "Coordinates" }</th>
+                                    <th>{ "Floor" }</th>
+                                    <th>{ "Name" }</th>
+                                    <th>{ "Note" }</th>
+                                    <th>{ "Actions" }</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </>
         }
     }
