@@ -336,16 +336,26 @@ impl Status {
 
         html! {
             <>
-                <tr>
-                    <td>{ "Mac" }</td>
-                    <td>{ "Last Active" }</td>
-                    <td>{ "Coordinates" }</td>
-                    <td>{ "Floor" }</td>
-                    <td>{ "Name" }</td>
-                    <td>{ "Note" }</td>
-                    <td>{ "Actions" }</td>
-                </tr>
-                { for rows }
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-striped">
+                            <thead>
+                                <h3>{ "Beacon Status" }</h3>                 
+                                <tr>
+                                    <th>{ "Mac" }</th>
+                                    <th>{ "Coordinates" }</th>
+                                    <th>{ "Floor" }</th>
+                                    <th>{ "Name" }</th>
+                                    <th>{ "Note" }</th>
+                                    <th>{ "Actions" }</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </>
         }
     }
@@ -396,15 +406,26 @@ impl Status {
 
         html! {
             <>
-                <tr>
-                    <td>{ "Name" }</td>
-                    <td>{ "Coordinates" }</td>
-                    <td>{ "Floor" }</td>
-                    <td>{ "Last Seen" }</td>
-                    <td>{ "Note" }</td>
-                    <td>{ "Actions" }</td>
-                </tr>
-                { for rows }
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-striped">
+                            <thead>
+                                <h3>{ "User Status" }</h3>                 
+                                <tr>
+                                    <th>{ "Name" }</th>
+                                    <th>{ "Coordinates" }</th>
+                                    <th>{ "Floor" }</th>
+                                    <th>{ "Last Seen" }</th>
+                                    <th>{ "Note" }</th>
+                                    <th>{ "Actions" }</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </>
         }
     }
@@ -419,13 +440,15 @@ impl Renderable<Status> for Status {
 
         html! {
             <>
-                <p>{ "Status" }</p>
+                <h3>{ "Status" }</h3>
                 <button
+                    type="button" class="btn btn-default"
                     onclick=|_| Msg::ChangeStatus(PageState::UserStatus),
                 >
                     {"User Status"}
                 </button>
                 <button
+                    type="button" class="btn btn-default"
                     onclick=|_| Msg::ChangeStatus(PageState::BeaconStatus),
                 >
                     {"Beacon Status"}

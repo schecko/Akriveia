@@ -140,17 +140,25 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
-                <p>{ "Map List" }</p>
-                <table>
-                <tr>
-                    <td>{ "Name" }</td>
-                    <td>{ "Bounds" }</td>
-                    <td>{ "Scale" }</td>
-                    <td>{ "Note" }</td>
-                    <td>{ "Actions" }</td>
-                </tr>
-                { for rows }
-                </table>
+                <div class="row">
+                    <div class="col-md-5">
+                        <table class="table table-striped">
+                            <thead>
+                                <h3>{ "Map List" }</h3>                 
+                                <tr>
+                                    <th>{ "Name" }</th>
+                                    <th>{ "Bounds" }</th>
+                                    <th>{ "Scale" }</th>
+                                    <th>{ "Note" }</th>
+                                    <th>{ "Actions" }</th>                                
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </>
         }
     }
