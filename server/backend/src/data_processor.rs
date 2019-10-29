@@ -8,10 +8,10 @@ use crate::models::beacon;
 use crate::models::user;
 use futures::future as fut;
 use na;
-use std::collections::{ HashMap, BTreeMap, VecDeque };
+use std::collections::{ BTreeMap, VecDeque };
 use std::io;
 use common::*;
-use chrono::{ DateTime, Utc, };
+use chrono::{ Utc, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -122,21 +122,11 @@ impl Handler<InLocationData> for DataProcessor {
 
     fn handle (&mut self, msg: InLocationData, _: &mut Context<Self>) -> Self::Result {
         let tag_data = msg.0.clone();
-        let stamp_tag = tag_data.clone();
         let tag_data_update = msg.0;
 
         // append the data to in memory structures,
         // then if there are enough data points, return them in opt_averages
         // so that they can be used to trilaterate
-        let stamp_update = db_utils::default_connect()
-                    .and_then(move |client| {
-                        beacon::update_beacon_stamp_by_mac(client, stamp_tag.beacon_mac, stamp_tag.timestamp)
-                        /*let mut b = Beacon::new();
-                        b.id = 1;
-                        beacon::update_beacon(client, b)*/
-                    })
-                    .map_err(|e| {});
-
         let prep_fut = match self.users.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
                 append_history(&mut tag_entry, &tag_data);
@@ -151,7 +141,6 @@ impl Handler<InLocationData> for DataProcessor {
                             timestamp: tag_entry.user.last_active,
                         }
                     }).collect();
-                    println!("averaged distances : {:?}", averaged_data.iter().map(|x| x.tag_distance).collect::<Vec<_>>());
 
                     afut::Either::A(fut::ok(averaged_data).into_actor(self))
                 } else {
@@ -166,9 +155,9 @@ impl Handler<InLocationData> for DataProcessor {
                     .and_then(move |client| {
                         user::select_user_by_short(client, tag_mac)
                     })
-                    .map_err(|x| {})
+                    .map_err(|_x| {})
                     .into_actor(self)
-                    .map(move |(client, opt_user), actor, _context| {
+                    .map(move |(_client, opt_user), actor, _context| {
                         match opt_user {
                             Some(u) => {
                                 let mut hash_entry = TagHistory {
@@ -195,11 +184,7 @@ impl Handler<InLocationData> for DataProcessor {
             },
         };
 
-        let fut = stamp_update
-            .into_actor(self)
-            .and_then(|x, _, _| {
-                prep_fut
-            })
+        let fut = prep_fut
             .and_then(move |averages, actor, _context| {
                 // perform trilateration
                 let beacon_macs: Vec<MacAddress8> = averages
@@ -239,7 +224,6 @@ impl Handler<InLocationData> for DataProcessor {
                         let update_db_fut = match actor.users.get_mut(&tag_data_update.tag_mac) {
                             Some(hist) => {
                                 hist.user.beacon_tofs = beacon_sources;
-                                println!("upating tag location");
                                 hist.user.coordinates = new_tag_location;
                                 hist.user.last_active = timestamp;
                                 hist.user.map_id = map_id;
@@ -266,13 +250,6 @@ impl Handler<InLocationData> for DataProcessor {
             .map_err(|_, _actor, _context| {
             });
         Box::new(fut)
-        /*let update_data = tag_data.clone();
-        let conn = db_utils::default_connect()
-            .and_then(move |client| {
-                beacon::update_beacon_stamp_by_mac(client, update_data.beacon_mac, update_data.timestamp)
-                //beacon::select_beacons(client)
-                //futures::future::ok(())
-            });*/
     }
 }
 
@@ -286,6 +263,6 @@ impl Handler<OutUserData> for DataProcessor {
     type Result = Result<Vec<RealtimeUserData>, io::Error>;
 
     fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
-        Ok(self.users.iter().map(|(addr, hist)| hist.user.clone()).collect())
+        Ok(self.users.iter().map(|(_addr, hist)| hist.user.clone()).collect())
     }
 }

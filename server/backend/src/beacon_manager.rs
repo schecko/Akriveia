@@ -9,7 +9,6 @@
 
 
 use actix::prelude::*;
-use actix::fut as afut;
 use actix_web::Result;
 use crate::beacon_dummy::*;
 use crate::beacon_serial::*;
@@ -22,7 +21,6 @@ use serialport;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
-use futures::IntoFuture;
 
 pub struct BeaconManager {
     pub emergency: bool,
@@ -237,7 +235,7 @@ impl Message for TagDataMessage {
 impl Handler<TagDataMessage> for BeaconManager {
     type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: TagDataMessage, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
         self.diagnostic_data.tag_data.push(msg.data.clone());
         self.data_processor.do_send(InLocationData(msg.data));
         Ok(())

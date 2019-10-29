@@ -56,9 +56,9 @@ impl MapViewComponent {
         );
         if let Some(map) = &self.current_map {
             let id = map.id;
-            /*self.interval_service_task_beacon = Some(
+            self.interval_service_task_beacon = Some(
                 self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(move |_| Msg::RequestGetBeaconsForMap(id)))
-            );*/
+            );
         }
     }
 

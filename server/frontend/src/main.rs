@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 // yew uses a lot of macros...
 #![recursion_limit="1024"]
 
