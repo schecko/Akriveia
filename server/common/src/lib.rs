@@ -183,6 +183,13 @@ impl TrackedUser {
     }
 }
 
+pub enum BeaconState {
+    Unknown,
+    Idle,
+    Rebooting,
+    Active,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
     pub coordinates: na::Vector2<f64>,
@@ -193,6 +200,7 @@ pub struct Beacon {
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
+    pub state: BeaconState,
 }
 
 impl Beacon {
@@ -206,6 +214,40 @@ impl Beacon {
             map_id: None,
             name: String::new(),
             note: None,
+            state: BeaconState::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealtimeBeacon {
+    pub id: i32, // primary key
+    pub ip: IpAddr,
+    pub last_active: DateTime<Utc>,
+    pub mac_address: MacAddress8,
+    pub state: BeaconState,
+}
+
+impl From<Beacon> for RealtimeBeacon {
+    fn from(beacon: Beacon) -> Self {
+        RealtimeBeacon {
+            id: beacon.id,
+            ip: beacon.ip,
+            mac_address: beacon.mac_address,
+            last_active: beacon.last_active,
+            state: beacon.state,
+        }
+    }
+}
+
+impl RealtimeBeacon {
+    pub fn new() -> RealtimeBeacon {
+        Beacon {
+            id: -1,
+            ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            last_active: Utc.timestamp(0, 0),
+            mac_address: MacAddress8::nil(),
+            state: BeaconState::Unknown,
         }
     }
 }
