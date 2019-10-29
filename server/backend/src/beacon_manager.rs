@@ -187,27 +187,14 @@ pub struct TagDataMessage {
     pub data: common::TagData,
 }
 impl Message for TagDataMessage {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<(), ()>;
 }
 impl Handler<TagDataMessage> for BeaconManager {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: TagDataMessage, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
         self.diagnostic_data.tag_data.push(msg.data.clone());
-        self.data_processor.do_send(InLocationData(msg.data.clone()));
-
-        let update_beacon = db_utils::default_connect()
-            .and_then(move |client| {
-                beacon::update_beacon_stamp_by_mac(client, msg.data.beacon_mac, msg.data.timestamp)
-                    .map(|(_client, _beacons)| {
-                    })
-            })
-            .into_actor(self)
-            .map_err(|err, _, _| {
-                println!("failed to create dummy beacons {}", err);
-            });
-        context.spawn(update_beacon);
-
-        Ok(1)
+        self.data_processor.do_send(InLocationData(msg.data));
+        Ok(())
     }
 }

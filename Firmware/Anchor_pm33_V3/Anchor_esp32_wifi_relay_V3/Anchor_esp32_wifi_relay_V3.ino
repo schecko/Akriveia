@@ -3,14 +3,15 @@
 
 #define RXD2 16
 #define TXD2 17
+#define TRIGGER_PIN 32
 
 const byte numChars = 50;
 char receivedChars[numChars];
 boolean newData = false;
 
-const char* ssid = "Akriveia";
+const char* ssid = "akriveia";
 const char* password = "";
-const char* hostAddress = "10.0.0.2";
+const char* hostAddress = "10.0.0.3";
 const int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
 
@@ -38,6 +39,9 @@ void setup() {
   Udp.beginPacket(hostAddress, UdpPort);
   Udp.printf("[esp_wifi_on]\n");
   Udp.endPacket();
+
+  pinMode(TRIGGER_PIN, OUTPUT);
+  digitalWrite(TRIGGER_PIN, HIGH);
 }
 
 void recvWithStartEndMarkers() {
@@ -65,6 +69,13 @@ void recvWithStartEndMarkers() {
   }
 }
 
+void udp_send(String msg) {
+  if (WiFi.status() == WL_CONNECTED) {
+    Udp.beginPacket(hostAddress, UdpPort);
+    Udp.printf((msg + "\n").c_str());
+    Udp.endPacket();
+  }
+}
 
 void loop() {
 
@@ -74,30 +85,22 @@ void loop() {
     int len = Udp.read(incomingPacket, 255);
     if (len > 0) incomingPacket[len] = 0;
     Serial.printf("UDP Packet Contents: %s", incomingPacket);
+    if (String(incomingPacket).indexOf("reboot") >= 0) {
+      delay(1000);
+      digitalWrite(TRIGGER_PIN, LOW);
+      delay(3000);
+      digitalWrite(TRIGGER_PIN, HIGH);
+      delay(3000);
+      udp_send(String("[reboot_ack]"));
+      ESP.restart();
+    }
     Serial2.println("<" + String(incomingPacket) + '>');
   }
 
   recvWithStartEndMarkers();
   if (newData == true) {
     Serial.println(String(receivedChars));
-    if (WiFi.status() == WL_CONNECTED) {
-      Udp.beginPacket(hostAddress, UdpPort);
-      Udp.printf((String(receivedChars) + "\n").c_str());
-      Udp.endPacket();
-    }
-    if (String(receivedChars).indexOf("reboot") >= 0) {
-      Serial.println("[esp_reboot_ack]");
-      if (WiFi.status() == WL_CONNECTED) {
-        Udp.beginPacket(hostAddress, UdpPort);
-        Udp.printf(String("[esp_reboot_ack]\n").c_str());
-        Udp.endPacket();
-      }
-      delay(3000);
-      ESP.restart();
-    }
-
-    newData = false;
+    udp_send((String(receivedChars)));
   }
-
-
+  newData = false;
 }
