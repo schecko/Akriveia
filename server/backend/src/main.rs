@@ -11,8 +11,6 @@ extern crate eui48;
 extern crate eui64;
 extern crate futures;
 extern crate ipnet;
-#[macro_use]
-extern crate lazy_static;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
 

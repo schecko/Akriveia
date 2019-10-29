@@ -7,17 +7,17 @@
 // functionality a little bit, so that it will be a little bit easier to move to the wireless
 // implementation.
 
-
 use actix::prelude::*;
 use actix_web::Result;
 use crate::beacon_udp::*;
 use crate::dummy_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
-use crate::models::beacon;
 use crate::models::network_interface;
 use std::io;
 use std::time::Duration;
+use std::collections::HashMap;
+use common::*;
 
 pub struct BeaconManager {
     emergency: bool,
@@ -26,6 +26,8 @@ pub struct BeaconManager {
     udp_connections: Vec<Addr<BeaconUDP>>,
     dummy_udp_connections: Vec<Addr<DummyUDP>>,
     pinger: SpawnHandle,
+    beacons: HashMap<MacAddress8, Beacon>,
+    responding_beacons: Vec<MacAddress8>,
 }
 
 impl Actor for BeaconManager {
@@ -34,18 +36,21 @@ impl Actor for BeaconManager {
 
 const USE_DUMMY_BEACONS: bool = true;
 const USE_UDP_BEACONS: bool = true;
-lazy_static! {
-    static ref PING_INTERVAL: Duration = Duration::from_millis(10000);
-    static ref EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
-}
+const PING_INTERVAL: Duration = Duration::from_millis(10000);
+const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
 
 pub enum BMCommand {
     EndEmergency,
     GetEmergency,
     ScanBeacons,
     StartEmergency,
+    Ping,
+    Reboot,
+}
 
-    // internal
+pub enum BMResponse {
+    Start,
+    End,
     Ping,
     Reboot,
 }
@@ -66,6 +71,10 @@ impl Message for BeaconCommand {
     type Result = Result<(), ()>;
 }
 
+impl Message for BMResponse {
+    type Result = Result<(), ()>;
+}
+
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> Addr<BeaconManager> {
         BeaconManager::create(move |context| {
@@ -76,8 +85,10 @@ impl BeaconManager {
                 udp_connections: Vec::new(),
                 dummy_udp_connections: Vec::new(),
                 pinger: Default::default(),
+                beacons: HashMap::new(),
+                responding_beacons: Vec::new(),
             };
-            manager.ping_self(context, *PING_INTERVAL);
+            manager.ping_self(context, PING_INTERVAL);
             manager
         })
     }
@@ -148,14 +159,14 @@ impl Handler<BMCommand> for BeaconManager {
             BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
                 self.emergency = true;
-                self.ping_self(context, *EMERGENCY_PING_INTERVAL);
+                self.ping_self(context, EMERGENCY_PING_INTERVAL);
                 self.mass_send(BeaconCommand::StartEmergency);
             }
             BMCommand::EndEmergency => {
                 self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
                 self.data_processor.do_send(DPMessage::ResetData);
-                self.ping_self(context, *PING_INTERVAL);
+                self.ping_self(context, PING_INTERVAL);
             },
             BMCommand::Ping => {
                 self.mass_send(BeaconCommand::Ping);
@@ -166,6 +177,25 @@ impl Handler<BMCommand> for BeaconManager {
 
         }
         Ok(common::SystemCommandResponse::new(self.emergency))
+    }
+}
+
+impl Handler<BMResponse> for BeaconManager {
+    type Result = Result<(), ()>;
+
+    fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
+        match msg {
+            BMResponse::Start => {
+            }
+            BMResponse::End => {
+            },
+            BMResponse::Ping => {
+            },
+            BMResponse::Reboot => {
+            },
+
+        }
+        Ok(())
     }
 }
 

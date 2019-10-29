@@ -14,7 +14,7 @@ use crate::beacon_manager::*;
 use common::*;
 use std::time::Duration;
 
-const MESSAGE_INTERVAL: Duration = Duration::from_millis(500);
+const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const MIN_DISTANCE: f64 = 1.0;
 const MAX_DISTANCE: f64 = 4.0;
 
@@ -28,21 +28,15 @@ impl Actor for DummyUDP {
     type Context = Context<Self>;
 }
 
-struct Internal { }
-impl Message for Internal {
+struct GenTagData { }
+impl Message for GenTagData {
     type Result = Result<(), ()>;
 }
 
-impl Handler<Internal> for DummyUDP {
+impl Handler<GenTagData> for DummyUDP {
     type Result = ResponseActFuture<Self, (), ()>;
 
-    fn handle(&mut self, _msg: Internal, _: &mut Context<Self>) -> Self::Result {
-        static mut BLEH: u32 = 0;
-        unsafe {
-            println!("bleh is : {}", BLEH);
-            BLEH += 1;
-        }
-
+    fn handle(&mut self, _msg: GenTagData, _: &mut Context<Self>) -> Self::Result {
         let b_fut = db_utils::default_connect()
             .and_then(|client| {
                 beacon::select_beacons(client)
@@ -86,7 +80,7 @@ impl Handler<BeaconCommand> for DummyUDP {
         match msg {
             BeaconCommand::StartEmergency => {
                 self.data_task = context.run_interval(MESSAGE_INTERVAL, |_actor, context| {
-                    context.notify(Internal{});
+                    context.notify(GenTagData{});
                 });
             },
             BeaconCommand::EndEmergency => {
