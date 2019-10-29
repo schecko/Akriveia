@@ -261,28 +261,21 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         })
 }
 
-pub fn _update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAddress8, stamp: DateTime<Utc>) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+#[allow(dead_code)]
+pub fn update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAddress8, stamp: DateTime<Utc>) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.beacons
             SET
                 b_last_active = $1
             WHERE
-                b_mac_address IN (
-                    SELECT b_mac_address
-                    FROM runtime.beacons
-                    WHERE b_mac_address = $2
-                )
+                b_mac_address = $2
             RETURNING *
         ", &[
             Type::TIMESTAMPTZ,
             Type::MACADDR8,
         ])
         .and_then(move |statement| {
-            let f = stamp.to_string();
-            let m = mac.to_hex_string();
-            println!("statement stamp {}", f);
-            println!("statement mac {}", m);
             client
                 .query(&statement, &[
                     &stamp,
@@ -290,11 +283,9 @@ pub fn _update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacA
                 ])
                 .into_future()
                 .map_err(|err| {
-                    println!("failed stamp update");
                     err.0
                 })
                 .map(|(row, _next)| {
-                    println!("completed stamp update");
                     match row {
                         Some(r) => (client, Some(row_to_beacon(&r))),
                         _ => (client, None),
@@ -457,7 +448,7 @@ mod tests {
                 update_beacon_stamp_by_mac(client, b.mac_address, Utc.timestamp(77, 0))
             })
             .map(|(_client, beacon)| {
-                //assert!(beacon.unwrap().last_active == Utc.timestamp(77, 0));
+                assert!(beacon.unwrap().last_active == Utc.timestamp(77, 0));
             })
             .map_err(|e| {
                 println!("db error {:?}", e);
