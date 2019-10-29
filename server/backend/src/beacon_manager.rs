@@ -14,7 +14,6 @@ use crate::beacon_udp::*;
 use crate::dummy_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
-use crate::models::beacon;
 use crate::models::network_interface;
 use std::io;
 use std::time::Duration;
@@ -34,10 +33,8 @@ impl Actor for BeaconManager {
 
 const USE_DUMMY_BEACONS: bool = true;
 const USE_UDP_BEACONS: bool = true;
-lazy_static! {
-    static ref PING_INTERVAL: Duration = Duration::from_millis(10000);
-    static ref EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
-}
+const PING_INTERVAL: Duration = Duration::from_millis(10000);
+const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
 
 pub enum BMCommand {
     EndEmergency,
@@ -77,7 +74,7 @@ impl BeaconManager {
                 dummy_udp_connections: Vec::new(),
                 pinger: Default::default(),
             };
-            manager.ping_self(context, *PING_INTERVAL);
+            manager.ping_self(context, PING_INTERVAL);
             manager
         })
     }
@@ -148,14 +145,14 @@ impl Handler<BMCommand> for BeaconManager {
             BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
                 self.emergency = true;
-                self.ping_self(context, *EMERGENCY_PING_INTERVAL);
+                self.ping_self(context, EMERGENCY_PING_INTERVAL);
                 self.mass_send(BeaconCommand::StartEmergency);
             }
             BMCommand::EndEmergency => {
                 self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
                 self.data_processor.do_send(DPMessage::ResetData);
-                self.ping_self(context, *PING_INTERVAL);
+                self.ping_self(context, PING_INTERVAL);
             },
             BMCommand::Ping => {
                 self.mass_send(BeaconCommand::Ping);

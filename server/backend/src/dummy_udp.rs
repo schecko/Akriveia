@@ -37,12 +37,6 @@ impl Handler<Internal> for DummyUDP {
     type Result = ResponseActFuture<Self, (), ()>;
 
     fn handle(&mut self, _msg: Internal, _: &mut Context<Self>) -> Self::Result {
-        static mut BLEH: u32 = 0;
-        unsafe {
-            println!("bleh is : {}", BLEH);
-            BLEH += 1;
-        }
-
         let b_fut = db_utils::default_connect()
             .and_then(|client| {
                 beacon::select_beacons(client)
