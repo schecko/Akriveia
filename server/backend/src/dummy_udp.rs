@@ -13,6 +13,8 @@ use crate::models::beacon;
 use crate::beacon_manager::*;
 use common::*;
 use std::time::Duration;
+use futures::future as fut;
+use actix::fut as afut;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const MIN_DISTANCE: f64 = 1.0;
@@ -64,7 +66,7 @@ impl Handler<GenTagData> for DummyUDP {
                             });
                     }
                 }
-                fut::result(Ok(()))
+                afut::result(Ok(()))
             })
             .map_err(|_err, _actor, _context| {
             });
@@ -87,13 +89,17 @@ impl Handler<BeaconCommand> for DummyUDP {
                 context.cancel_future(self.data_task);
             },
             BeaconCommand::Ping(opt_ip) => {
-                let _beacons_fut = db_utils::default_connect()
-                    .and_then(|client| {
+                let beacons_fut = db_utils::default_connect()
+                    .and_then(move |client| {
                         if let Some(ip) = opt_ip {
                             fut::Either::B(beacon::select_beacon_by_ip(client, ip)
-                                .map(|(client, beacon)| {
-                                   (client, vec![beacon])
-                                }
+                                .map(|(client, opt_beacon)| {
+                                    if let Some(beacon) = opt_beacon {
+                                        (client, vec![beacon])
+                                    } else {
+                                        (client, Vec::new())
+                                    }
+                                })
                             )
                         } else {
                             fut::Either::A(beacon::select_beacons(client))
@@ -101,27 +107,16 @@ impl Handler<BeaconCommand> for DummyUDP {
                     })
                     .into_actor(self)
                     .and_then(move |(_client, beacons), actor, _context| {
-                        if let Some(user) = beacons {
-                            for b in beacons {
-                                let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
-                                actor.manager
-                                    .do_send( TagDataMessage {
-                                        data: common::TagData {
-                                            beacon_mac: b.mac_address,
-                                            tag_distance: user_distance,
-                                            tag_mac: user.mac_address.unwrap(),
-                                            timestamp: Utc::now(),
-                                        }
-                                    });
-                            }
+                        for b in beacons {
+                            let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
+                            actor.manager
+                                .do_send(BMResponse::Ping(b.ip, b.mac_address));
                         }
-                        fut::result(Ok(()))
+                        afut::result(Ok(()))
                     })
                     .map_err(|_err, _actor, _context| {
                     });
-
-                //Box::new(data_gen_fut)
-
+                context.spawn(beacons_fut);
                 println!("udp dummy ping");
             },
             _ => {

@@ -15,7 +15,7 @@ use futures::stream::SplitSink;
 use futures::{ Stream, };
 use ipnet::Ipv4Net;
 use std::io;
-use std::net::IpAddr;
+use std::net::{ IpAddr, };
 use std::net::SocketAddr;
 use tokio::codec::BytesCodec;
 use tokio::net::{ UdpSocket, UdpFramed };
@@ -56,15 +56,15 @@ impl StreamHandler<Frame, io::Error> for BeaconUDP {
             // TODO update this with new format
             "start_ack" => {
                 self.manager
-                    .do_send(BMResponse::Start(Ipv4Address::new(), MacAddress8::nil()));
+                    .do_send(BMResponse::Start(msg.addr.ip(), MacAddress8::nil()));
             }
             "end_ack" => {
                 self.manager
-                    .do_send(BMResponse::End(Ipv4Address::new(), MacAddress8::nil()));
+                    .do_send(BMResponse::End(msg.addr.ip(), MacAddress8::nil()));
             }
             "ping_ack" => {
                 self.manager
-                    .do_send(BMResponse::Ping(Ipv4Address::new(), MacAddress8::nil()));
+                    .do_send(BMResponse::Ping(msg.addr.ip(), MacAddress8::nil()));
             }
             other => {
                 // process data or error

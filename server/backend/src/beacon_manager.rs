@@ -19,7 +19,7 @@ use std::time::Duration;
 use std::collections::{ BTreeSet, };
 use common::*;
 use multi_map::MultiMap;
-use std::net::{ Ipv4Addr, IpAddr, };
+use std::net::{ IpAddr, };
 
 pub struct BeaconManager {
     emergency: bool,
@@ -181,7 +181,7 @@ impl Handler<BMCommand> for BeaconManager {
                     if let Some(beacon) = opt_beacon {
                         self.mass_send(BeaconCommand::Ping(Some(beacon.ip)));
                     } else {
-                        self.beacons_state[BeaconState::Unknown].insert(mac);
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
                     }
                 } else {
                     self.mass_send(BeaconCommand::Ping(None));
@@ -193,7 +193,7 @@ impl Handler<BMCommand> for BeaconManager {
                     if let Some(beacon) = opt_beacon {
                         self.mass_send(BeaconCommand::Reboot(Some(beacon.ip)));
                     } else {
-                        self.beacons_state[BeaconState::Unknown.into()].insert(mac);
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
                     }
                 } else {
                     self.mass_send(BeaconCommand::Reboot(None));

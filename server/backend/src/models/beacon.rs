@@ -5,6 +5,7 @@ use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
+use std::net::IpAddr;
 
 pub fn row_to_beacon(row: &Row) -> Beacon {
     let mut b = Beacon::new();
@@ -133,6 +134,32 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
                 .into_future()
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
+                })
+        })
+}
+
+pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.beacons
+            WHERE b_ip = $1
+        ", &[
+            Type::INET,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[
+                    &ip,
+                ])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_beacon(&r))),
+                        _ => (client, None),
+                    }
                 })
         })
 }
