@@ -183,11 +183,32 @@ impl TrackedUser {
     }
 }
 
+#[derive(Copy, Debug, Clone, Serialize, Deserialize)]
 pub enum BeaconState {
     Unknown,
     Idle,
     Rebooting,
     Active,
+}
+
+impl BeaconState {
+    pub const fn count() -> usize {
+        4
+    }
+}
+
+impl From<BeaconState> for usize {
+    fn from(s: BeaconState) -> Self {
+        // NOTE: When updating this match statuement,
+        // remember to update the count() function as
+        // well.
+        match s {
+            BeaconState::Unknown     => 0,
+            BeaconState::Idle        => 1,
+            BeaconState::Rebooting   => 2,
+            BeaconState::Active      => 3,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,7 +263,7 @@ impl From<Beacon> for RealtimeBeacon {
 
 impl RealtimeBeacon {
     pub fn new() -> RealtimeBeacon {
-        Beacon {
+        RealtimeBeacon {
             id: -1,
             ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
             last_active: Utc.timestamp(0, 0),

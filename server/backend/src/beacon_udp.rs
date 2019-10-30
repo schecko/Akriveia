@@ -19,6 +19,7 @@ use std::net::IpAddr;
 use std::net::SocketAddr;
 use tokio::codec::BytesCodec;
 use tokio::net::{ UdpSocket, UdpFramed };
+use common::*;
 
 pub struct BeaconUDP {
     bound_ip: Ipv4Net,
@@ -52,9 +53,19 @@ struct Frame {
 impl StreamHandler<Frame, io::Error> for BeaconUDP {
     fn handle(&mut self, msg: Frame, _: &mut Context<Self>) {
         match String::from_utf8_lossy(&msg.data).into_owned().as_str() {
-            "start_ack" => { println!("beacon {} start ack'd", msg.addr); }
-            "end_ack" => { println!("beacon {} end ack'd", msg.addr); }
-            "ping_ack" => { println!("beacon {} ping ack'd", msg.addr); }
+            // TODO update this with new format
+            "start_ack" => {
+                self.manager
+                    .do_send(BMResponse::Start(Ipv4Address::new(), MacAddress8::nil()));
+            }
+            "end_ack" => {
+                self.manager
+                    .do_send(BMResponse::End(Ipv4Address::new(), MacAddress8::nil()));
+            }
+            "ping_ack" => {
+                self.manager
+                    .do_send(BMResponse::Ping(Ipv4Address::new(), MacAddress8::nil()));
+            }
             other => {
                 // process data or error
                 match conn_common::parse_message(other) {
@@ -77,16 +88,30 @@ impl Handler<BeaconCommand> for BeaconUDP {
 
     fn handle(&mut self, msg: BeaconCommand, _context: &mut Context<Self>) -> Self::Result {
 
-        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port + 1);
-        let command = match msg {
-            BeaconCommand::StartEmergency => "start",
-            BeaconCommand::EndEmergency => "end",
-            BeaconCommand::Ping => "ping",
-            BeaconCommand::Reboot => "reboot",
+        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);
+        let (command, ip) = match msg {
+            BeaconCommand::StartEmergency => ("start", broadcast),
+            BeaconCommand::EndEmergency => ("end", broadcast),
+            BeaconCommand::Ping(opt_ip) => {
+                if let Some(ip) = opt_ip {
+                    let addr = SocketAddr::new(ip.into(), self.bound_port);
+                    ("ping", addr)
+                } else {
+                    ("ping", broadcast)
+                }
+            },
+            BeaconCommand::Reboot(opt_ip) => {
+                if let Some(ip) = opt_ip {
+                    let addr = SocketAddr::new(ip.into(), self.bound_port);
+                    ("reboot", addr)
+                } else {
+                    ("reboot", broadcast)
+                }
+            },
         };
 
         self.sink
-            .write((Bytes::from(command), broadcast))
+            .write((Bytes::from(command), ip))
             .map(|_s| {})
             .map_err(|_e| {})
     }

@@ -86,7 +86,42 @@ impl Handler<BeaconCommand> for DummyUDP {
             BeaconCommand::EndEmergency => {
                 context.cancel_future(self.data_task);
             },
-            BeaconCommand::Ping => {
+            BeaconCommand::Ping(opt_ip) => {
+                let _beacons_fut = db_utils::default_connect()
+                    .and_then(|client| {
+                        if let Some(ip) = opt_ip {
+                            fut::Either::B(beacon::select_beacon_by_ip(client, ip)
+                                .map(|(client, beacon)| {
+                                   (client, vec![beacon])
+                                }
+                            )
+                        } else {
+                            fut::Either::A(beacon::select_beacons(client))
+                        }
+                    })
+                    .into_actor(self)
+                    .and_then(move |(_client, beacons), actor, _context| {
+                        if let Some(user) = beacons {
+                            for b in beacons {
+                                let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
+                                actor.manager
+                                    .do_send( TagDataMessage {
+                                        data: common::TagData {
+                                            beacon_mac: b.mac_address,
+                                            tag_distance: user_distance,
+                                            tag_mac: user.mac_address.unwrap(),
+                                            timestamp: Utc::now(),
+                                        }
+                                    });
+                            }
+                        }
+                        fut::result(Ok(()))
+                    })
+                    .map_err(|_err, _actor, _context| {
+                    });
+
+                //Box::new(data_gen_fut)
+
                 println!("udp dummy ping");
             },
             _ => {

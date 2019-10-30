@@ -25,6 +25,7 @@ futures = "0.1.25"
 ipnet = { version = "2.0.0", features = ["serde"] }
 itertools = "0.8.0"
 lazy_static = "1.4.0"
+multi-map = "1.2.0"
 nalgebra = "0.18.0"
 rand = { version = "0.7.0", features = [ "small_rng" ] }
 regex = "1.1.7"

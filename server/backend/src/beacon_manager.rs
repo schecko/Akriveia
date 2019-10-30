@@ -16,8 +16,10 @@ use crate::db_utils;
 use crate::models::network_interface;
 use std::io;
 use std::time::Duration;
-use std::collections::HashMap;
+use std::collections::{ BTreeSet, };
 use common::*;
+use multi_map::MultiMap;
+use std::net::{ Ipv4Addr, IpAddr, };
 
 pub struct BeaconManager {
     emergency: bool,
@@ -26,8 +28,11 @@ pub struct BeaconManager {
     udp_connections: Vec<Addr<BeaconUDP>>,
     dummy_udp_connections: Vec<Addr<DummyUDP>>,
     pinger: SpawnHandle,
-    beacons: HashMap<MacAddress8, Beacon>,
-    responding_beacons: Vec<MacAddress8>,
+    beacons: MultiMap<MacAddress8, IpAddr, Beacon>,
+    // the outer vec should be a fixed size length
+    // array, but rust arrays are silly to work with.
+    // Assert the length of the outer array is equal to BeaconState::count().
+    beacons_state: Vec<BTreeSet<MacAddress8>>,
 }
 
 impl Actor for BeaconManager {
@@ -44,15 +49,15 @@ pub enum BMCommand {
     GetEmergency,
     ScanBeacons,
     StartEmergency,
-    Ping,
-    Reboot,
+    Ping(Option<MacAddress8>),
+    Reboot(Option<MacAddress8>),
 }
 
 pub enum BMResponse {
-    Start,
-    End,
-    Ping,
-    Reboot,
+    Start(IpAddr, MacAddress8),
+    End(IpAddr, MacAddress8),
+    Ping(IpAddr, MacAddress8),
+    Reboot(IpAddr, MacAddress8),
 }
 
 impl Message for BMCommand {
@@ -63,8 +68,8 @@ impl Message for BMCommand {
 pub enum BeaconCommand {
     EndEmergency,
     StartEmergency,
-    Ping,
-    Reboot,
+    Ping(Option<IpAddr>),
+    Reboot(Option<IpAddr>),
 }
 
 impl Message for BeaconCommand {
@@ -77,6 +82,8 @@ impl Message for BMResponse {
 
 impl BeaconManager {
     pub fn new(dp: Addr<DataProcessor>) -> Addr<BeaconManager> {
+        let mut state_vec = Vec::new();
+        state_vec.reserve_exact(BeaconState::count());
         BeaconManager::create(move |context| {
             let mut manager = BeaconManager {
                 data_processor: dp,
@@ -85,8 +92,8 @@ impl BeaconManager {
                 udp_connections: Vec::new(),
                 dummy_udp_connections: Vec::new(),
                 pinger: Default::default(),
-                beacons: HashMap::new(),
-                responding_beacons: Vec::new(),
+                beacons: MultiMap::new(),
+                beacons_state: state_vec,
             };
             manager.ping_self(context, PING_INTERVAL);
             manager
@@ -96,7 +103,7 @@ impl BeaconManager {
     fn ping_self(&mut self, ctx: &mut Context<Self>, dur: Duration) {
         ctx.cancel_future(self.pinger);
         self.pinger = ctx.run_interval(dur, |_actor, context| {
-            context.notify(BMCommand::Ping);
+            context.notify(BMCommand::Ping(None));
         });
     }
 
@@ -168,13 +175,30 @@ impl Handler<BMCommand> for BeaconManager {
                 self.data_processor.do_send(DPMessage::ResetData);
                 self.ping_self(context, PING_INTERVAL);
             },
-            BMCommand::Ping => {
-                self.mass_send(BeaconCommand::Ping);
+            BMCommand::Ping(opt_mac) => {
+                if let Some(mac) = opt_mac {
+                    let opt_beacon = self.beacons.get(&mac);
+                    if let Some(beacon) = opt_beacon {
+                        self.mass_send(BeaconCommand::Ping(Some(beacon.ip)));
+                    } else {
+                        self.beacons_state[BeaconState::Unknown].insert(mac);
+                    }
+                } else {
+                    self.mass_send(BeaconCommand::Ping(None));
+                }
             },
-            BMCommand::Reboot => {
-                self.mass_send(BeaconCommand::Reboot);
+            BMCommand::Reboot(opt_mac) => {
+                if let Some(mac) = opt_mac {
+                    let opt_beacon = self.beacons.get(&mac);
+                    if let Some(beacon) = opt_beacon {
+                        self.mass_send(BeaconCommand::Reboot(Some(beacon.ip)));
+                    } else {
+                        self.beacons_state[BeaconState::Unknown.into()].insert(mac);
+                    }
+                } else {
+                    self.mass_send(BeaconCommand::Reboot(None));
+                }
             },
-
         }
         Ok(common::SystemCommandResponse::new(self.emergency))
     }
@@ -185,13 +209,13 @@ impl Handler<BMResponse> for BeaconManager {
 
     fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BMResponse::Start => {
+            BMResponse::Start(ip, mac) => {
             }
-            BMResponse::End => {
+            BMResponse::End(ip, mac) => {
             },
-            BMResponse::Ping => {
+            BMResponse::Ping(ip, mac) => {
             },
-            BMResponse::Reboot => {
+            BMResponse::Reboot(ip, mac) => {
             },
 
         }
