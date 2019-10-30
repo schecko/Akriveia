@@ -197,9 +197,9 @@ void cmd_event() {
 void loop() {
 
   if (system_on) {
-    //    for (int j = 0; j < 100; j++) range();
-    //    for (int j = 0; j < 20; j++) transmit();
-    //    wait();
+    for (int j = 0; j < 100; j++) range();
+    for (int j = 0; j < 20; j++) transmit();
+    wait();
   }
 
   cmd_event();
