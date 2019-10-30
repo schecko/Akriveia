@@ -22,13 +22,14 @@ use multi_map::MultiMap;
 use std::net::{ IpAddr, };
 
 pub struct BeaconManager {
-    emergency: bool,
+    state: BeaconState,
     data_processor: Addr<DataProcessor>,
     diagnostic_data: common::DiagnosticData,
     udp_connections: Vec<Addr<BeaconUDP>>,
     dummy_udp_connections: Vec<Addr<DummyUDP>>,
     pinger: SpawnHandle,
-    beacons: MultiMap<MacAddress8, IpAddr, Beacon>,
+    self_health: SpawnHandle,
+    beacons: MultiMap<MacAddress8, IpAddr, RealtimeBeacon>,
     // the outer vec should be a fixed size length
     // array, but rust arrays are silly to work with.
     // Assert the length of the outer array is equal to BeaconState::count().
@@ -43,6 +44,7 @@ const USE_DUMMY_BEACONS: bool = true;
 const USE_UDP_BEACONS: bool = true;
 const PING_INTERVAL: Duration = Duration::from_millis(10000);
 const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
+const RESPONSE_THRESHOLD: Duration = Duration::from_millis(200);
 
 pub enum BMCommand {
     EndEmergency,
@@ -92,6 +94,7 @@ impl BeaconManager {
                 udp_connections: Vec::new(),
                 dummy_udp_connections: Vec::new(),
                 pinger: Default::default(),
+                self_health: Default::default(),
                 beacons: MultiMap::new(),
                 beacons_state: state_vec,
             };
@@ -100,11 +103,43 @@ impl BeaconManager {
         })
     }
 
+    fn check_health(&mut self, context: &mut Context<Self>) {
+        self.beacons.iter().filter(|beacon| Utc::now - beacon.last_active < RESPONSE_THRESHOLD).for_each(|beacon| {
+            context.notify(BMCommand(Ping(Some(beacon.mac_address))));
+        })
+    }
+
     fn ping_self(&mut self, ctx: &mut Context<Self>, dur: Duration) {
         ctx.cancel_future(self.pinger);
         self.pinger = ctx.run_interval(dur, |_actor, context| {
             context.notify(BMCommand::Ping(None));
         });
+
+        match self.state {
+            BeaconState::Idle => {
+                self.beacons_state
+                    .iter()
+                    .filter(|state_type| state_type != BeaconState::Idle)
+                    .iter()
+                    .for_each(|mac| {
+                        let beacon = self.beacons.get(&mac).unwrap();
+                        context.notify(BMCommand::Ping(beacon.ip));
+                    });
+            },
+            BeaconState::Active => {
+                self.beacons_state
+                    .iter()
+                    .filter(|state_type| state_type != BeaconState::Active)
+                    .iter()
+                    .for_each(|mac| {
+                        let beacon = self.beacons.get(&mac).unwrap();
+                        context.notify(BMCommand::StartEmergency(beacon.ip));
+                    });
+            },
+            _ => {
+                panic!("Beacon manager can only be in active or idle state");
+            }
+        }
     }
 
     fn find_beacons(&mut self, context: &mut Context<Self>) {
@@ -164,12 +199,14 @@ impl Handler<BMCommand> for BeaconManager {
                 self.find_beacons(context);
             },
             BMCommand::StartEmergency => {
+                self.state = BeaconState::Active;
                 self.diagnostic_data = common::DiagnosticData::new();
                 self.emergency = true;
                 self.ping_self(context, EMERGENCY_PING_INTERVAL);
                 self.mass_send(BeaconCommand::StartEmergency);
             }
             BMCommand::EndEmergency => {
+                self.state = BeaconState::Idle;
                 self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
                 self.data_processor.do_send(DPMessage::ResetData);
@@ -183,6 +220,9 @@ impl Handler<BMCommand> for BeaconManager {
                     } else {
                         self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
                     }
+                    self.self_health = ctx.run_later(RESPONSE_THRESHOLD, move |actor, _context| {
+                        actor.check_health(context, Some(beacon.mac.clone()));
+                    });
                 } else {
                     self.mass_send(BeaconCommand::Ping(None));
                 }
@@ -210,12 +250,60 @@ impl Handler<BMResponse> for BeaconManager {
     fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
         match msg {
             BMResponse::Start(ip, mac) => {
+                match self.beacons.get(&mac) {
+                    Some(beacon) => {
+                        self.beacons_state[usize::from(beacon.state)].remove(&mac)
+                            .expect("Beacon {} state was set to {}, but was not in the proper array of manager.", beacon.mac, beacon.state);
+                        self.beacons_state[usize::from(BeaconState::Active)].insert(mac);
+                        beacon.state = BeaconState::Active;
+                        beacon.last_active = Utc::now();
+                    },
+                    None => {
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
+                    }
+                }
             }
             BMResponse::End(ip, mac) => {
+                match self.beacons.get(&mac) {
+                    Some(beacon) => {
+                        self.beacons_state[usize::from(beacon.state)].remove(&mac)
+                            .expect("Beacon {} state was set to {}, but was not in the proper array of manager.", beacon.mac, beacon.state);
+                        self.beacons_state[usize::from(BeaconState::Idle)].insert(mac);
+                        beacon.state = BeaconState::Idle;
+                        beacon.last_active = Utc::now();
+                    },
+                    None => {
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
+                    }
+                }
             },
             BMResponse::Ping(ip, mac) => {
+                match self.beacons.get(&mac) {
+                    Some(beacon) => {
+                        self.beacons_state[usize::from(beacon.state)].remove(&mac)
+                            .expect("Beacon {} state was set to {}, but was not in the proper array of manager.", beacon.mac, beacon.state);
+                        self.beacons_state[usize::from(BeaconState::Active)].insert(mac);
+                        beacon.state = BeaconState::Active;
+                        beacon.last_active = Utc::now();
+                    },
+                    None => {
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
+                    }
+                }
             },
             BMResponse::Reboot(ip, mac) => {
+                match self.beacons.get(&mac) {
+                    Some(beacon) => {
+                        self.beacons_state[usize::from(beacon.state)].remove(&mac)
+                            .expect("Beacon {} state was set to {}, but was not in the proper array of manager.", beacon.mac, beacon.state);
+                        self.beacons_state[usize::from(BeaconState::Rebooting)].insert(mac);
+                        beacon.state = BeaconState::Rebooting;
+                        beacon.last_active = Utc::now();
+                    },
+                    None => {
+                        self.beacons_state[usize::from(BeaconState::Unknown)].insert(mac);
+                    }
+                }
             },
 
         }
