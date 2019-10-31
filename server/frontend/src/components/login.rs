@@ -175,49 +175,84 @@ impl Component for Login {
 impl Login {
     fn render_switch(&self) -> Html<Self> {
         html! {
-            <table>
-                <tr>
-                    <td>
-                        <button
-                            onclick=|_| Msg::ChangeState(State::Form),
-                        >
-                            { "Admin" }
-                        </button>
-                        <button
-                            onclick=|_| Msg::RequestLoginAnon,
-                        >
-                            { "First Responder" }
-                        </button>
-                    </td>
-                </tr>
-            </table>
+            <>
+                //TODO Make a more intuintive layout for selecting admin or First Responder
+                <h1>{"Select Login"}</h1>
+                    <button
+                        type="button",
+                        class="btn btn-secondary btn-lg",
+                        onclick=|_| Msg::ChangeState(State::Form),
+                    >
+                        { "Admin" }
+                    </button>
+                    
+                    <button
+                        type="button",
+                        class="btn btn-primary btn-lg",
+                        onclick=|_| Msg::RequestLoginAnon,
+                    >
+                        { "First Responder" }
+                    </button>
+            </>
         }
     }
 
     fn render_form(&self) -> Html<Self> {
         html! {
             <>
-                <table>
-                    <tr>
-                        <td>{ "Name: " }</td>
-                        <td>
+                <div class="wrapper fadeInDown">
+                    <div id = "formContent">
+                        
+                        <div class="fadeIn first">
+                            <img src="/images/company_name.PNG" id="company_name" width="480" height="270"/>
+                        </div>
+
+                        <div class="justify-content-center">
                             <input
                                 type="text",
+                                id="login",
+                                name="login",
+                                class="fadeIn first",
+                                placeholder="Username",
                                 value=&self.data.login.name,
                                 oninput=|e| Msg::InputName(e.value),
                             />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Password" }</td>
-                        <input
-                            type="password",
-                            value=&self.data.login.pw,
-                            oninput=|e| Msg::InputPassword(e.value),
-                        />
-                    </tr>
-                </table>
-                <button onclick=|_| Msg::RequestLogin,>{ "Login" }</button>
+                            <input
+                                type="password",
+                                id="password",
+                                name="login",
+                                class="fadeIn first",
+                                placeholder="Password",
+                                value=&self.data.login.pw,
+                                oninput=|e| Msg::InputPassword(e.value),
+                            />
+                            <input
+                                type="submit",
+                                class="fadein first",
+                                value="Login",
+                                onclick=|_| Msg::RequestLogin,
+                            />
+                            /*<div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="rememberPassword"/>
+                                <label class="custom-control-label">{" Remember Password "}</label>
+                            </div>*/
+                            <div class="form-check mb-2 mr-sm-2">
+                                <input type="checkbox" class="form-check-input" id="rememberPassword"/>
+                                <label class="form-check-label big" for="rememberPassword">{"Remember Password"}</label>
+                            </div>
+                        </div>
+
+                        //TODO add a forget password checkbox
+                        <div class="formFooter">
+                            <a 
+                                class="big",
+                                //TODO implement forget password
+                                //onclick=|_| Msg::ForgetPassword,
+                                >{ "Forget Password" }</a>
+                        </div>                           
+
+                    </div>
+                </div>
             </>
         }
     }
