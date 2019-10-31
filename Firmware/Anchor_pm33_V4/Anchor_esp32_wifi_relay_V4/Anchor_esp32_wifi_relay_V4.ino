@@ -10,7 +10,7 @@ char receivedChars[numChars];
 boolean newData = false;
 String EUI = "AA:BB:CC:DD:EE:FF:00:00";
 
-char* ssid = "akrievia";
+char* ssid = "akriveia";
 char* password = "";
 IPAddress hostIP(10, 0, 0, 2);
 int UdpPort = 9996;
