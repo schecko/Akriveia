@@ -62,7 +62,8 @@ impl Handler<GenTagData> for DummyUDP {
                                 continue;
                             }
                             // randomly choose this beacon to be unresponsive
-                        } else if actor.rng.gen_bool(0.05) {
+                        } else if actor.rng.gen_bool(0.1) {
+                            println!("beacon {} going to reboot\n\n", b.ip);
                             actor.rebooting_ip = Some(b.ip);
                             continue;
                         }
@@ -93,76 +94,26 @@ impl Handler<BeaconCommand> for DummyUDP {
 
     fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BeaconCommand::StartEmergency(_opt_ip) => {
+            BeaconCommand::StartEmergency(opt_ip) => {
                 self.data_task = context.run_interval(MESSAGE_INTERVAL, |_actor, context| {
                     context.notify(GenTagData{});
                 });
+
+                self.reply(context, opt_ip, |ip, mac| BMResponse::Start(ip, mac));
             },
-            BeaconCommand::EndEmergency(_opt_ip) => {
+            BeaconCommand::EndEmergency(opt_ip) => {
                 context.cancel_future(self.data_task);
+                self.reply(context, opt_ip, |ip, mac| BMResponse::End(ip, mac));
             },
             BeaconCommand::Ping(opt_ip) => {
-                println!("dummy ping called");
-                let beacons_fut = db_utils::default_connect()
-                    .and_then(move |client| {
-                        if let Some(ip) = opt_ip {
-                            fut::Either::B(beacon::select_beacon_by_ip(client, ip)
-                                .map(|(client, opt_beacon)| {
-                                    if let Some(beacon) = opt_beacon {
-                                        (client, vec![beacon])
-                                    } else {
-                                        (client, Vec::new())
-                                    }
-                                })
-                            )
-                        } else {
-                            fut::Either::A(beacon::select_beacons(client))
-                        }
-                    })
-                    .into_actor(self)
-                    .and_then(move |(_client, beacons), actor, _context| {
-                        for b in beacons {
-                            actor.manager
-                                .do_send(BMResponse::Ping(b.ip, b.mac_address));
-                        }
-                        afut::result(Ok(()))
-                    })
-                    .map_err(|_err, _actor, _context| {
-                    });
-                context.spawn(beacons_fut);
+                self.reply(context, opt_ip, |ip, mac| BMResponse::Ping(ip, mac));
             },
             BeaconCommand::Reboot(opt_ip) => {
-                // test out the retry logic by making successfully rebooting a chance.
-                if opt_ip == self.rebooting_ip && self.rng.gen_bool(0.3) {
+                if opt_ip == self.rebooting_ip && self.rng.gen_bool(0.05) {
+                    println!("beacon {} rebooted\n\n", self.rebooting_ip.unwrap());
                     self.rebooting_ip = None;
                 }
-                let beacons_fut = db_utils::default_connect()
-                    .and_then(move |client| {
-                        if let Some(ip) = opt_ip {
-                            fut::Either::B(beacon::select_beacon_by_ip(client, ip)
-                                .map(|(client, opt_beacon)| {
-                                    if let Some(beacon) = opt_beacon {
-                                        (client, vec![beacon])
-                                    } else {
-                                        (client, Vec::new())
-                                    }
-                                })
-                            )
-                        } else {
-                            fut::Either::A(beacon::select_beacons(client))
-                        }
-                    })
-                    .into_actor(self)
-                    .and_then(move |(_client, beacons), actor, _context| {
-                        for b in beacons {
-                            actor.manager
-                                .do_send(BMResponse::Reboot(b.ip, b.mac_address));
-                        }
-                        afut::result(Ok(()))
-                    })
-                    .map_err(|_err, _actor, _context| {
-                    });
-                context.spawn(beacons_fut);
+                self.reply(context, opt_ip, |ip, mac| BMResponse::Reboot(ip, mac));
             }
         }
 
@@ -182,4 +133,41 @@ impl DummyUDP {
             }
         })
     }
+
+    fn reply<F: 'static>(&mut self, context: &mut Context<Self>, opt_ip: Option<IpAddr>, msg: F)
+        where F: Fn(IpAddr, MacAddress8) -> BMResponse
+    {
+
+        let beacons_fut = db_utils::default_connect()
+            .and_then(move |client| {
+                if let Some(ip) = opt_ip {
+                    fut::Either::B(beacon::select_beacon_by_ip(client, ip)
+                        .map(|(client, opt_beacon)| {
+                            if let Some(beacon) = opt_beacon {
+                                (client, vec![beacon])
+                            } else {
+                                (client, Vec::new())
+                            }
+                        })
+                    )
+                } else {
+                    fut::Either::A(beacon::select_beacons(client))
+                }
+            })
+            .into_actor(self)
+            .and_then(move |(_client, beacons), actor, _context| {
+                for b in beacons {
+                    // test out the retry logic by making successfully rebooting a chance.
+                    if Some(b.ip) != actor.rebooting_ip {
+                        actor.manager
+                            .do_send(msg(b.ip, b.mac_address));
+                    }
+                }
+                afut::result(Ok(()))
+            })
+            .map_err(|_err, _actor, _context| {
+            });
+        context.spawn(beacons_fut);
+    }
+
 }

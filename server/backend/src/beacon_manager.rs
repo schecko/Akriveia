@@ -56,7 +56,7 @@ use actix::fut as afut;
 // 5. as long as the stale map has elements, repeat the retry callback.
 
 const USE_DUMMY_BEACONS: bool = true;
-const USE_UDP_BEACONS: bool = true;
+const USE_UDP_BEACONS: bool = false;
 const PING_INTERVAL: Duration = Duration::from_millis(10000);
 const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
 const RESPONSE_THRESHOLD: Duration = Duration::from_millis(200);
@@ -177,15 +177,26 @@ impl BeaconManager {
     fn check_health(&mut self, context: &mut Context<Self>) {
         let now = Utc::now();
         let manager_state = self.state;
+        let mut any_retries = false;
         self.beacons.iter_mut().for_each(|(_mac, status)| {
             // determine if further action is necessary before the next ping
             let set_none = if let Some(retries) = &mut status.retries {
                 retries.retries += 1;
                 // this beacon has had a request sent to it recently
                 if status.realtime.last_active > retries.expected_response {
+                    if manager_state == status.realtime.state {
+                        true
+                    } else {
+                        match manager_state {
+                            BeaconState::Idle => context.notify(BMCommand::EndEmergency(Some(status.realtime.mac_address))),
+                            BeaconState::Active => context.notify(BMCommand::StartEmergency(Some(status.realtime.mac_address))),
+                            _ => panic!("Manager must always be in idle or active states, other states are invalid"),
+                        }
+                        false
+                    }
                     // this beacon has responded, no further action required for now
-                    true
                 } else {
+                    any_retries = true;
                     // this beacon has not responded yet, try again
                     if retries.retries > RETRIES_THRESHOLD {
                         if status.realtime.state == BeaconState::Rebooting {
@@ -218,8 +229,7 @@ impl BeaconManager {
                     }
                 }
             } else {
-                // beacon has replied
-                // noop
+                // beacon has replied, make sure they are in the correct state
                 false
             };
 
@@ -227,6 +237,14 @@ impl BeaconManager {
                 status.retries = None; // reset
             }
         });
+
+        if any_retries {
+            self.request_health = Some(context.run_later(RESPONSE_THRESHOLD, |actor, context| {
+                actor.check_health(context);
+            }));
+        } else {
+            self.request_health = None;
+        }
     }
 
     // this callback is executed on a regular basis
