@@ -165,10 +165,6 @@ impl Renderable<Diagnostics> for Diagnostics {
                         {"Reset Data"}
                     </button>
 
-                    <div>
-                        <p><strong>{ "Select Beacons:  " }</strong></p>
-                        { for beacon_selections }
-                    </div>
 
                     <table class="table table-striped">
                         <thead class="thead-dark">                 
