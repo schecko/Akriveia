@@ -164,28 +164,29 @@ impl Renderable<Diagnostics> for Diagnostics {
                     >
                         {"Reset Data"}
                     </button>
+
                     <div>
                         <p><strong>{ "Select Beacons:  " }</strong></p>
                         { for beacon_selections }
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-3">
-                            <table class="table table-bordered">
-                                <thead>                 
-                                    <tr>
-                                        <th>{ "Beacon Mac" }</th>
-                                        <th>{ "User Mac" }</th>
-                                        <th>{ "Distance" }</th>
-                                        <th>{"Timestamp"}</th>                                
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    { for diagnostic_rows }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <table class="table table-striped">
+                        <thead class="thead-dark">                 
+                            <div>
+                                <h2>{ "Select Beacons:  " }</h2>
+                                { for beacon_selections }
+                            </div>
+                            <tr>
+                                <th>{ "Beacon Mac" }</th>
+                                <th>{ "User Mac" }</th>
+                                <th>{ "Distance" }</th>                                
+                                <th>{"Timestamp"}</th>                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for diagnostic_rows }
+                        </tbody>
+                    </table>
                 </>
 
 

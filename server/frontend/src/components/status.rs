@@ -336,26 +336,22 @@ impl Status {
 
         html! {
             <>
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-striped">
-                            <thead>
-                                <h3>{ "Beacon Status" }</h3>                 
-                                <tr>
-                                    <th>{ "Mac" }</th>
-                                    <th>{ "Coordinates" }</th>
-                                    <th>{ "Floor" }</th>
-                                    <th>{ "Name" }</th>
-                                    <th>{ "Note" }</th>
-                                    <th>{ "Actions" }</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { for rows }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "Beacon Status" }</h2>                 
+                        <tr>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Name" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }
@@ -406,26 +402,22 @@ impl Status {
 
         html! {
             <>
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-striped">
-                            <thead>
-                                <h3>{ "User Status" }</h3>                 
-                                <tr>
-                                    <th>{ "Name" }</th>
-                                    <th>{ "Coordinates" }</th>
-                                    <th>{ "Floor" }</th>
-                                    <th>{ "Last Seen" }</th>
-                                    <th>{ "Note" }</th>
-                                    <th>{ "Actions" }</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { for rows }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "User Status" }</h2>                 
+                        <tr>
+                            <th>{ "Name" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Last Seen" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }
@@ -440,15 +432,15 @@ impl Renderable<Status> for Status {
 
         html! {
             <>
-                <h3>{ "Status" }</h3>
+                <h2>{ "Status" }</h2>
                 <button
-                    type="button" class="btn btn-default"
+                    type="button" class="btn-lg btn-default"
                     onclick=|_| Msg::ChangeStatus(PageState::UserStatus),
                 >
                     {"User Status"}
                 </button>
                 <button
-                    type="button" class="btn btn-default"
+                    type="button" class="btn-lg btn-default"
                     onclick=|_| Msg::ChangeStatus(PageState::BeaconStatus),
                 >
                     {"Beacon Status"}

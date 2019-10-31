@@ -138,27 +138,23 @@ impl Renderable<UserList> for UserList {
 
         html! {
             <>
-                <div class="row">
-                    <div class="col-md-7">
-                        <table class="table table-striped">
-                            <thead>
-                                <h3>{ "User List" }</h3>                 
-                                <tr>
-                                    <th>{ "Name"}</th>
-                                    <th>{ "Coordinates" }</th>
-                                    <th>{ "Mac" }</th>
-                                    <th>{ "Employee ID" }</th>
-                                    <th>{ "Last Active" }</th>
-                                    <th>{ "Work Phone" }</th>
-                                    <th>{ "Mobile Phone" }</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { for rows }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "User List" }</h2>                 
+                        <tr>
+                            <th>{ "Name"}</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Employee ID" }</th>
+                            <th>{ "Last Active" }</th>
+                            <th>{ "Work Phone" }</th>
+                            <th>{ "Mobile Phone" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }

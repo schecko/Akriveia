@@ -135,26 +135,23 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-striped">
-                            <thead>
-                                <h3>{ "Beacon List" }</h3>                 
-                                <tr>
-                                    <th>{ "Mac" }</th>
-                                    <th>{ "Coordinates" }</th>
-                                    <th>{ "Floor" }</th>
-                                    <th>{ "Name" }</th>
-                                    <th>{ "Note" }</th>
-                                    <th>{ "Actions" }</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { for rows }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                // I need to implement css class with padding
+                <table class="table table-striped">
+                    <thead class="thead-light">                 
+                    <h2>{ "Beacon List" }</h2>
+                        <tr>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Name" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }
