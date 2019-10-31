@@ -19,6 +19,9 @@ use std::fmt;
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
 }
+pub fn beacon_command_url() -> String {
+    return String::from("/beacons/command");
+}
 pub fn beacons_url() -> String {
     return String::from("/beacons");
 }
@@ -102,6 +105,20 @@ pub struct TagData {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticData {
     pub tag_data: Vec<TagData>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum BeaconRequest {
+    StartEmergency(Option<MacAddress8>),
+    EndEmergency(Option<MacAddress8>),
+    Ping(Option<MacAddress8>),
+    Reboot(Option<MacAddress8>),
+}
+
+impl Default for BeaconRequest {
+    fn default() -> Self {
+        BeaconRequest::Ping(None)
+    }
 }
 
 impl DiagnosticData {

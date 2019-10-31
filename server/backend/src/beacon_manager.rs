@@ -99,6 +99,14 @@ impl Actor for BeaconManager {
     type Context = Context<Self>;
 }
 
+pub enum BMResponse {
+    Start(IpAddr, MacAddress8),
+    End(IpAddr, MacAddress8),
+    Ping(IpAddr, MacAddress8),
+    Reboot(IpAddr, MacAddress8),
+}
+
+#[derive(Debug, Clone)]
 pub enum BMCommand {
     GetEmergency,
     ScanBeacons,
@@ -106,13 +114,6 @@ pub enum BMCommand {
     EndEmergency(Option<MacAddress8>),
     Ping(Option<MacAddress8>),
     Reboot(Option<MacAddress8>),
-}
-
-pub enum BMResponse {
-    Start(IpAddr, MacAddress8),
-    End(IpAddr, MacAddress8),
-    Ping(IpAddr, MacAddress8),
-    Reboot(IpAddr, MacAddress8),
 }
 
 impl Message for BMCommand {
@@ -318,6 +319,7 @@ impl Handler<BMCommand> for BeaconManager {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 
     fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
+        println!("got command {:?}", msg);
         match msg {
             BMCommand::GetEmergency => { },
             BMCommand::ScanBeacons => {

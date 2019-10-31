@@ -129,6 +129,10 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacons_status_url())
                     .to_async(beacon_controller::beacons_status)
             )
+            .service(
+                web::resource(&beacon_command_url())
+                    .to_async(beacon_controller::beacon_command)
+            )
 
 
             // user

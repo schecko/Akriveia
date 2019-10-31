@@ -1,19 +1,42 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
-use crate::beacon_manager::OutBeaconData;
+use crate::beacon_manager::{ OutBeaconData, BMCommand, };
 use crate::db_utils;
 use crate::models::beacon;
 use futures::{ future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use std::sync::*;
 use actix_identity::Identity;
+use common::BeaconRequest;
 
 #[derive(Deserialize)]
 pub struct GetParams {
     prefetch: Option<bool>,
 }
 
-pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<common::BeaconRequest>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let s = state.lock().unwrap();
+    let command = match payload.0 {
+        BeaconRequest::StartEmergency(mac) => BMCommand::StartEmergency(mac),
+        BeaconRequest::EndEmergency(mac) => BMCommand::EndEmergency(mac),
+        BeaconRequest::Ping(mac) => BMCommand::Ping(mac),
+        BeaconRequest::Reboot(mac) => BMCommand::Reboot(mac),
+    };
+    println!("request command is: {:?}", payload.0);
+    s.beacon_manager
+        .send(command)
+        .then(|res| {
+            match res {
+                Ok(Ok(data)) => {
+                    ok(HttpResponse::Ok().finish())
+                },
+                _ => {
+                    ok(HttpResponse::BadRequest().finish())
+                }
+        }})
+}
+
+pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(OutBeaconData{})
