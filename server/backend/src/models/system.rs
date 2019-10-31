@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 30] = [
+const SCHEMA: [&str; 31] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -44,10 +44,11 @@ const SCHEMA: [&str; 30] = [
         u_mobile_phone VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
-        b_id SERIAL PRIMARY KEY,
-        b_mac_address MACADDR8 UNIQUE,
-        b_ip INET UNIQUE,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
+        b_id SERIAL PRIMARY KEY,
+        b_ip INET UNIQUE,
+        b_last_active TIMESTAMPTZ NOT NULL,
+        b_mac_address MACADDR8 UNIQUE,
         b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024)
@@ -61,6 +62,9 @@ const SCHEMA: [&str; 30] = [
         n_name VARCHAR(255) UNIQUE,
         n_webserver_port SMALLINT
     )",
+
+    // indices
+    "CREATE UNIQUE INDEX mac_address_idx ON runtime.beacons (b_mac_address)",
 
     // create users
     "CREATE USER admin WITH PASSWORD 'admin' SYSID 1",
@@ -95,14 +99,14 @@ const SCHEMA: [&str; 30] = [
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 600, 600 ], 'test_map', 100)
     ",
-    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(100, 'AA:BB:CC:DD:EE:FF:00:01', '0.0.0.1', ARRAY [ 1, 4 ], 69, 'top_left')
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name, b_last_active)
+            VALUES(100, 'AA:BB:CC:DD:EE:FF:00:01', '0.0.0.1', ARRAY [ 1, 4 ], 69, 'top_left', 'epoch')
     ",
-    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(130, 'AA:BB:CC:DD:EE:FF:00:02', '0.0.0.2', ARRAY [ 1, 1 ], 69, 'origin')
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name, b_last_active)
+            VALUES(130, 'AA:BB:CC:DD:EE:FF:00:02', '0.0.0.2', ARRAY [ 1, 1 ], 69, 'origin', 'epoch')
     ",
-    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name)
-            VALUES(103, 'AA:BB:CC:DD:EE:FF:00:03', '0.0.0.3', ARRAY [ 3.97, 1 ], 69, 'bottom_right')
+    "INSERT INTO runtime.beacons(b_id, b_mac_address, b_ip, b_coordinates, b_map_id, b_name, b_last_active)
+            VALUES(103, 'AA:BB:CC:DD:EE:FF:00:03', '0.0.0.3', ARRAY [ 3.97, 1 ], 69, 'bottom_right', 'epoch')
     ",
 ];
 

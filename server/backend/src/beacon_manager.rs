@@ -10,50 +10,53 @@
 
 use actix::prelude::*;
 use actix_web::Result;
-use crate::beacon_dummy::*;
-use crate::beacon_serial::*;
 use crate::beacon_udp::*;
+use crate::dummy_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
-use crate::models::beacon;
 use crate::models::network_interface;
-use serialport;
 use std::io;
-use std::sync::mpsc;
-use std::thread;
+use std::time::Duration;
 
 pub struct BeaconManager {
-    pub emergency: bool,
-    pub data_processor: Addr<DataProcessor>,
-    pub diagnostic_data: common::DiagnosticData,
-    pub serial_connections: Vec<mpsc::Sender<BeaconCommand>>,
-    pub udp_connections: Vec<Addr<BeaconUDP>>,
+    emergency: bool,
+    data_processor: Addr<DataProcessor>,
+    diagnostic_data: common::DiagnosticData,
+    udp_connections: Vec<Addr<BeaconUDP>>,
+    dummy_udp_connections: Vec<Addr<DummyUDP>>,
+    pinger: SpawnHandle,
 }
+
 impl Actor for BeaconManager {
     type Context = Context<Self>;
 }
 
-const VENDOR_WHITELIST: &[u16] = &[0x2341, 0x10C4];
 const USE_DUMMY_BEACONS: bool = true;
-const USE_SERIAL_BEACONS: bool = false;
 const USE_UDP_BEACONS: bool = true;
+const PING_INTERVAL: Duration = Duration::from_millis(10000);
+const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
 
 pub enum BMCommand {
     EndEmergency,
     GetEmergency,
     ScanBeacons,
     StartEmergency,
+
+    // internal
+    Ping,
+    Reboot,
 }
 
 impl Message for BMCommand {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 }
 
+#[derive(Clone, Copy)]
 pub enum BeaconCommand {
     EndEmergency,
-    GetEmergency,
-    ScanBeacons,
     StartEmergency,
+    Ping,
+    Reboot,
 }
 
 impl Message for BeaconCommand {
@@ -61,19 +64,30 @@ impl Message for BeaconCommand {
 }
 
 impl BeaconManager {
-    pub fn new(dp: Addr<DataProcessor>) -> BeaconManager {
-        BeaconManager {
-            emergency: false, // TODO get from db!
-            udp_connections: Vec::new(),
-            data_processor: dp,
-            diagnostic_data: common::DiagnosticData::new(),
-            serial_connections: Vec::new(),
-        }
+    pub fn new(dp: Addr<DataProcessor>) -> Addr<BeaconManager> {
+        BeaconManager::create(move |context| {
+            let mut manager = BeaconManager {
+                data_processor: dp,
+                diagnostic_data: common::DiagnosticData::new(),
+                emergency: false, // TODO get from db!
+                udp_connections: Vec::new(),
+                dummy_udp_connections: Vec::new(),
+                pinger: Default::default(),
+            };
+            manager.ping_self(context, PING_INTERVAL);
+            manager
+        })
+    }
+
+    fn ping_self(&mut self, ctx: &mut Context<Self>, dur: Duration) {
+        ctx.cancel_future(self.pinger);
+        self.pinger = ctx.run_interval(dur, |_actor, context| {
+            context.notify(BMCommand::Ping);
+        });
     }
 
     fn find_beacons(&mut self, context: &mut Context<Self>) {
         if USE_DUMMY_BEACONS { self.find_beacons_dummy(context); }
-        if USE_SERIAL_BEACONS { self.find_beacons_serial(context); }
         if USE_UDP_BEACONS { self.find_beacons_udp(context); }
     }
 
@@ -104,68 +118,16 @@ impl BeaconManager {
     }
 
     fn find_beacons_dummy(&mut self, context: &mut Context<Self>) {
-        let beacons_fut = db_utils::default_connect()
-            .and_then(|client| {
-                beacon::select_beacons(client)
-                    .map(|(_client, beacons)| {
-                        beacons
-                    })
-            })
-            .into_actor(self)
-            .and_then(|beacons, actor, context| {
-                for beacon in beacons {
-                    let (send, receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
-                    let beacon_manager = context.address().clone();
-                    thread::spawn(move || {
-                        dummy_beacon_thread(beacon, receive, beacon_manager);
-                    });
-                    actor.serial_connections.push(send);
-                }
-                fut::result(Ok(()))
-            })
-            .map_err(|err, _, _| {
-                println!("failed to create dummy beacons {}", err);
-            });
-        context.spawn(beacons_fut);
+        self.dummy_udp_connections.push(DummyUDP::new(context.address()));
     }
 
-    fn find_beacons_serial(&mut self, context: &mut Context<Self>) {
-        if let Ok(avail_ports) = serialport::available_ports() {
-            for port in avail_ports {
-                println!("\t{}", port.port_name);
-                let name = Box::new(port.port_name);
-                match port.port_type {
-                    serialport::SerialPortType::UsbPort(info) => {
-                        // only print out, and keep track of, arduino usbs
-                        if VENDOR_WHITELIST.iter().any( |vid| vid == &info.vid ) {
-                            println!("\t\tType: USB");
-                            println!("\t\tVID:{:04x}", info.vid);
-                            println!("\t\tPID:{:04x}", info.pid);
-                            println!("\t\tSerial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
-                            println!("\t\tManufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
-                            println!("\t\tProduct: {}", info.product.as_ref().map_or("", String::as_str));
+    fn mass_send(&self, msg: BeaconCommand) {
+        for connection in &self.udp_connections {
+            connection.do_send(msg);
+        }
 
-                            let (serial_send, serial_receive): (mpsc::Sender<BeaconCommand>, mpsc::Receiver<BeaconCommand>) = mpsc::channel();
-                            let address = context.address().recipient();
-                            let beacon_info = BeaconSerialConn {
-                                port_name: (*name).clone(),
-                                vid: info.vid,
-                                pid: info.pid,
-                                receive: serial_receive,
-                                manager: address.clone(),
-
-                            };
-                            thread::spawn(move || {
-                                serial_beacon_thread(beacon_info);
-                            });
-                            self.serial_connections.push(serial_send);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        } else {
-            print!("Error listing serial ports");
+        for connection in &self.dummy_udp_connections {
+            connection.do_send(msg);
         }
     }
 }
@@ -182,29 +144,21 @@ impl Handler<BMCommand> for BeaconManager {
             },
             BMCommand::StartEmergency => {
                 self.diagnostic_data = common::DiagnosticData::new();
-                for connection in &self.serial_connections {
-                    connection
-                        .send(BeaconCommand::StartEmergency)
-                        .expect("failed to send start emergency to serial beacon connection");
-                }
-                for connection in &self.udp_connections {
-                    connection.do_send(BeaconCommand::StartEmergency);
-                }
                 self.emergency = true;
+                self.ping_self(context, EMERGENCY_PING_INTERVAL);
+                self.mass_send(BeaconCommand::StartEmergency);
             }
             BMCommand::EndEmergency => {
-                for connection in &self.serial_connections {
-                    connection
-                        .send(BeaconCommand::EndEmergency)
-                        .expect("failed to send end emergency to serial beacon connection");
-                }
-                for connection in &self.udp_connections {
-                    connection
-                        .do_send(BeaconCommand::EndEmergency);
-                }
+                self.mass_send(BeaconCommand::EndEmergency);
                 self.emergency = false;
-                // Send a message to DP to clear hashmap
                 self.data_processor.do_send(DPMessage::ResetData);
+                self.ping_self(context, PING_INTERVAL);
+            },
+            BMCommand::Ping => {
+                self.mass_send(BeaconCommand::Ping);
+            },
+            BMCommand::Reboot => {
+                self.mass_send(BeaconCommand::Reboot);
             },
 
         }
@@ -230,15 +184,14 @@ pub struct TagDataMessage {
     pub data: common::TagData,
 }
 impl Message for TagDataMessage {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<(), ()>;
 }
 impl Handler<TagDataMessage> for BeaconManager {
-    type Result = Result<u64, io::Error>;
+    type Result = Result<(), ()>;
 
     fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
-        // find the beacons
         self.diagnostic_data.tag_data.push(msg.data.clone());
-        self.data_processor.do_send(InLocationData(msg.data.clone()));
-        Ok(1)
+        self.data_processor.do_send(InLocationData(msg.data));
+        Ok(())
     }
 }
