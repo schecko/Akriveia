@@ -183,9 +183,9 @@ impl TrackedUser {
     }
 }
 
-#[derive(Copy, Debug, Clone, Serialize, Deserialize)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BeaconState {
-    Unknown(u32),
+    Unknown,
     Idle,
     Rebooting,
     Active,
@@ -203,7 +203,7 @@ impl From<BeaconState> for usize {
         // remember to update the count() function as
         // well.
         match s {
-            BeaconState::Unknown{..} => 0,
+            BeaconState::Unknown     => 0,
             BeaconState::Idle        => 1,
             BeaconState::Rebooting   => 2,
             BeaconState::Active      => 3,
@@ -235,7 +235,7 @@ impl Beacon {
             map_id: None,
             name: String::new(),
             note: None,
-            state: BeaconState::Unknown(0),
+            state: BeaconState::Unknown,
         }
     }
 }

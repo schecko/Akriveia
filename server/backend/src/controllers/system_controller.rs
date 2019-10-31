@@ -8,9 +8,9 @@ use common::*;
 pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     let command = if payload.emergency {
-        BMCommand::StartEmergency
+        BMCommand::StartEmergency(None)
     } else {
-        BMCommand::EndEmergency
+        BMCommand::EndEmergency(None)
     };
 
     s.beacon_manager

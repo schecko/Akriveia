@@ -80,12 +80,12 @@ impl Handler<BeaconCommand> for DummyUDP {
 
     fn handle(&mut self, msg: BeaconCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BeaconCommand::StartEmergency => {
+            BeaconCommand::StartEmergency(_opt_ip) => {
                 self.data_task = context.run_interval(MESSAGE_INTERVAL, |_actor, context| {
                     context.notify(GenTagData{});
                 });
             },
-            BeaconCommand::EndEmergency => {
+            BeaconCommand::EndEmergency(_opt_ip) => {
                 context.cancel_future(self.data_task);
             },
             BeaconCommand::Ping(opt_ip) => {
@@ -108,7 +108,6 @@ impl Handler<BeaconCommand> for DummyUDP {
                     .into_actor(self)
                     .and_then(move |(_client, beacons), actor, _context| {
                         for b in beacons {
-                            let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
                             actor.manager
                                 .do_send(BMResponse::Ping(b.ip, b.mac_address));
                         }

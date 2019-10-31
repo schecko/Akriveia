@@ -87,27 +87,11 @@ impl Handler<BeaconCommand> for BeaconUDP {
     type Result = Result<(), ()>;
 
     fn handle(&mut self, msg: BeaconCommand, _context: &mut Context<Self>) -> Self::Result {
-
-        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);
         let (command, ip) = match msg {
-            BeaconCommand::StartEmergency => ("start", broadcast),
-            BeaconCommand::EndEmergency => ("end", broadcast),
-            BeaconCommand::Ping(opt_ip) => {
-                if let Some(ip) = opt_ip {
-                    let addr = SocketAddr::new(ip.into(), self.bound_port);
-                    ("ping", addr)
-                } else {
-                    ("ping", broadcast)
-                }
-            },
-            BeaconCommand::Reboot(opt_ip) => {
-                if let Some(ip) = opt_ip {
-                    let addr = SocketAddr::new(ip.into(), self.bound_port);
-                    ("reboot", addr)
-                } else {
-                    ("reboot", broadcast)
-                }
-            },
+            BeaconCommand::StartEmergency(opt_ip)   => self.build_request("[start]", opt_ip),
+            BeaconCommand::EndEmergency(opt_ip)     => self.build_request("[end]", opt_ip),
+            BeaconCommand::Ping(opt_ip)             => self.build_request("[ping]", opt_ip),
+            BeaconCommand::Reboot(opt_ip)           => self.build_request("[reboot]", opt_ip),
         };
 
         self.sink
@@ -136,4 +120,16 @@ impl BeaconUDP {
             }
         })
     }
+
+    pub fn build_request<'a>(&mut self, command: &'a str, opt_ip: Option<IpAddr>) -> (&'a str, SocketAddr) {
+        if let Some(ip) = opt_ip {
+            let addr = SocketAddr::new(ip.into(), self.bound_port);
+            (command, addr)
+        } else {
+            let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);
+            (command, broadcast)
+        }
+    }
+
 }
+
