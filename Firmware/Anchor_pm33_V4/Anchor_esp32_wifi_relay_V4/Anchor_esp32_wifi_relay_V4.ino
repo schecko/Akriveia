@@ -26,7 +26,6 @@ void setup() {
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
   pinMode(TRIGGER_PIN, OUTPUT);
   digitalWrite(TRIGGER_PIN, HIGH);
-  get_eui();
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
   unsigned long start_wait = millis();
@@ -34,6 +33,7 @@ void setup() {
     Serial.print(".");
     delay(500);
   }
+  get_eui();
   Serial.println("\nConnected to: " + String(ssid));
   Serial.println("Gateway IP: " + WiFi.gatewayIP().toString());
   Serial.println("Local IP: " + WiFi.localIP().toString());
@@ -44,8 +44,8 @@ void setup() {
 }
 
 void get_eui() {
-  Serial2.println("<get_eui>");
   delay(3000);
+  Serial2.println("<get_eui>");
   recvWithStartEndMarkers();
   if (newData == true && String(receivedChars).indexOf("eui_ack") >= 0) EUI = String(receivedChars).substring(0, 23);
   newData = false;
