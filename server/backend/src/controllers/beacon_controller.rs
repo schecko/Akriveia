@@ -1,5 +1,6 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use crate::AkriveiaState;
+use crate::beacon_manager::OutBeaconData;
 use crate::db_utils;
 use crate::models::beacon;
 use futures::{ future::ok, Future, future::Either, };
@@ -10,6 +11,21 @@ use actix_identity::Identity;
 #[derive(Deserialize)]
 pub struct GetParams {
     prefetch: Option<bool>,
+}
+
+pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    let s = state.lock().unwrap();
+    s.beacon_manager
+        .send(OutBeaconData{})
+        .then(|res| {
+            match res {
+                Ok(Ok(data)) => {
+                    ok(HttpResponse::Ok().json(data))
+                },
+                _ => {
+                    ok(HttpResponse::BadRequest().finish())
+                }
+        }})
 }
 
 pub fn get_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {

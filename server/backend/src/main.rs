@@ -125,6 +125,11 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacon_url(""))
                     .route(web::post().to_async(beacon_controller::post_beacon))
             )
+            .service(
+                web::resource(&beacons_status_url())
+                    .to_async(beacon_controller::beacons_status)
+            )
+
 
             // user
             .service(
@@ -140,6 +145,10 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&user_url(""))
                     .route(web::post().to_async(user_controller::post_user))
+            )
+            .service(
+                web::resource(&users_status_url())
+                    .to_async(user_controller::users_status)
             )
 
             // map
@@ -187,11 +196,6 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&network_url(""))
                     .route(web::post().to_async(network_interface_controller::post_network_interface))
-            )
-
-            .service(
-                web::resource(&users_status_url())
-                    .to_async(user_controller::users_status)
             )
 
             // session

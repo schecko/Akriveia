@@ -14,12 +14,14 @@ use crate::dummy_udp::*;
 use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::network_interface;
+use crate::models::beacon;
 use std::io;
 use std::time::Duration;
 use std::collections::{ BTreeSet, BTreeMap, };
 use common::*;
 use std::net::{ IpAddr, };
 use chrono::{ DateTime, Duration as cDuration, };
+use actix::fut as afut;
 
 
 // Problem: Requests to beacons do not create a request object, and so
@@ -60,6 +62,7 @@ const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
 const RESPONSE_THRESHOLD: Duration = Duration::from_millis(200);
 const RETRIES_THRESHOLD: u32 = 3;
 
+#[derive(Debug)]
 struct Retries {
     pub expected_response: DateTime<Utc>,
     pub retries: u32,
@@ -74,6 +77,7 @@ impl Retries {
     }
 }
 
+#[derive(Debug)]
 struct BeaconStatus {
     pub realtime: RealtimeBeacon,
     pub retries: Option<Retries>,
@@ -146,6 +150,25 @@ impl BeaconManager {
                 beacons: BTreeMap::new(),
             };
             manager.ping_health(context, PING_INTERVAL);
+
+            let fut = db_utils::default_connect()
+                .and_then(|client| {
+                    beacon::select_beacons(client)
+                })
+                .into_actor(&manager)
+                .and_then(|(client, beacons), actor, context| {
+                    beacons.into_iter().for_each(|b| {
+                        actor.beacons.insert(b.mac_address.clone(), BeaconStatus {
+                            realtime: RealtimeBeacon::from(b),
+                            retries: None,
+                        });
+                    });
+                    afut::result(Ok(()))
+                })
+                .map(|_, _actor, _context| { })
+                .map_err(|err, _actor, _context| { });
+            context.spawn(fut);
+
             manager
         })
     }
@@ -211,7 +234,18 @@ impl BeaconManager {
         if let Some(pinger) = self.pinger {
             ctx.cancel_future(pinger);
         }
-        self.pinger = Some(ctx.run_interval(dur, |_actor, context| {
+        self.pinger = Some(ctx.run_interval(dur, |actor, context| {
+            actor.beacons.iter().for_each(|(mac, beacon)| {
+                let realtime = beacon.realtime.clone();
+                let fut = db_utils::default_connect()
+                    .and_then(|client| {
+                        beacon::update_beacon_from_realtime(client, realtime)
+                    })
+                    .map(|(_client, ifaces)| { })
+                    .map_err(|err| { });
+                context.spawn(fut.into_actor(actor));
+            });
+
             context.notify(BMCommand::Ping(None));
         }));
     }
@@ -374,7 +408,7 @@ impl Handler<BMCommand> for BeaconManager {
 impl Handler<BMResponse> for BeaconManager {
     type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BMResponse, context: &mut Context<Self>) -> Self::Result {
         match msg {
             BMResponse::Start(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
@@ -401,7 +435,6 @@ impl Handler<BMResponse> for BeaconManager {
             BMResponse::Ping(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
-                        beacon.realtime.state = BeaconState::Active;
                         beacon.realtime.last_active = Utc::now();
                     },
                     None => {
@@ -453,5 +486,19 @@ impl Handler<TagDataMessage> for BeaconManager {
         self.diagnostic_data.tag_data.push(msg.data.clone());
         self.data_processor.do_send(InLocationData(msg.data));
         Ok(())
+    }
+}
+
+pub struct OutBeaconData { }
+
+impl Message for OutBeaconData {
+    type Result = Result<Vec<RealtimeBeacon>, io::Error>;
+}
+
+impl Handler<OutBeaconData> for BeaconManager {
+    type Result = Result<Vec<RealtimeBeacon>, io::Error>;
+
+    fn handle (&mut self, _msg: OutBeaconData, _: &mut Context<Self>) -> Self::Result {
+        Ok(self.beacons.iter().map(|(_mac, beacon)| beacon.realtime.clone()).collect())
     }
 }

@@ -288,25 +288,24 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         })
 }
 
-#[allow(dead_code)]
-pub fn update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAddress8, stamp: DateTime<Utc>) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeBeacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.beacons
             SET
-                b_last_active = $1
-            WHERE
-                b_mac_address = $2
+                b_ip = $1
+             WHERE
+                b_id = $2
             RETURNING *
         ", &[
-            Type::TIMESTAMPTZ,
-            Type::MACADDR8,
+            Type::INET,
+            Type::INT4,
         ])
         .and_then(move |statement| {
             client
                 .query(&statement, &[
-                    &stamp,
-                    &mac,
+                    &realtime.ip,
+                    &realtime.id,
                 ])
                 .into_future()
                 .map_err(|err| {

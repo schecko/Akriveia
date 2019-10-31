@@ -13,6 +13,7 @@ use crate::models::beacon;
 use crate::beacon_manager::*;
 use common::*;
 use std::time::Duration;
+use std::net::IpAddr;
 use futures::future as fut;
 use actix::fut as afut;
 
@@ -24,6 +25,7 @@ pub struct DummyUDP {
     manager: Addr<BeaconManager>,
     data_task: SpawnHandle,
     rng: SmallRng,
+    rebooting_ip: Option<IpAddr>,
 }
 
 impl Actor for DummyUDP {
@@ -54,6 +56,17 @@ impl Handler<GenTagData> for DummyUDP {
                 let time = Utc::now();
                 if let Some(user) = opt_user {
                     for b in beacons {
+                        if let Some(ip) = actor.rebooting_ip {
+                            if ip == b.ip {
+                                // pretend to do nothing while this beacon is "rebooting"
+                                continue;
+                            }
+                            // randomly choose this beacon to be unresponsive
+                        } else if actor.rng.gen_bool(0.05) {
+                            actor.rebooting_ip = Some(b.ip);
+                            continue;
+                        }
+
                         let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
                         actor.manager
                             .do_send( TagDataMessage {
@@ -89,6 +102,7 @@ impl Handler<BeaconCommand> for DummyUDP {
                 context.cancel_future(self.data_task);
             },
             BeaconCommand::Ping(opt_ip) => {
+                println!("dummy ping called");
                 let beacons_fut = db_utils::default_connect()
                     .and_then(move |client| {
                         if let Some(ip) = opt_ip {
@@ -116,9 +130,39 @@ impl Handler<BeaconCommand> for DummyUDP {
                     .map_err(|_err, _actor, _context| {
                     });
                 context.spawn(beacons_fut);
-                println!("udp dummy ping");
             },
-            _ => {
+            BeaconCommand::Reboot(opt_ip) => {
+                // test out the retry logic by making successfully rebooting a chance.
+                if opt_ip == self.rebooting_ip && self.rng.gen_bool(0.3) {
+                    self.rebooting_ip = None;
+                }
+                let beacons_fut = db_utils::default_connect()
+                    .and_then(move |client| {
+                        if let Some(ip) = opt_ip {
+                            fut::Either::B(beacon::select_beacon_by_ip(client, ip)
+                                .map(|(client, opt_beacon)| {
+                                    if let Some(beacon) = opt_beacon {
+                                        (client, vec![beacon])
+                                    } else {
+                                        (client, Vec::new())
+                                    }
+                                })
+                            )
+                        } else {
+                            fut::Either::A(beacon::select_beacons(client))
+                        }
+                    })
+                    .into_actor(self)
+                    .and_then(move |(_client, beacons), actor, _context| {
+                        for b in beacons {
+                            actor.manager
+                                .do_send(BMResponse::Reboot(b.ip, b.mac_address));
+                        }
+                        afut::result(Ok(()))
+                    })
+                    .map_err(|_err, _actor, _context| {
+                    });
+                context.spawn(beacons_fut);
             }
         }
 
@@ -129,7 +173,9 @@ impl Handler<BeaconCommand> for DummyUDP {
 impl DummyUDP {
     pub fn new(manager: Addr<BeaconManager>) -> Addr<DummyUDP> {
         DummyUDP::create(move |_context| {
+            println!("starting dummy udp actor");
             DummyUDP {
+                rebooting_ip: None,
                 manager,
                 rng: SmallRng::from_entropy(),
                 data_task: Default::default(),

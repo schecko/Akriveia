@@ -14,12 +14,16 @@ pub use short_address::ShortAddress;
 use ipnet::{ Ipv4Net, };
 use serde_derive::{ Deserialize, Serialize, };
 use std::net::{ IpAddr, Ipv4Addr, };
+use std::fmt;
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
 }
 pub fn beacons_url() -> String {
     return String::from("/beacons");
+}
+pub fn beacons_status_url() -> String {
+    return String::from("/beacons/status");
 }
 pub fn beacons_for_map_url(id: &str) -> String {
     return format!("/map/{}/beacons", id);
@@ -197,6 +201,17 @@ impl BeaconState {
     }
 }
 
+impl fmt::Display for BeaconState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            BeaconState::Unknown => write!(f, "Unknown"),
+            BeaconState::Idle => write!(f, "Idle"),
+            BeaconState::Rebooting => write!(f, "Rebooting"),
+            BeaconState::Active => write!(f, "Active"),
+        }
+    }
+}
+
 impl From<BeaconState> for usize {
     fn from(s: BeaconState) -> Self {
         // NOTE: When updating this match statuement,
@@ -237,6 +252,14 @@ impl Beacon {
             note: None,
             state: BeaconState::Unknown,
         }
+    }
+
+    pub fn merge(&mut self, rt: RealtimeBeacon) {
+        assert!(self.id == rt.id);
+        assert!(self.mac_address == rt.mac_address); // TODO handle this more gracefully
+
+        self.last_active = rt.last_active;
+        self.state = rt.state;
     }
 }
 
