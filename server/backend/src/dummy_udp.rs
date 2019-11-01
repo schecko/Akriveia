@@ -70,14 +70,12 @@ impl Handler<GenTagData> for DummyUDP {
 
                         let user_distance = actor.rng.gen_range(MIN_DISTANCE, MAX_DISTANCE);
                         actor.manager
-                            .do_send( TagDataMessage {
-                                data: common::TagData {
-                                    beacon_mac: b.mac_address,
-                                    tag_distance: user_distance,
-                                    tag_mac: user.mac_address.unwrap(),
-                                    timestamp: time,
-                                }
-                            });
+                            .do_send(BMResponse::TagData(b.ip, TagData {
+                                beacon_mac: b.mac_address,
+                                tag_distance: user_distance,
+                                tag_mac: user.mac_address.unwrap(),
+                                timestamp: time,
+                            }));
                     }
                 }
                 afut::result(Ok(()))

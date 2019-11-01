@@ -14,7 +14,22 @@ pub struct GetParams {
     prefetch: Option<bool>,
 }
 
-pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<common::BeaconRequest>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>) -> impl Future<Item=HttpResponse, Error=Error> {
+    let s = state.lock().unwrap();
+    s.beacon_manager
+        .send(OutBeaconData{})
+        .then(|res| {
+            match res {
+                Ok(Ok(data)) => {
+                    ok(HttpResponse::Ok().json(data))
+                },
+                _ => {
+                    ok(HttpResponse::BadRequest().finish())
+                }
+        }})
+}
+
+pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<common::BeaconRequest>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     let command = match payload.0 {
         BeaconRequest::StartEmergency(mac) => BMCommand::StartEmergency(mac),
@@ -29,21 +44,6 @@ pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, pa
             match res {
                 Ok(Ok(data)) => {
                     ok(HttpResponse::Ok().finish())
-                },
-                _ => {
-                    ok(HttpResponse::BadRequest().finish())
-                }
-        }})
-}
-
-pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    let s = state.lock().unwrap();
-    s.beacon_manager
-        .send(OutBeaconData{})
-        .then(|res| {
-            match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
                     ok(HttpResponse::BadRequest().finish())

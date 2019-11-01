@@ -55,11 +55,11 @@ use actix::fut as afut;
     // as either will update their timestamp.
 // 5. as long as the stale map has elements, repeat the retry callback.
 
-const USE_DUMMY_BEACONS: bool = true;
-const USE_UDP_BEACONS: bool = false;
-const PING_INTERVAL: Duration = Duration::from_millis(10000);
-const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(1000);
-const RESPONSE_THRESHOLD: Duration = Duration::from_millis(200);
+const USE_DUMMY_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
+const PING_INTERVAL: Duration = Duration::from_millis(100000);
+const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(100000);
+const RESPONSE_THRESHOLD: Duration = Duration::from_millis(1000);
 const RETRIES_THRESHOLD: u32 = 3;
 
 #[derive(Debug)]
@@ -104,6 +104,7 @@ pub enum BMResponse {
     End(IpAddr, MacAddress8),
     Ping(IpAddr, MacAddress8),
     Reboot(IpAddr, MacAddress8),
+    TagData(IpAddr, TagData),
 }
 
 #[derive(Debug, Clone)]
@@ -188,11 +189,11 @@ impl BeaconManager {
                     if manager_state == status.realtime.state {
                         true
                     } else {
-                        match manager_state {
+                        /*match manager_state {
                             BeaconState::Idle => context.notify(BMCommand::EndEmergency(Some(status.realtime.mac_address))),
                             BeaconState::Active => context.notify(BMCommand::StartEmergency(Some(status.realtime.mac_address))),
                             _ => panic!("Manager must always be in idle or active states, other states are invalid"),
-                        }
+                        }*/
                         false
                     }
                     // this beacon has responded, no further action required for now
@@ -208,24 +209,24 @@ impl BeaconManager {
                             // beacon failed to reply, try to reboot it
                             status.realtime.state = BeaconState::Rebooting;
                             retries.retries = 0;
-                            context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
+                            //context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
                             false
                         }
                         // retry a request
                     } else if status.realtime.state == manager_state {
                         // beacon is in the correct state, resend a ping.
-                        context.notify(BMCommand::Ping(Some(status.realtime.mac_address)));
+                        //context.notify(BMCommand::Ping(Some(status.realtime.mac_address)));
                         false
                     } else if status.realtime.state == BeaconState::Rebooting {
                         // the beacon is in the wrong state, send the state switch again
-                        context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
+                        //context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
                         false
                     } else {
-                        match manager_state {
+                        /*match manager_state {
                             BeaconState::Idle => context.notify(BMCommand::EndEmergency(Some(status.realtime.mac_address))),
                             BeaconState::Active => context.notify(BMCommand::StartEmergency(Some(status.realtime.mac_address))),
                             _ => panic!("Manager must always be in idle or active states, other states are invalid"),
-                        }
+                        }*/
                         false
                     }
                 }
@@ -319,7 +320,6 @@ impl Handler<BMCommand> for BeaconManager {
     type Result = Result<common::SystemCommandResponse, io::Error>;
 
     fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
-        println!("got command {:?}", msg);
         match msg {
             BMCommand::GetEmergency => { },
             BMCommand::ScanBeacons => {
@@ -473,6 +473,20 @@ impl Handler<BMResponse> for BeaconManager {
                     }
                 }
             },
+            BMResponse::TagData(ip, tag_data) => {
+                match self.beacons.get_mut(&tag_data.beacon_mac) {
+                    Some(beacon) => {
+                        if tag_data.tag_distance < 50.0 { // any distance over 50meter is garbage data
+                            self.diagnostic_data.tag_data.push(tag_data.clone());
+                            self.data_processor.do_send(InLocationData(tag_data));
+                            beacon.realtime.last_active = Utc::now();
+                        }
+                    },
+                    None => {
+                        self.unknown_macs.insert(tag_data.beacon_mac);
+                    }
+                }
+            },
 
         }
         Ok(())
@@ -490,22 +504,6 @@ impl Handler<GetDiagnosticData> for BeaconManager {
         let res = self.diagnostic_data.clone();
         self.diagnostic_data.tag_data = Vec::new();
         Ok(res)
-    }
-}
-
-pub struct TagDataMessage {
-    pub data: common::TagData,
-}
-impl Message for TagDataMessage {
-    type Result = Result<(), ()>;
-}
-impl Handler<TagDataMessage> for BeaconManager {
-    type Result = Result<(), ()>;
-
-    fn handle(&mut self, msg: TagDataMessage, _context: &mut Context<Self>) -> Self::Result {
-        self.diagnostic_data.tag_data.push(msg.data.clone());
-        self.data_processor.do_send(InLocationData(msg.data));
-        Ok(())
     }
 }
 
