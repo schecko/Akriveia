@@ -140,7 +140,6 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
-<<<<<<< HEAD
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <h2>{ "Map List" }</h2>                 
@@ -156,27 +155,6 @@ impl Renderable<MapList> for MapList {
                         { for rows }
                     </tbody>
                 </table>
-=======
-                <div class="row">
-                    <div class="col-md-5">
-                        <table class="table table-striped">
-                            <thead>
-                                <h3>{ "Map List" }</h3>                 
-                                <tr>
-                                    <th>{ "Name" }</th>
-                                    <th>{ "Bounds" }</th>
-                                    <th>{ "Scale" }</th>
-                                    <th>{ "Note" }</th>
-                                    <th>{ "Actions" }</th>                                
-                                </tr>
-                            </thead>
-                            <tbody>
-                                { for rows }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
->>>>>>> 0e0a1eaea2c34f6ad4c7d89b6c7a5d45636e224f
             </>
         }
     }
