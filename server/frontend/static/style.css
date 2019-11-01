@@ -49,17 +49,26 @@ h2.active {
   border-bottom: 2px solid #5fbae9;
 }
 
-/* FONT SIZING */
+/* FONT TYPOGRAPHY */
 .loginTypeHeader {
   font-size: 40px;
+  position: absolute;
   text-align: right;
   vertical-align: text-top;
   padding: 5px;
+  right:16px;
   color: white;
   background-color: transparent;
   text-transform: uppercase;
   font-weight: bold;
 }
+
+.navBarText {
+  font-family: 'Poppins', sans-serif;
+  font-size: 22px;
+  padding: 8px 12px;
+}
+
 
 
 /* FORM TYPOGRAPHY*/
@@ -140,7 +149,7 @@ input[type=password] {
   width: 70%;
   border: 2px solid #f6f6f6;
   -webkit-transition: all 0.5s ease-in-out;
-  -moz-transition: all 0.5s ease-in-out;
+  -moz-transition: all 0.5s .navBarText ease-in-out;
   -ms-transition: all 0.5s ease-in-out;// Large devices (desktops, less than 1200px)
   -o-transition: all 0.5s ease-in-out;
   transition: all 0.5s ease-in-out;
@@ -228,15 +237,15 @@ input[type=password]:placeholder {
 }
 
 .fadeIn.third {
-  -webkit-animation-delay: 0.5s;
-  -moz-animation-delay: 0.5s;
-  animation-delay: 0.5s;
-}
-
-.fadeIn.fourth {
   -webkit-animation-delay: 0.6s;
   -moz-animation-delay: 0.6s;
   animation-delay: 0.6s;
+}
+
+.fadeIn.fourth {
+  -webkit-animation-delay: 0.8s;
+  -moz-animation-delay: 0.8s;
+  animation-delay: 0.8s;
 }
 
 /* Simple CSS3 Fade-in Animation */

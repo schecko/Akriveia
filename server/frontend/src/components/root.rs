@@ -99,7 +99,6 @@ impl Component for RootComponent {
                     Msg::ResponseGetEmergency
                 );
             },
-
             // responses
             Msg::ResponsePostEmergency(response) => {
                 let (meta, Json(body)) = response.into_parts();
@@ -290,10 +289,10 @@ impl RootComponent {
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown navBarText" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "User Config" }
                     </a>
-                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
+                    <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <a class ="dropdown-item" onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>
                             { "User List" }
                         </a>
@@ -321,10 +320,10 @@ impl RootComponent {
         let select_beacon = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown navBarText" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "Beacons" }
                     </a>
-                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
+                    <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>
                             { "Beacon List" }
                         </a>
@@ -352,10 +351,10 @@ impl RootComponent {
         let select_map = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown" disabled=false id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown navBarText" disabled=false id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "Maps" }
                     </a>
-                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
+                    <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>
                             { "Map List" }
                         </a>
@@ -389,7 +388,7 @@ impl RootComponent {
             },
             WebUserType::Responder => html! {
                 <a
-                    class="nav-link",
+                    class="nav-link navBarText",
                     onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
                         match self.current_page {
@@ -405,7 +404,7 @@ impl RootComponent {
 
         let diagnostics = match self.user_type {
             WebUserType::Admin => html! {
-                <a class="nav-link" onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</a>
+                <a class="nav-link navBarText" onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</a>
             },
             WebUserType::Responder => html! {
                 <></>
@@ -428,7 +427,7 @@ impl RootComponent {
                     <img src="/images/icon_780_720.png" width="52" height="48" class="d-inline-block align-top" alt=""/>
                 </a>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav mr-auto">
+                    <ul class="navbar-nav mx-2">
                         <li class="nav-item">
                             <a
                                 class="nav-link",
@@ -442,8 +441,9 @@ impl RootComponent {
                             { diagnostics }
                         </li>
                         <li class="nav-item">
-                            <a
-                                class="nav-link",
+
+                            <a 
+                                class="nav-link navBarText",
                                 onclick=|_| Msg::ChangePage(Page::Status),
                                 disabled={self.current_page == Page::Status},
                             >
