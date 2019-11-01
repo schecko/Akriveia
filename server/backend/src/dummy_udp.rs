@@ -20,6 +20,8 @@ use actix::fut as afut;
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const MIN_DISTANCE: f64 = 1.0;
 const MAX_DISTANCE: f64 = 4.0;
+const REBOOT_AWAKE_CHANCE: f64 = 0.05;
+const REBOOT_CHANCE: f64 = 0.1;
 
 pub struct DummyUDP {
     manager: Addr<BeaconManager>,
@@ -62,8 +64,7 @@ impl Handler<GenTagData> for DummyUDP {
                                 continue;
                             }
                             // randomly choose this beacon to be unresponsive
-                        } else if actor.rng.gen_bool(0.1) {
-                            println!("beacon {} going to reboot\n\n", b.ip);
+                        } else if actor.rng.gen_bool(REBOOT_CHANCE) {
                             actor.rebooting_ip = Some(b.ip);
                             continue;
                         }
@@ -107,10 +108,6 @@ impl Handler<BeaconCommand> for DummyUDP {
                 self.reply(context, opt_ip, |ip, mac| BMResponse::Ping(ip, mac));
             },
             BeaconCommand::Reboot(opt_ip) => {
-                if opt_ip == self.rebooting_ip && self.rng.gen_bool(0.05) {
-                    println!("beacon {} rebooted\n\n", self.rebooting_ip.unwrap());
-                    self.rebooting_ip = None;
-                }
                 self.reply(context, opt_ip, |ip, mac| BMResponse::Reboot(ip, mac));
             }
         }
@@ -135,6 +132,10 @@ impl DummyUDP {
     fn reply<F: 'static>(&mut self, context: &mut Context<Self>, opt_ip: Option<IpAddr>, msg: F)
         where F: Fn(IpAddr, MacAddress8) -> BMResponse
     {
+        if opt_ip == self.rebooting_ip && self.rng.gen_bool(REBOOT_AWAKE_CHANCE) {
+            println!("beacon {} rebooted\n\n", self.rebooting_ip.unwrap());
+            self.rebooting_ip = None;
+        }
 
         let beacons_fut = db_utils::default_connect()
             .and_then(move |client| {

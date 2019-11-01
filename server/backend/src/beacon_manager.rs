@@ -55,12 +55,12 @@ use actix::fut as afut;
     // as either will update their timestamp.
 // 5. as long as the stale map has elements, repeat the retry callback.
 
-const USE_DUMMY_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = true;
+const USE_DUMMY_BEACONS: bool = true;
+const USE_UDP_BEACONS: bool = false;
 const PING_INTERVAL: Duration = Duration::from_millis(100000);
-const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(100000);
-const RESPONSE_THRESHOLD: Duration = Duration::from_millis(1000);
-const RETRIES_THRESHOLD: u32 = 3;
+const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(10000);
+const RESPONSE_THRESHOLD: Duration = Duration::from_millis(2000);
+const RETRIES_THRESHOLD: u32 = 4;
 
 #[derive(Debug)]
 struct Retries {
@@ -71,7 +71,7 @@ struct Retries {
 impl Retries {
     fn new() -> Retries {
         Retries {
-            expected_response: Utc::now() + cDuration::from_std(RESPONSE_THRESHOLD * 3 / 4).unwrap(),
+            expected_response: Utc::now() - cDuration::from_std(RESPONSE_THRESHOLD).unwrap(),
             retries:  0,
         }
     }
@@ -167,7 +167,9 @@ impl BeaconManager {
                     });
                     afut::result(Ok(()))
                 })
-                .map(|_, _actor, _context| { })
+                .map(|_, _actor, context| {
+                    context.notify(BMCommand::Ping(None));
+                })
                 .map_err(|err, _actor, _context| { });
             context.spawn(fut);
 
@@ -189,11 +191,11 @@ impl BeaconManager {
                     if manager_state == status.realtime.state {
                         true
                     } else {
-                        /*match manager_state {
+                        match manager_state {
                             BeaconState::Idle => context.notify(BMCommand::EndEmergency(Some(status.realtime.mac_address))),
                             BeaconState::Active => context.notify(BMCommand::StartEmergency(Some(status.realtime.mac_address))),
                             _ => panic!("Manager must always be in idle or active states, other states are invalid"),
-                        }*/
+                        }
                         false
                     }
                     // this beacon has responded, no further action required for now
@@ -209,24 +211,23 @@ impl BeaconManager {
                             // beacon failed to reply, try to reboot it
                             status.realtime.state = BeaconState::Rebooting;
                             retries.retries = 0;
-                            //context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
+                            context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
                             false
                         }
                         // retry a request
                     } else if status.realtime.state == manager_state {
                         // beacon is in the correct state, resend a ping.
-                        //context.notify(BMCommand::Ping(Some(status.realtime.mac_address)));
+                        context.notify(BMCommand::Ping(Some(status.realtime.mac_address)));
                         false
                     } else if status.realtime.state == BeaconState::Rebooting {
-                        // the beacon is in the wrong state, send the state switch again
-                        //context.notify(BMCommand::Reboot(Some(status.realtime.mac_address)));
+                        // dont spam reboots
                         false
                     } else {
-                        /*match manager_state {
+                        match manager_state {
                             BeaconState::Idle => context.notify(BMCommand::EndEmergency(Some(status.realtime.mac_address))),
                             BeaconState::Active => context.notify(BMCommand::StartEmergency(Some(status.realtime.mac_address))),
                             _ => panic!("Manager must always be in idle or active states, other states are invalid"),
-                        }*/
+                        }
                         false
                     }
                 }
