@@ -62,11 +62,12 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
     where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
 {
     fn view(&self) -> Html<Self> {
-        let cls = if self.border { "bold_font" } else { "" };
+        let cls = if self.border { "btn btn-secondary btn-sm font-weight-bold" } else { "btn btn-secondary btn-sm" };
 
         html! {
             <>
                 <button
+                    type="button"
                     disabled={self.disabled},
                     onclick=|_| Msg::Click,
                     class={cls},
@@ -135,11 +136,12 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
     where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq
 {
     fn view(&self) -> Html<Self> {
-        let cls = if self.border { "bold_font" } else { "" };
+        let cls = if self.border { "btn btn-primary btn-sm font-weight-bold" } else { "btn btn-primary btn-sm font-italic" };
 
         html! {
             <>
                 <button
+                    type="button"
                     disabled={self.disabled},
                     onclick=|_| Msg::Click,
                     class={cls},

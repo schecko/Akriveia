@@ -58,13 +58,13 @@ impl Renderable<EmergencyButtons> for EmergencyButtons {
     fn view(&self) -> Html<Self> {
         html! {
             <>
-                <button
+                <button type="button" class="btn btn-lg btn-success"
                     onclick=|_| Msg::RequestEmergency,
                     disabled={self.is_emergency},
                 >
                     { "Start Emergency" }
                 </button>
-                <button
+                <button type="button" class="btn btn-lg btn-danger"
                     onclick=|_| Msg::RequestEndEmergency,
                     disabled={!self.is_emergency},
                 >
