@@ -19,7 +19,6 @@ use std::net::{ Ipv4Addr, IpAddr, };
 use std::net::SocketAddr;
 use tokio::codec::BytesCodec;
 use tokio::net::{ UdpSocket, UdpFramed };
-use common::*;
 
 pub struct BeaconUDP {
     bound_ip: Ipv4Net,
@@ -78,8 +77,6 @@ impl Handler<BeaconCommand> for BeaconUDP {
             BeaconCommand::Reboot(opt_ip)           => self.build_request("reboot", opt_ip),
         };
 
-        let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);
-        //let broadcast = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 255)), self.bound_port);
         self.sink
             .write((Bytes::from(command), ip))
             .map(|_s| {})
@@ -109,8 +106,7 @@ impl BeaconUDP {
 
     pub fn build_request<'a>(&mut self, command: &'a str, opt_ip: Option<IpAddr>) -> (&'a str, SocketAddr) {
         if let Some(ip) = opt_ip {
-            //let addr = SocketAddr::new(ip, self.bound_port);
-            let addr = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);
+            let addr = SocketAddr::new(ip, self.bound_port);
             (command, addr)
         } else {
             let broadcast = SocketAddr::new(IpAddr::V4(self.bound_ip.broadcast()), self.bound_port);

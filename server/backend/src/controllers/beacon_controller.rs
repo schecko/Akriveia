@@ -37,12 +37,11 @@ pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, pa
         BeaconRequest::Ping(mac) => BMCommand::Ping(mac),
         BeaconRequest::Reboot(mac) => BMCommand::Reboot(mac),
     };
-    println!("request command is: {:?}", payload.0);
     s.beacon_manager
         .send(command)
         .then(|res| {
             match res {
-                Ok(Ok(data)) => {
+                Ok(Ok(_data)) => {
                     ok(HttpResponse::Ok().finish())
                 },
                 _ => {

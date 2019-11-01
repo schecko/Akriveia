@@ -55,8 +55,8 @@ use actix::fut as afut;
     // as either will update their timestamp.
 // 5. as long as the stale map has elements, repeat the retry callback.
 
-const USE_DUMMY_BEACONS: bool = true;
-const USE_UDP_BEACONS: bool = false;
+const USE_DUMMY_BEACONS: bool = false;
+const USE_UDP_BEACONS: bool = true;
 const PING_INTERVAL: Duration = Duration::from_millis(100000);
 const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(10000);
 const RESPONSE_THRESHOLD: Duration = Duration::from_millis(2000);
@@ -158,7 +158,7 @@ impl BeaconManager {
                     beacon::select_beacons(client)
                 })
                 .into_actor(&manager)
-                .and_then(|(client, beacons), actor, context| {
+                .and_then(|(_client, beacons), actor, _context| {
                     beacons.into_iter().for_each(|b| {
                         actor.beacons.insert(b.mac_address.clone(), BeaconStatus {
                             realtime: RealtimeBeacon::from(b),
@@ -170,7 +170,7 @@ impl BeaconManager {
                 .map(|_, _actor, context| {
                     context.notify(BMCommand::Ping(None));
                 })
-                .map_err(|err, _actor, _context| { });
+                .map_err(|_err, _actor, _context| { });
             context.spawn(fut);
 
             manager
@@ -179,7 +179,6 @@ impl BeaconManager {
 
     // this callback is executed only after a request is sent to verify that beacons have responded
     fn check_health(&mut self, context: &mut Context<Self>) {
-        let now = Utc::now();
         let manager_state = self.state;
         let mut any_retries = false;
         self.beacons.iter_mut().for_each(|(_mac, status)| {
@@ -256,14 +255,14 @@ impl BeaconManager {
             ctx.cancel_future(pinger);
         }
         self.pinger = Some(ctx.run_interval(dur, |actor, context| {
-            actor.beacons.iter().for_each(|(mac, beacon)| {
+            actor.beacons.iter().for_each(|(_mac, beacon)| {
                 let realtime = beacon.realtime.clone();
                 let fut = db_utils::default_connect()
                     .and_then(|client| {
                         beacon::update_beacon_from_realtime(client, realtime)
                     })
-                    .map(|(_client, ifaces)| { })
-                    .map_err(|err| { });
+                    .map(|(_client, _beacon)| { })
+                    .map_err(|_err| { });
                 context.spawn(fut.into_actor(actor));
             });
 
@@ -429,9 +428,9 @@ impl Handler<BMCommand> for BeaconManager {
 impl Handler<BMResponse> for BeaconManager {
     type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: BMResponse, context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BMResponse::Start(ip, mac) => {
+            BMResponse::Start(_ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Active;
@@ -442,7 +441,7 @@ impl Handler<BMResponse> for BeaconManager {
                     }
                 }
             }
-            BMResponse::End(ip, mac) => {
+            BMResponse::End(_ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Idle;
@@ -453,7 +452,7 @@ impl Handler<BMResponse> for BeaconManager {
                     }
                 }
             },
-            BMResponse::Ping(ip, mac) => {
+            BMResponse::Ping(_ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.last_active = Utc::now();
@@ -463,7 +462,7 @@ impl Handler<BMResponse> for BeaconManager {
                     }
                 }
             },
-            BMResponse::Reboot(ip, mac) => {
+            BMResponse::Reboot(_ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Rebooting;
@@ -474,7 +473,7 @@ impl Handler<BMResponse> for BeaconManager {
                     }
                 }
             },
-            BMResponse::TagData(ip, tag_data) => {
+            BMResponse::TagData(_ip, tag_data) => {
                 match self.beacons.get_mut(&tag_data.beacon_mac) {
                     Some(beacon) => {
                         if tag_data.tag_distance < 50.0 { // any distance over 50meter is garbage data
