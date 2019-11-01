@@ -228,7 +228,7 @@ impl Login {
                             />
                             <input
                                 type="submit",
-                                class="fadein first",
+                                class="fadeIn first",
                                 value="Login",
                                 onclick=|_| Msg::RequestLogin,
                             />
