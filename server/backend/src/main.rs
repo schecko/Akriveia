@@ -13,7 +13,6 @@ extern crate futures;
 extern crate ipnet;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
-extern crate multi_map;
 
 mod beacon_manager;
 mod beacon_udp;
