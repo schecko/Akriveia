@@ -8,36 +8,35 @@ use crate::models::beacon;
 use crate::models::user;
 use futures::future as fut;
 use na;
-use std::collections::{ HashMap, BTreeMap, VecDeque };
+use std::collections::{ BTreeMap, VecDeque };
 use std::io;
 use common::*;
-use chrono::{ DateTime, Utc, };
+use chrono::{ Utc, };
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
 // contains a vector of tag data from multiple beacons
 #[derive(Debug)]
 struct TagHistory {
-    pub timestamp: DateTime<Utc>,
-    pub tag_mac: ShortAddress,
+    pub user: RealtimeUserData,
     pub beacon_history: BTreeMap<MacAddress8, VecDeque<f64>>,
 }
 
 pub struct DataProcessor {
     // this hash maps the id_tag mac address to data points for that id tag.
-    tag_hash: HashMap<ShortAddress, Box<TagHistory>>,
     // TODO support floors
     // TODO init with db data?
     // this tree maps tag mac addresses to users
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
-    users: BTreeMap<ShortAddress, RealtimeUserData>
+    users: BTreeMap<ShortAddress, Box<TagHistory>>,
+    beacons: BTreeMap<MacAddress8, Beacon>,
 }
 
 impl DataProcessor {
     pub fn new() -> DataProcessor {
         DataProcessor {
-            tag_hash: HashMap::new(),
+            beacons: BTreeMap::new(),
             users: BTreeMap::new(),
         }
     }
@@ -50,13 +49,20 @@ impl DataProcessor {
             panic!("not enough beacons to trilaterate");
         }
 
-        let bloc1 = beacons[0].coordinates;
-        let bloc2 = beacons[1].coordinates;
-        let bloc3 = beacons[2].coordinates;
+        let (sorted_beacons, sorted_data): (Vec<_>, Vec<_>) = beacons.iter().map(|b| {
+            (b, tag_data.iter().find(|t| t.beacon_mac == b.mac_address).unwrap())
+        }).unzip();
+        assert!(sorted_beacons[0].mac_address == sorted_data[0].beacon_mac);
+        assert!(sorted_beacons[1].mac_address == sorted_data[1].beacon_mac);
+        assert!(sorted_beacons[2].mac_address == sorted_data[2].beacon_mac);
 
-        let d1 = tag_data[0].tag_distance;
-        let d2 = tag_data[1].tag_distance;
-        let d3 = tag_data[2].tag_distance;
+        let bloc1 = sorted_beacons[0].coordinates;
+        let bloc2 = sorted_beacons[1].coordinates;
+        let bloc3 = sorted_beacons[2].coordinates;
+
+        let d1 = sorted_data[0].tag_distance;
+        let d2 = sorted_data[1].tag_distance;
+        let d3 = sorted_data[2].tag_distance;
 
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
@@ -90,7 +96,7 @@ impl Handler<DPMessage> for DataProcessor {
     fn handle (&mut self, msg: DPMessage, _: &mut Context<Self>) -> Self::Result {
         match msg {
             DPMessage::ResetData => {
-                self.tag_hash.clear();
+                self.beacons.clear();
                 self.users.clear();
             },
         }
@@ -115,19 +121,20 @@ fn append_history(tag_entry: &mut Box<TagHistory>, tag_data: &common::TagData) {
         deque.push_back(tag_data.tag_distance);
         tag_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
     }
-    tag_entry.timestamp = tag_data.timestamp;
+    tag_entry.user.last_active = tag_data.timestamp;
 }
 
 impl Handler<InLocationData> for DataProcessor {
     type Result = ResponseActFuture<Self, (), ()>;
 
     fn handle (&mut self, msg: InLocationData, _: &mut Context<Self>) -> Self::Result {
-        let tag_data = msg.0;
+        let tag_data = msg.0.clone();
+        let tag_data_update = msg.0;
 
         // append the data to in memory structures,
         // then if there are enough data points, return them in opt_averages
         // so that they can be used to trilaterate
-        let opt_averages = match self.tag_hash.get_mut(&tag_data.tag_mac) {
+        let prep_fut = match self.users.get_mut(&tag_data.tag_mac) {
             Some(mut tag_entry) => {
                 append_history(&mut tag_entry, &tag_data);
 
@@ -135,45 +142,69 @@ impl Handler<InLocationData> for DataProcessor {
                 if tag_entry.beacon_history.len() >= 3 {
                     let averaged_data: Vec<common::TagData> = tag_entry.beacon_history.iter().map(|(beacon_mac, hist_vec)| {
                         common::TagData {
-                            tag_mac: tag_entry.tag_mac.clone(),
+                            tag_mac: tag_entry.user.addr.clone(),
                             beacon_mac: beacon_mac.clone(),
                             tag_distance: hist_vec.into_iter().sum::<f64>() / hist_vec.len() as f64,
-                            timestamp: tag_entry.timestamp,
+                            timestamp: tag_entry.user.last_active,
                         }
                     }).collect();
 
-                    Some(averaged_data)
+                    afut::Either::A(fut::ok(averaged_data).into_actor(self))
                 } else {
-                    None
+                    afut::Either::A(fut::err(()).into_actor(self))
                 }
             },
             None => {
                 // create new entry
-                let mut hash_entry = TagHistory {
-                    tag_mac: tag_data.tag_mac.clone(),
-                    beacon_history: BTreeMap::new(),
-                    timestamp: tag_data.timestamp,
-                };
-                let mut deque = VecDeque::new();
-                deque.push_back(tag_data.tag_distance);
-                hash_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
-                self.tag_hash.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
-                None
+                let tag_mac = tag_data.tag_mac;
+
+                afut::Either::B(db_utils::default_connect()
+                    .and_then(move |client| {
+                        user::select_user_by_short(client, tag_mac)
+                    })
+                    .map_err(|_x| {})
+                    .into_actor(self)
+                    .map(move |(_client, opt_user), actor, _context| {
+                        match opt_user {
+                            Some(u) => {
+                                let mut hash_entry = TagHistory {
+                                    user: RealtimeUserData::from(u),
+                                    beacon_history: BTreeMap::new(),
+                                };
+
+                                let mut deque = VecDeque::new();
+                                deque.push_back(tag_data.tag_distance);
+                                hash_entry.beacon_history.insert(tag_data.beacon_mac.clone(), deque);
+                                actor.users.insert(tag_data.tag_mac.clone(), Box::new(hash_entry));
+                                fut::err::<Vec<TagData>, _>(()).into_actor(actor)
+                            },
+                            None => {
+                                // user doesn't exist, cannot continue processing.
+                                println!("tag {} does not have an associated user, make one", tag_data.tag_mac);
+                                fut::err::<Vec<TagData>, _>(()).into_actor(actor)
+                            }
+                        }
+                    })
+                    .and_then(|x, _, _| x)
+                )
+
             },
         };
 
-        let fut = match opt_averages {
-            // perform trilateration
-            Some(averages) => {
+        let fut = prep_fut
+            .and_then(move |averages, actor, _context| {
+                // perform trilateration
                 let beacon_macs: Vec<MacAddress8> = averages
                     .iter()
                     .map(|tagdata| tagdata.beacon_mac)
                     .collect();
-                afut::Either::A(db_utils::default_connect()
+
+                let fut = db_utils::default_connect()
                     .and_then(|client| {
                         beacon::select_beacons_by_mac(client, beacon_macs)
                     })
-                    .into_actor(self)
+                    .into_actor(actor)
+                    .map_err(|_e, _, _| {})
                     .and_then(move |(client, beacons), actor, _context| {
                         // perform trilateration calculation
                         let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
@@ -196,64 +227,36 @@ impl Handler<InLocationData> for DataProcessor {
                             });
                         });
 
-                        // ensure the user exists in memory, go to db if we must.
-                        let tag_mac = tag_data.tag_mac.clone();
-                        let fetch_user_fut = match actor.users.contains_key(&tag_data.tag_mac) {
-                            true => afut::Either::A(fut::ok::<_, tokio_postgres::Error>(client).into_actor(actor)),
-                            false => {
-                                afut::Either::B(user::select_user_by_short(client, tag_data.tag_mac)
-                                    .into_actor(actor)
-                                    .map(move |(client, opt_user), actor, _context| {
-                                        match opt_user {
-                                            Some(u) => {
-                                                let user_data = RealtimeUserData::from(u);
-                                                actor.users.insert(user_data.addr.clone(), user_data);
-                                            },
-                                            None => {
-                                                // user doesn't exist, cannot continue processing.
-                                                println!("tag {} does not have an associated user, make one", tag_mac);
-                                            }
-                                        }
-                                        client
-                                    })
-                                )
-                            }
-                        };
-
-                        fetch_user_fut
-                            .map(move |client, _actor, _context| {
-                                (client, tag_data.tag_mac, timestamp, map_id, new_tag_location, beacon_sources)
-                            })
-                    })
-                    .and_then(|(client, tag_addr, timestamp, map_id, new_tag_location, beacon_sources), actor, _context| {
                         // update the user information
-                        match actor.users.get_mut(&tag_addr) {
-                            Some(user) => {
-                                user.beacon_tofs = beacon_sources;
-                                user.coordinates = new_tag_location;
-                                user.last_active = timestamp;
-                                user.map_id = map_id;
-                                afut::Either::A(user::update_user_from_realtime(client, user.clone())
-                                    .map(|(_client, _opt_user)| { })
-                                    .into_actor(actor)
+                        let update_db_fut = match actor.users.get_mut(&tag_data_update.tag_mac) {
+                            Some(hist) => {
+                                hist.user.beacon_tofs = beacon_sources;
+                                hist.user.coordinates = new_tag_location;
+                                hist.user.last_active = timestamp;
+                                hist.user.map_id = map_id;
+                                afut::Either::A(
+                                    user::update_user_from_realtime(client, hist.user.clone())
+                                        .map_err(|_e| {})
+                                        .map(|(_client, _opt_user)| { })
+                                        .into_actor(actor)
                                 )
                             },
                             None => {
                                 // if the user doesnt exist by now, then there is a tag without an
                                 // associated user sending us data, just ignore it
-                                afut::Either::B(afut::ok(()))
+                                afut::Either::B(afut::err(()))
                             }
-                        }
-                    })
-                )
-            },
-            // not enough data, do nothing for now
-            None => {
-                afut::Either::B(fut::ok(()).into_actor(self))
-            }
-        };
+                        };
 
-        Box::new(fut.map_err(|_postgres_err, _, _| { }))
+                        update_db_fut
+                    });
+                fut
+            })
+            .map(|_, _actor, _context| {
+            })
+            .map_err(|_, _actor, _context| {
+            });
+        Box::new(fut)
     }
 }
 
@@ -267,6 +270,6 @@ impl Handler<OutUserData> for DataProcessor {
     type Result = Result<Vec<RealtimeUserData>, io::Error>;
 
     fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
-        Ok(self.users.values().cloned().collect())
+        Ok(self.users.iter().map(|(_addr, hist)| hist.user.clone()).collect())
     }
 }

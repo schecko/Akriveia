@@ -1,23 +1,22 @@
 #![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
+extern crate actix_identity;
 extern crate actix_session;
 extern crate actix_web;
-extern crate actix_identity;
+extern crate chrono;
 extern crate common;
 extern crate env_logger;
+extern crate eui48;
+extern crate eui64;
 extern crate futures;
 extern crate ipnet;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
-extern crate eui48;
-extern crate eui64;
-extern crate chrono;
 
-mod beacon_dummy;
 mod beacon_manager;
-mod beacon_serial;
 mod beacon_udp;
+mod dummy_udp;
 mod controllers;
 mod data_processor;
 mod db_utils;
@@ -35,7 +34,7 @@ use models::system;
 
 use actix::prelude::*;
 use actix_files as fs;
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_identity::{ CookieIdentityPolicy, IdentityService, };
 use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpServer, };
 use beacon_manager::*;
 use common::*;
@@ -57,7 +56,7 @@ impl AkriveiaState {
     pub fn new() -> web::Data<Mutex<AkriveiaState>> {
 
         let data_processor_addr =  DataProcessor::new().start();
-        let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone()).start();
+        let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone());
 
         beacon_manager_addr.do_send(BMCommand::ScanBeacons);
 
@@ -125,6 +124,15 @@ fn main() -> std::io::Result<()> {
                 web::resource(&beacon_url(""))
                     .route(web::post().to_async(beacon_controller::post_beacon))
             )
+            .service(
+                web::resource(&beacons_status_url())
+                    .to_async(beacon_controller::beacons_status)
+            )
+            .service(
+                web::resource(&beacon_command_url())
+                    .to_async(beacon_controller::beacon_command)
+            )
+
 
             // user
             .service(
@@ -140,6 +148,10 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&user_url(""))
                     .route(web::post().to_async(user_controller::post_user))
+            )
+            .service(
+                web::resource(&users_status_url())
+                    .to_async(user_controller::users_status)
             )
 
             // map
@@ -187,11 +199,6 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&network_url(""))
                     .route(web::post().to_async(network_interface_controller::post_network_interface))
-            )
-
-            .service(
-                web::resource(&users_status_url())
-                    .to_async(user_controller::users_status)
             )
 
             // session

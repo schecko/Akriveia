@@ -9,7 +9,6 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
-
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
@@ -35,7 +34,8 @@ pub struct MapViewComponent {
     emergency: bool,
     error_messages: Vec<String>,
     fetch_service: FetchService,
-    fetch_task: Option<FetchTask>,
+    fetch_task_users: Option<FetchTask>,
+    fetch_task_beacons: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
@@ -101,7 +101,8 @@ impl Component for MapViewComponent {
             emergency: props.emergency,
             error_messages: Vec::new(),
             fetch_service: FetchService::new(),
-            fetch_task: None,
+            fetch_task_users: None,
+            fetch_task_beacons: None,
             get_fetch_task: None,
             get_many_fetch_task: None,
             interval_service: IntervalService::new(),
@@ -158,7 +159,7 @@ impl Component for MapViewComponent {
                 }
             },
             Msg::RequestRealtimeUser => {
-                self.fetch_task = get_request!(
+                self.fetch_task_users = get_request!(
                     self.fetch_service,
                     &users_status_url(),
                     self.self_link,
@@ -168,7 +169,7 @@ impl Component for MapViewComponent {
             Msg::RequestGetBeaconsForMap(id) => {
                 self.error_messages = Vec::new();
 
-                self.fetch_task = get_request!(
+                self.fetch_task_beacons = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
                     self.self_link,

@@ -14,12 +14,19 @@ pub use short_address::ShortAddress;
 use ipnet::{ Ipv4Net, };
 use serde_derive::{ Deserialize, Serialize, };
 use std::net::{ IpAddr, Ipv4Addr, };
+use std::fmt;
 
 pub fn beacon_url(id: &str) -> String {
     return format!("/beacon/{}", id);
 }
+pub fn beacon_command_url() -> String {
+    return String::from("/beacons/command");
+}
 pub fn beacons_url() -> String {
     return String::from("/beacons");
+}
+pub fn beacons_status_url() -> String {
+    return String::from("/beacons/status");
 }
 pub fn beacons_for_map_url(id: &str) -> String {
     return format!("/map/{}/beacons", id);
@@ -98,6 +105,20 @@ pub struct TagData {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticData {
     pub tag_data: Vec<TagData>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum BeaconRequest {
+    StartEmergency(Option<MacAddress8>),
+    EndEmergency(Option<MacAddress8>),
+    Ping(Option<MacAddress8>),
+    Reboot(Option<MacAddress8>),
+}
+
+impl Default for BeaconRequest {
+    fn default() -> Self {
+        BeaconRequest::Ping(None)
+    }
 }
 
 impl DiagnosticData {
@@ -183,6 +204,66 @@ impl TrackedUser {
     }
 }
 
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BeaconState {
+    Unknown,
+    Idle,
+    Rebooting,
+    Active,
+}
+
+impl BeaconState {
+    pub const fn count() -> usize {
+        4
+    }
+}
+
+impl fmt::Display for BeaconState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            BeaconState::Unknown => write!(f, "Unknown"),
+            BeaconState::Idle => write!(f, "Idle"),
+            BeaconState::Rebooting => write!(f, "Rebooting"),
+            BeaconState::Active => write!(f, "Active"),
+        }
+    }
+}
+
+impl From<BeaconState> for usize {
+    fn from(s: BeaconState) -> Self {
+        // NOTE: When updating this match statement,
+        // remember to update the count() function as
+        // well.
+        match s {
+            BeaconState::Unknown     => 0,
+            BeaconState::Idle        => 1,
+            BeaconState::Rebooting   => 2,
+            BeaconState::Active      => 3,
+        }
+    }
+}
+
+impl From<BeaconState> for i16 {
+    fn from(s: BeaconState) -> Self {
+        usize::from(s) as i16
+    }
+}
+
+impl From<i16> for BeaconState {
+    fn from(s: i16) -> Self {
+        // NOTE: When updating this match statement,
+        // remember to update the count() function as
+        // well.
+        match s {
+            0 => BeaconState::Unknown,
+            1 => BeaconState::Idle,
+            2 => BeaconState::Rebooting,
+            3 => BeaconState::Active,
+            _ => panic!("unexpected beacon state"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Beacon {
     pub coordinates: na::Vector2<f64>,
@@ -193,6 +274,7 @@ pub struct Beacon {
     pub map_id: Option<i32>,
     pub name: String,
     pub note: Option<String>,
+    pub state: BeaconState,
 }
 
 impl Beacon {
@@ -206,6 +288,48 @@ impl Beacon {
             map_id: None,
             name: String::new(),
             note: None,
+            state: BeaconState::Unknown,
+        }
+    }
+
+    pub fn merge(&mut self, rt: RealtimeBeacon) {
+        assert!(self.id == rt.id);
+        assert!(self.mac_address == rt.mac_address); // TODO handle this more gracefully
+
+        self.last_active = rt.last_active;
+        self.state = rt.state;
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealtimeBeacon {
+    pub id: i32, // primary key
+    pub ip: IpAddr,
+    pub last_active: DateTime<Utc>,
+    pub mac_address: MacAddress8,
+    pub state: BeaconState,
+}
+
+impl From<Beacon> for RealtimeBeacon {
+    fn from(beacon: Beacon) -> Self {
+        RealtimeBeacon {
+            id: beacon.id,
+            ip: beacon.ip,
+            mac_address: beacon.mac_address,
+            last_active: beacon.last_active,
+            state: beacon.state,
+        }
+    }
+}
+
+impl RealtimeBeacon {
+    pub fn new() -> RealtimeBeacon {
+        RealtimeBeacon {
+            id: -1,
+            ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            last_active: Utc.timestamp(0, 0),
+            mac_address: MacAddress8::nil(),
+            state: BeaconState::Unknown,
         }
     }
 }
