@@ -174,7 +174,6 @@ impl Renderable<RootComponent> for RootComponent {
             Page::Login => {
                 html! {
                     <div class="container-fluid">
-                        //<h1>{ "Login Page" }</h1>
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
@@ -291,10 +290,10 @@ impl RootComponent {
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown-toggle" id="navbarDropDownUsers" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "User Config" }
                     </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropDownUsers">
+                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
                         <a class ="dropdown-item" onclick=|_| Msg::ChangePage(Page::UserList), disabled={self.current_page == Page::UserList},>
                             { "User List" }
                         </a>
@@ -322,10 +321,10 @@ impl RootComponent {
         let select_beacon = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown-toggle" id="navbarDropDownBeacons" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "Beacons" }
                     </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropdownBeacons">
+                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>
                             { "Beacon List" }
                         </a>
@@ -353,10 +352,10 @@ impl RootComponent {
         let select_map = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a class="nav-link dropdown-toggle" id="navbarDropDownMaps" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown" disabled=false id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         { "Maps" }
                     </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropDownMaps">
+                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
                         <a class="dropdown-item" onclick=|_| Msg::ChangePage(Page::MapList), disabled={self.current_page == Page::MapList},>
                             { "Map List" }
                         </a>
@@ -390,7 +389,7 @@ impl RootComponent {
             },
             WebUserType::Responder => html! {
                 <button
-                    class="btn btn-primary btn-lg active"
+                    class="btn btn-primary btn-lg"
                     onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
                         match self.current_page {
@@ -415,14 +414,27 @@ impl RootComponent {
             }
         };
 
+        // Added TYPE of login at top right nav bar
+        let login_type = match self.user_type {
+            WebUserType::Admin => html!{
+                <>
+                    <a class="loginTypeHeader">{"ADMIN"}</a>
+                </>
+            },
+            WebUserType::Responder => html!{
+                <>
+                    <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
+                </>
+            }
+        };
+
         html! {
             <nav class="navbar navbar-expand-lg navbar-dark bg-dark" /*style="background-color: #be0010;"*/>
                 <a class="navbar-brand">
                     <img src="/images/icon_780_720.png" width="39" height="36" class="d-inline-block align-top" alt=""/>
-                    {"Akriveia"}
                 </a>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav mr-auto">
                         <li class="nav-item">
                             { diagnostics }
                         </li>
@@ -439,6 +451,7 @@ impl RootComponent {
                             { select_map }
                         </li>
                     </ul>
+                            {login_type}
                 </div>
             </nav>
         }

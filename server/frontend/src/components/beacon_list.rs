@@ -135,7 +135,6 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                // I need to implement css class with padding
                 <table class="table table-striped">
                     <thead class="thead-light">                 
                     <h2>{ "Beacon List" }</h2>

@@ -232,25 +232,7 @@ impl Login {
                                 value="Login",
                                 onclick=|_| Msg::RequestLogin,
                             />
-                            /*<div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="rememberPassword"/>
-                                <label class="custom-control-label">{" Remember Password "}</label>
-                            </div>*/
-                            <div class="form-check mb-2 mr-sm-2">
-                                <input type="checkbox" class="form-check-input" id="rememberPassword"/>
-                                <label class="form-check-label big" for="rememberPassword">{"Remember Password"}</label>
-                            </div>
-                        </div>
-
-                        //TODO add a forget password checkbox
-                        <div class="formFooter">
-                            <a 
-                                class="big",
-                                //TODO implement forget password
-                                //onclick=|_| Msg::ForgetPassword,
-                                >{ "Forget Password" }</a>
                         </div>                           
-
                     </div>
                 </div>
             </>

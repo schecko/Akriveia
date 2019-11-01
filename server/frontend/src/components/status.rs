@@ -336,22 +336,26 @@ impl Status {
 
         html! {
             <>
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <h2>{ "Beacon Status" }</h2>                 
-                        <tr>
-                            <th>{ "Mac" }</th>
-                            <th>{ "Coordinates" }</th>
-                            <th>{ "Floor" }</th>
-                            <th>{ "Name" }</th>
-                            <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
+                // TODO find the reason why table is not container-fluid
+                <div class="container-fluid">
+                    <table class="table table-striped">
+                        <thead class="thead-light">
+                            <h2>{ "Beacon Status" }</h2>
+                            <tr>
+                                <th>{ "Mac" }</th>
+                                <th>{ "Last Active" }</th>
+                                <th>{ "Coordinates" }</th>
+                                <th>{ "Floor" }</th>
+                                <th>{ "Note" }</th>
+                                <th>{ "Actions" }</th>
+                                <th>{""}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for rows }
+                        </tbody>
+                    </table>
+                </div>
             </>
         }
     }
@@ -386,8 +390,6 @@ impl Status {
                             border=false,
                             value={user.id}
                         />
-                    </td>
-                    <td>
                         <DisplayButton<Option<i32>>
                             display="Map".to_string(),
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
@@ -402,22 +404,24 @@ impl Status {
 
         html! {
             <>
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <h2>{ "User Status" }</h2>                 
-                        <tr>
-                            <th>{ "Name" }</th>
-                            <th>{ "Coordinates" }</th>
-                            <th>{ "Floor" }</th>
-                            <th>{ "Last Seen" }</th>
-                            <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
+                <div class="container-fluid">
+                    <table class="table table-striped">
+                        <thead class="thead-light">
+                            <h2>{ "User Status" }</h2>
+                            <tr>
+                                <th>{ "Name" }</th>
+                                <th>{ "Coordinates" }</th>
+                                <th>{ "Floor" }</th>
+                                <th>{ "Last Seen" }</th>
+                                <th>{ "Note" }</th>
+                                <th>{ "Actions" }</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for rows }
+                        </tbody>
+                    </table>
+                </div>
             </>
         }
     }
