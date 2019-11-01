@@ -165,7 +165,6 @@ impl Renderable<Diagnostics> for Diagnostics {
                         {"Reset Data"}
                     </button>
 
-
                     <table class="table table-striped">
                         <thead class="thead-dark">                 
                             <div>
@@ -184,8 +183,6 @@ impl Renderable<Diagnostics> for Diagnostics {
                         </tbody>
                     </table>
                 </>
-
-
             }
         } else {
             html! {
