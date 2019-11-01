@@ -21,7 +21,6 @@ pub enum Msg {
     ChangeStatus(PageState),
 
     RequestGetBeacons,
-    RequestGetBeaconsStatus,
     RequestGetUsers,
     RequestGetUser(i32),
     RequestGetUsersStatus,
@@ -29,7 +28,6 @@ pub enum Msg {
     RequestGetMap(i32),
 
     ResponseGetBeacons(util::Response<Vec<Beacon>>),
-    ResponseGetBeaconsStatus(util::Response<Vec<RealtimeBeacon>>),
     ResponseGetUsers(util::Response<Vec<TrackedUser>>),
     ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
     ResponseGetUser(util::Response<TrackedUser>),
@@ -50,7 +48,6 @@ pub struct Status {
 
     // ugh.
     fetch_beacons: Option<FetchTask>,
-    fetch_beacons_status: Option<FetchTask>,
     fetch_users: Option<FetchTask>,
     fetch_user: Option<FetchTask>,
     fetch_user_status: Option<FetchTask>,
@@ -62,7 +59,7 @@ impl Status {
     fn restart_service(&mut self) {
         let callback = match self.state {
             PageState::UserStatus => self.self_link.send_back(|_| Msg::RequestGetUsersStatus),
-            PageState::BeaconStatus => self.self_link.send_back(|_| Msg::RequestGetBeaconsStatus),
+            PageState::BeaconStatus => self.self_link.send_back(|_| Msg::RequestGetBeacons),
         };
         self.interval_service_task = Some(self.interval_service.spawn(POLL_RATE, callback));
     }
@@ -94,7 +91,6 @@ impl Component for Status {
             change_page: props.change_page,
 
             fetch_beacons: None,
-            fetch_beacons_status: None,
             fetch_map: None,
             fetch_maps: None,
             fetch_user: None,
@@ -137,14 +133,6 @@ impl Component for Status {
                     &beacons_url(),
                     self.self_link,
                     Msg::ResponseGetBeacons
-                );
-            },
-            Msg::RequestGetBeaconsStatus => {
-                self.fetch_beacons_status = get_request!(
-                    self.fetch_service,
-                    &beacons_status_url(),
-                    self.self_link,
-                    Msg::ResponseGetBeaconsStatus
                 );
             },
             Msg::RequestGetUsers => {
@@ -212,33 +200,6 @@ impl Component for Status {
                                     }
                                 }
                                 self.beacons.insert(b.id, b);
-                            }
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to obtain beacon list");
-                }
-            },
-            Msg::ResponseGetBeaconsStatus(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(realtime_beacons) => {
-                            for rb in realtime_beacons {
-                                match self.beacons.get_mut(&rb.id) {
-                                    Some(b) => {
-                                        b.merge(rb);
-                                    },
-                                    None => {
-                                        // just drop the realtime data for now until
-                                        // the user object is retrieved, more realtime data
-                                        // will come eventually and the UI user likely wont
-                                        // notice.
-                                        self.self_link
-                                            .send_back(move |_: ()| Msg::RequestGetUser(rb.id));
-                                    }
-                                }
                             }
                         }
                         _ => { }
@@ -348,12 +309,11 @@ impl Status {
 
             html! {
                 <tr>
-                    <td>{ &beacon.name }</td>
-                    <td>{ &beacon.state }</td>
+                    <td>{ &beacon.mac_address.to_hex_string() }</td>
                     <td>{ &beacon.last_active }</td>
                     <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
-                    <td>{ &beacon.mac_address.to_hex_string() }</td>
+                    <td>{ &beacon.name }</td>
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
@@ -382,12 +342,11 @@ impl Status {
                         <thead class="thead-light">
                             <h2>{ "Beacon Status" }</h2>
                             <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "State" }</th>
+                                <th>{ "Mac" }</th>
                                 <th>{ "Last Active" }</th>
                                 <th>{ "Coordinates" }</th>
                                 <th>{ "Floor" }</th>
-                                <th>{ "Mac" }</th>
+                                <th>{ "Name"}</th>
                                 <th>{ "Note" }</th>
                                 <th>{ "Actions" }</th>
                             </tr>
