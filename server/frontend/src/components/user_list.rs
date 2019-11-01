@@ -149,6 +149,7 @@ impl Renderable<UserList> for UserList {
                             <th>{ "Last Active" }</th>
                             <th>{ "Work Phone" }</th>
                             <th>{ "Mobile Phone" }</th>
+                            <th>{"Actions"}</th>
                         </tr>
                     </thead>
                     <tbody>
