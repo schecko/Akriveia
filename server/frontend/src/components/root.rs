@@ -243,7 +243,7 @@ impl Renderable<RootComponent> for RootComponent {
             Page::UserAddUpdate(id) => {
                 html! {
                     <div class="page-content-wrapper">
-                        { self.navigation() }    
+                        { self.navigation() }
                         <div class="container-fluid">
                             <h1>{ "User" } </h1>
                             <UserAddUpdate
@@ -395,7 +395,7 @@ impl RootComponent {
                         match self.current_page {
                             Page::MapView { .. } => true,
                             _ => false,
-                        }   
+                        }
                     },
                 >
                     { "MapView" }
@@ -412,7 +412,6 @@ impl RootComponent {
             }
         };
 
-        // Added TYPE of login at top right nav bar
         let login_type = match self.user_type {
             WebUserType::Admin => html!{
                 <a class="loginTypeHeader">{"ADMIN"}</a>
@@ -431,14 +430,24 @@ impl RootComponent {
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav mr-auto">
                         <li class="nav-item">
+                            <a
+                                class="nav-link",
+                                onclick=|_| Msg::ChangePage(Page::Login),
+                                disabled={self.current_page == Page::Login},
+                            >
+                                { "Logout" }
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             { diagnostics }
                         </li>
                         <li class="nav-item">
-                            <a 
+                            <a
                                 class="nav-link",
                                 onclick=|_| Msg::ChangePage(Page::Status),
-                                disabled={self.current_page == Page::Status},>
-                                    { "Status" }
+                                disabled={self.current_page == Page::Status},
+                            >
+                                { "Status" }
                             </a>
                         </li>
                         <li class="nav-item dropdown">

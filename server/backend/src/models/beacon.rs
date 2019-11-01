@@ -5,6 +5,7 @@ use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
+use std::net::IpAddr;
 
 pub fn row_to_beacon(row: &Row) -> Beacon {
     let mut b = Beacon::new();
@@ -17,10 +18,11 @@ pub fn row_to_beacon(row: &Row) -> Beacon {
                 let coordinates: Vec<f64> = row.get(i);
                 b.coordinates = na::Vector2::new(coordinates[0], coordinates[1]);
             }
-            "b_map_id" => b.map_id = row.get(i),
             "b_last_active" => b.last_active = row.get(i),
+            "b_map_id" => b.map_id = row.get(i),
             "b_name" => b.name = row.get(i),
             "b_note" => b.note = row.get(i),
+            "b_state" => b.state = BeaconState::from(row.get::<usize, i16>(i)),
             unhandled if unhandled.starts_with("b_") => { panic!("unhandled beacon column {}", unhandled); },
             _ => {},
         }
@@ -133,6 +135,32 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
                 .into_future()
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
+                })
+        })
+}
+
+pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.beacons
+            WHERE b_ip = $1
+        ", &[
+            Type::INET,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[
+                    &ip,
+                ])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_beacon(&r))),
+                        _ => (client, None),
+                    }
                 })
         })
 }
@@ -261,25 +289,30 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         })
 }
 
-#[allow(dead_code)]
-pub fn update_beacon_stamp_by_mac(mut client: tokio_postgres::Client, mac: MacAddress8, stamp: DateTime<Utc>) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeBeacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
             UPDATE runtime.beacons
             SET
-                b_last_active = $1
-            WHERE
-                b_mac_address = $2
+                b_ip = $1,
+                b_last_active = $2,
+                b_state = $3
+             WHERE
+                b_id = $4
             RETURNING *
         ", &[
+            Type::INET,
             Type::TIMESTAMPTZ,
-            Type::MACADDR8,
+            Type::INT2,
+            Type::INT4,
         ])
         .and_then(move |statement| {
             client
                 .query(&statement, &[
-                    &stamp,
-                    &mac,
+                    &realtime.ip,
+                    &realtime.last_active,
+                    &i16::from(realtime.state),
+                    &realtime.id,
                 ])
                 .into_future()
                 .map_err(|err| {
@@ -421,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn update_stamp_by_mac() {
+    fn update_from_realtime() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
 
@@ -429,8 +462,8 @@ mod tests {
 
         let mut beacon = Beacon::new();
         beacon.name = "hello_test".to_string();
-        let mut updated_beacon = beacon.clone();
-        updated_beacon.name = "hello".to_string();
+        let mut realtime = RealtimeBeacon::from(beacon.clone());
+        realtime.last_active = Utc.timestamp(77, 0);
 
         let task = db_utils::default_connect()
             .and_then(|client| {
@@ -441,14 +474,12 @@ mod tests {
                 beacon.map_id = Some(map.unwrap().id);
                 insert_beacon(client, beacon)
             })
-            .and_then(|(client, opt_beacon)| {
-                let b = opt_beacon.unwrap();
-                updated_beacon.map_id = b.map_id;
-                updated_beacon.id = b.id;
-                update_beacon_stamp_by_mac(client, b.mac_address, Utc.timestamp(77, 0))
+            .and_then(move |(client, opt_beacon)| {
+                realtime.id = opt_beacon.unwrap().id;
+                update_beacon_from_realtime(client, realtime)
             })
-            .map(|(_client, beacon)| {
-                assert!(beacon.unwrap().last_active == Utc.timestamp(77, 0));
+            .map(|(_client, opt_beacon)| {
+                assert!(opt_beacon.unwrap().last_active == Utc.timestamp(77, 0));
             })
             .map_err(|e| {
                 println!("db error {:?}", e);

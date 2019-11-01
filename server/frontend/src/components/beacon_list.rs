@@ -1,7 +1,7 @@
 use common::*;
 use crate::util;
 use super::root;
-use super::value_button::ValueButton;
+use super::value_button::{ ValueButton, DisplayButton, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
@@ -11,9 +11,16 @@ pub enum Msg {
 
     RequestDeleteBeacon(i32),
     RequestGetBeacons,
+    RequestCommandBeacon(BeaconRequest),
 
     ResponseGetBeacons(util::Response<Vec<(Beacon, Map)>>),
     ResponseDeleteBeacon(util::Response<Vec<()>>),
+    ResponseCommandBeacon(util::Response<()>),
+}
+
+struct Data {
+    pub error_messages: Vec<String>,
+    pub success_message: Option<String>,
 }
 
 pub struct BeaconList {
@@ -22,6 +29,16 @@ pub struct BeaconList {
     fetch_task: Option<FetchTask>,
     list: Vec<(Beacon, Map)>,
     self_link: ComponentLink<Self>,
+    data: Data,
+}
+
+impl Data {
+    fn new() -> Data {
+        Data {
+            error_messages: Vec::new(),
+            success_message: None,
+        }
+    }
 }
 
 #[derive(Properties)]
@@ -42,6 +59,7 @@ impl Component for BeaconList {
             fetch_task: None,
             self_link: link,
             change_page: props.change_page,
+            data: Data::new(),
         };
         result
     }
@@ -54,6 +72,16 @@ impl Component for BeaconList {
                     &format!("{}?prefetch=true", beacons_url()),
                     self.self_link,
                     Msg::ResponseGetBeacons
+                );
+            },
+            Msg::RequestCommandBeacon(command) => {
+                Log!("wtf {:?}", command);
+                self.fetch_task = post_request!(
+                    self.fetch_service,
+                    &beacon_command_url(),
+                    command,
+                    self.self_link,
+                    Msg::ResponseCommandBeacon
                 );
             },
             Msg::RequestDeleteBeacon(id) => {
@@ -75,6 +103,14 @@ impl Component for BeaconList {
                     }
                 } else {
                     Log!("response - failed to obtain beacon list");
+                }
+            },
+            Msg::ResponseCommandBeacon(response) => {
+                let (meta, Json(_body)) = response.into_parts();
+                if meta.status.is_success() {
+                    self.data.success_message = Some("Successfully sent command".to_string());
+                } else {
+                    Log!("response - failed to command beacon");
                 }
             },
             Msg::ResponseDeleteBeacon(response) => {
@@ -128,15 +164,42 @@ impl Renderable<BeaconList> for BeaconList {
                             border=false,
                             value=beacon.id
                         />
+                        <DisplayButton<BeaconRequest>
+                            display="Ping".to_string(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Ping(Some(beacon.mac_address)),
+                        />
+                        <DisplayButton<BeaconRequest>
+                            display="Reboot".to_string(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Reboot(Some(beacon.mac_address)),
+                        />
                     </td>
                 </tr>
             }
         });
 
+        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+            html! {
+                <p>{msg}</p>
+            }
+        });
+
         html! {
             <>
+                <p>{ "Beacon List" }</p>
+                {
+                    match &self.data.success_message {
+                        Some(msg) => { format!("Success: {}", msg) },
+                        None => { "".to_string() },
+                    }
+                }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <table class="table table-striped">
-                    <thead class="thead-light">                 
+                    <thead class="thead-light">
                         <h2>{ "Beacon List" }</h2>
                         <tr>
                             <th>{ "Mac" }</th>

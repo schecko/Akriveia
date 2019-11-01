@@ -49,13 +49,20 @@ impl DataProcessor {
             panic!("not enough beacons to trilaterate");
         }
 
-        let bloc1 = beacons[0].coordinates;
-        let bloc2 = beacons[1].coordinates;
-        let bloc3 = beacons[2].coordinates;
+        let (sorted_beacons, sorted_data): (Vec<_>, Vec<_>) = beacons.iter().map(|b| {
+            (b, tag_data.iter().find(|t| t.beacon_mac == b.mac_address).unwrap())
+        }).unzip();
+        assert!(sorted_beacons[0].mac_address == sorted_data[0].beacon_mac);
+        assert!(sorted_beacons[1].mac_address == sorted_data[1].beacon_mac);
+        assert!(sorted_beacons[2].mac_address == sorted_data[2].beacon_mac);
 
-        let d1 = tag_data[0].tag_distance;
-        let d2 = tag_data[1].tag_distance;
-        let d3 = tag_data[2].tag_distance;
+        let bloc1 = sorted_beacons[0].coordinates;
+        let bloc2 = sorted_beacons[1].coordinates;
+        let bloc3 = sorted_beacons[2].coordinates;
+
+        let d1 = sorted_data[0].tag_distance;
+        let d2 = sorted_data[1].tag_distance;
+        let d3 = sorted_data[2].tag_distance;
 
         // Trilateration solver
         let a = -2.0 * bloc1.x + 2.0 * bloc2.x;
