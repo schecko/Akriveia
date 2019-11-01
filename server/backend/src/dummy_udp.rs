@@ -21,7 +21,7 @@ const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const MIN_DISTANCE: f64 = 1.0;
 const MAX_DISTANCE: f64 = 4.0;
 const REBOOT_AWAKE_CHANCE: f64 = 0.05;
-const REBOOT_CHANCE: f64 = 0.1;
+const REBOOT_CHANCE: f64 = 0.0;
 
 pub struct DummyUDP {
     manager: Addr<BeaconManager>,
@@ -133,7 +133,6 @@ impl DummyUDP {
         where F: Fn(IpAddr, MacAddress8) -> BMResponse
     {
         if opt_ip == self.rebooting_ip && self.rng.gen_bool(REBOOT_AWAKE_CHANCE) {
-            println!("beacon {} rebooted\n\n", self.rebooting_ip.unwrap());
             self.rebooting_ip = None;
         }
 

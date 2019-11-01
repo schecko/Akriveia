@@ -231,7 +231,7 @@ impl fmt::Display for BeaconState {
 
 impl From<BeaconState> for usize {
     fn from(s: BeaconState) -> Self {
-        // NOTE: When updating this match statuement,
+        // NOTE: When updating this match statement,
         // remember to update the count() function as
         // well.
         match s {
@@ -239,6 +239,27 @@ impl From<BeaconState> for usize {
             BeaconState::Idle        => 1,
             BeaconState::Rebooting   => 2,
             BeaconState::Active      => 3,
+        }
+    }
+}
+
+impl From<BeaconState> for i16 {
+    fn from(s: BeaconState) -> Self {
+        usize::from(s) as i16
+    }
+}
+
+impl From<i16> for BeaconState {
+    fn from(s: i16) -> Self {
+        // NOTE: When updating this match statement,
+        // remember to update the count() function as
+        // well.
+        match s {
+            0 => BeaconState::Unknown,
+            1 => BeaconState::Idle,
+            2 => BeaconState::Rebooting,
+            3 => BeaconState::Active,
+            _ => panic!("unexpected beacon state"),
         }
     }
 }

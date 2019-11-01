@@ -44,14 +44,15 @@ const SCHEMA: [&str; 32] = [
         u_mobile_phone VARCHAR(20)
     );",
     "CREATE TABLE runtime.beacons (
-        b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_id SERIAL PRIMARY KEY,
         b_ip INET UNIQUE,
+        b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_last_active TIMESTAMPTZ NOT NULL,
         b_mac_address MACADDR8 UNIQUE,
         b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
         b_name VARCHAR(255) UNIQUE,
-        b_note VARCHAR(1024)
+        b_note VARCHAR(1024),
+        b_state INT2 NOT NULL DEFAULT 0
     );",
     "CREATE TABLE system.network_interfaces (
         n_id SERIAL PRIMARY KEY,

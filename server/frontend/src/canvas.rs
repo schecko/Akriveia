@@ -9,7 +9,7 @@ use palette::{ Gradient, LinSrgb, };
 
 const USER_RADIUS: f64 = 5.0;
 const BEACON_RADIUS: f64 = 8.0;
-const MAX_TIME: f64 = 10000.0; // milliseconds
+const MAX_TIME: f64 = 30000.0; // milliseconds
 
 struct GradColor {
     grad: Gradient<LinSrgb<f64>>,
@@ -129,6 +129,9 @@ impl Canvas {
         self.context.fill(FillRule::NonZero);
         self.context.set_fill_style_color("#000");
         self.context.fill_rect(x_row_entry - BEACON_RADIUS / 4.0, current_y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
+        self.context.begin_path();
+        self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+        self.context.stroke();
         self.context.fill_text("Beacon", x_row_text, current_y, None);
 
         // Tag
@@ -137,6 +140,10 @@ impl Canvas {
         self.context.begin_path();
         self.context.arc(x_row_entry, current_y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
         self.context.fill(FillRule::NonZero);
+        self.context.set_fill_style_color("#000000");
+        self.context.begin_path();
+        self.context.arc(x_row_entry, current_y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+        self.context.stroke();
         self.context.set_fill_style_color("#000");
         self.context.fill_text("Tag", x_row_text, current_y, None);
 
@@ -215,6 +222,9 @@ impl Canvas {
             self.context.fill(FillRule::NonZero);
             self.context.set_fill_style_color("#000");
             self.context.fill_rect(beacon_loc.x - BEACON_RADIUS / 4.0, beacon_loc.y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
+            self.context.begin_path();
+            self.context.arc(beacon_loc.x, beacon_loc.y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.stroke();
         }
         self.context.restore();
     }
@@ -241,6 +251,10 @@ impl Canvas {
                 self.context.begin_path();
                 self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
                 self.context.fill(FillRule::NonZero);
+                self.context.set_fill_style_color("#000000");
+                self.context.begin_path();
+                self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+                self.context.stroke();
                 match &show_distance {
                     Some(tag_mac) if &user.addr == tag_mac => {
                         self.context.set_fill_style_color("#00000034");
