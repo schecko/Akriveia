@@ -69,7 +69,13 @@ h2.active {
   padding: 8px 12px;
 }
 
-
+.logoutPlacement {
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  text-transform: uppercase;
+  text-align: right;
+  margin: 5px 18px 5px 5px;
+}
 
 /* FORM TYPOGRAPHY*/
 input[type=button], input[type=submit], input[type=reset]  {
