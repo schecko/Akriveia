@@ -52,10 +52,8 @@ struct Frame {
 impl StreamHandler<Frame, io::Error> for BeaconUDP {
     fn handle(&mut self, msg: Frame, _: &mut Context<Self>) {
         let response = String::from_utf8_lossy(&msg.data);
-        println!("message from {} : {}", msg.addr, response);
         match conn_common::parse_message(&response, msg.addr.ip()) {
             Ok(bm_response) => {
-                println!("successfully parsed message");
                 self.manager
                     .do_send(bm_response);
             },
@@ -86,6 +84,7 @@ impl Handler<BeaconCommand> for BeaconUDP {
 
 impl BeaconUDP {
     pub fn new(manager: Addr<BeaconManager>, ip: Ipv4Net, port: u16) -> Addr<BeaconUDP> {
+        // TODO test is this necessary?
         let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
 
         let sock = UdpSocket::bind(&bind_addr).unwrap();
