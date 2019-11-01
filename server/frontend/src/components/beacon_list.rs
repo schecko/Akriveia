@@ -198,16 +198,21 @@ impl Renderable<BeaconList> for BeaconList {
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
-                <table>
-                <tr>
-                    <td>{ "Mac" }</td>
-                    <td>{ "Coordinates" }</td>
-                    <td>{ "Floor" }</td>
-                    <td>{ "Name" }</td>
-                    <td>{ "Note" }</td>
-                    <td>{ "Actions" }</td>
-                </tr>
-                { for rows }
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "Beacon List" }</h2>
+                        <tr>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Name" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
                 </table>
             </>
         }
