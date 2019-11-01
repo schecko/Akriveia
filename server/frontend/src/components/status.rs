@@ -348,12 +348,12 @@ impl Status {
 
             html! {
                 <tr>
-                    <td>{ &beacon.mac_address.to_hex_string() }</td>
-                    <td>{ &beacon.last_active }</td>
+                    <td>{ &beacon.name }</td>
                     <td>{ &beacon.state }</td>
+                    <td>{ &beacon.last_active }</td>
                     <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
-                    <td>{ &beacon.name }</td>
+                    <td>{ &beacon.mac_address.to_hex_string() }</td>
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
@@ -382,14 +382,14 @@ impl Status {
                         <thead class="thead-light">
                             <h2>{ "Beacon Status" }</h2>
                             <tr>
-                                <th>{ "Mac" }</th>
+                                <th>{ "Name" }</th>
                                 <th>{ "State" }</th>
                                 <th>{ "Last Active" }</th>
                                 <th>{ "Coordinates" }</th>
                                 <th>{ "Floor" }</th>
+                                <th>{ "Mac" }</th>
                                 <th>{ "Note" }</th>
                                 <th>{ "Actions" }</th>
-                                <th>{""}</th>
                             </tr>
                         </thead>
                         <tbody>
