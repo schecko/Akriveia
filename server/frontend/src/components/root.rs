@@ -413,10 +413,28 @@ impl RootComponent {
 
         let login_type = match self.user_type {
             WebUserType::Admin => html!{
-                <a class="loginTypeHeader">{"ADMIN"}</a>
+                <>
+                    <button
+                        class="btn btn-danger btn-sm nav-link logoutPlacement",
+                        onclick=|_| Msg::ChangePage(Page::Login),
+                        disabled={self.current_page == Page::Login},
+                    >
+                        { "Logout" }
+                    </button>
+                    <a class="loginTypeHeader">{"ADMIN"}</a>
+                </>
             },
             WebUserType::Responder => html!{
-                <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
+                <>
+                    <button
+                        class="btn btn-danger btn-sm nav-link logoutPlacement",
+                        onclick=|_| Msg::ChangePage(Page::Login),
+                        disabled={self.current_page == Page::Login},
+                    >
+                        { "Logout" }
+                    </button>
+                    <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
+                </>
             }
         };
 
@@ -428,15 +446,6 @@ impl RootComponent {
                 </a>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav mx-2">
-                        <li class="nav-item">
-                            <a
-                                class="nav-link",
-                                onclick=|_| Msg::ChangePage(Page::Login),
-                                disabled={self.current_page == Page::Login},
-                            >
-                                { "Logout" }
-                            </a>
-                        </li>
                         <li class="nav-item">
                             { diagnostics }
                         </li>
@@ -458,6 +467,8 @@ impl RootComponent {
                         </li>
                         <li class="nav-item dropdown">
                             { select_map }
+                        </li>
+                        <li class="nav-item text-align-right">
                         </li>
                     </ul>
                         {login_type}
