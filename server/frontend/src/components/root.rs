@@ -431,7 +431,7 @@ impl RootComponent {
         html! {
             <nav class="navbar navbar-expand-lg navbar-dark bg-dark" /*style="background-color: #be0010;"*/>
                 <a class="navbar-brand">
-                    <img src="/images/icon_780_720.png" width="39" height="36" class="d-inline-block align-top" alt=""/>
+                    <img src="/images/icon_780_720.png" width="52" height="48" class="d-inline-block align-top" alt=""/>
                 </a>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav mr-auto">
