@@ -436,7 +436,7 @@ impl Renderable<Status> for Status {
 
         html! {
             <>
-                <h2>{ "Status" }</h2>
+                <h2>{ "Select To View" }</h2>
                 <button
                     type="button" class="btn-lg btn-default"
                     onclick=|_| Msg::ChangeStatus(PageState::UserStatus),

@@ -388,8 +388,8 @@ impl RootComponent {
                 </>
             },
             WebUserType::Responder => html! {
-                <button
-                    class="btn btn-primary btn-lg"
+                <a
+                    class="nav-link",
                     onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
                         match self.current_page {
@@ -399,15 +399,13 @@ impl RootComponent {
                     },
                 >
                     { "MapView" }
-                </button>
+                </a>
             }
         };
 
         let diagnostics = match self.user_type {
             WebUserType::Admin => html! {
-                <>
-                    <a class="nav-link" onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</a>
-                </>
+                <a class="nav-link" onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</a>
             },
             WebUserType::Responder => html! {
                 <></>
@@ -417,19 +415,16 @@ impl RootComponent {
         // Added TYPE of login at top right nav bar
         let login_type = match self.user_type {
             WebUserType::Admin => html!{
-                <>
-                    <a class="loginTypeHeader">{"ADMIN"}</a>
-                </>
+                <a class="loginTypeHeader">{"ADMIN"}</a>
             },
             WebUserType::Responder => html!{
-                <>
-                    <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
-                </>
+                <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
             }
         };
 
         html! {
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark" /*style="background-color: #be0010;"*/>
+            // TODO change background color to akriveia red #be0010
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
                 <a class="navbar-brand">
                     <img src="/images/icon_780_720.png" width="52" height="48" class="d-inline-block align-top" alt=""/>
                 </a>
@@ -439,7 +434,12 @@ impl RootComponent {
                             { diagnostics }
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" onclick=|_| Msg::ChangePage(Page::Status), disabled={self.current_page == Page::Status},>{ "Status" }</a>
+                            <a 
+                                class="nav-link",
+                                onclick=|_| Msg::ChangePage(Page::Status),
+                                disabled={self.current_page == Page::Status},>
+                                    { "Status" }
+                            </a>
                         </li>
                         <li class="nav-item dropdown">
                             { select_beacon }
@@ -451,7 +451,7 @@ impl RootComponent {
                             { select_map }
                         </li>
                     </ul>
-                            {login_type}
+                        {login_type}
                 </div>
             </nav>
         }
