@@ -10,12 +10,14 @@ const uint8_t PIN_SS = SS; // spi select pin
 
 char* EUI = "AA:BB:CC:DD:EE:FF:00:0A";
 uint16_t netID = 10;
+bool is_head = true;
 uint16_t next_anchor;
 byte beacon_list[] = {0x0A, 0x0B, 0x0C};
 int next_index = 0;
 
 int blink_rate = 200;
-int wait_timeout = 200;
+int wait_timeout = 600;
+int head_wait_timeout = 200;
 byte tag_shortAddress[] = {0x00, 0x00};
 
 const byte numChars = 50;
@@ -135,8 +137,8 @@ void range() {
         double range = result.range;
         if ( range <= 0.01) range = 0.01;
         else if (range > 300) range = 300.00;
-        ranging_info = "<[" + String(EUI);
-        ranging_info += "|range_ack|0x" + String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX) ;
+        ranging_info = "<[" + String(EUI) + "|range_ack|0x00";
+        ranging_info += String(highByte(recv_data[2]), HEX) + String(lowByte(recv_data[2]), HEX);
         ranging_info += "|" + String(range) + "]>";
         Serial.println(ranging_info);
       }
@@ -158,7 +160,9 @@ void transmit() {
 
 void wait() {
   int counter = 0;
-  while (counter < wait_timeout) {
+  int time_out = head_wait_timeout;
+  if (!is_head) time_out = wait_timeout;
+  while (counter < time_out) {
     if (DW1000NgRTLS::receiveFrame()) {
       size_t recv_len = DW1000Ng::getReceivedDataLength();
       byte recv_data[recv_len];
