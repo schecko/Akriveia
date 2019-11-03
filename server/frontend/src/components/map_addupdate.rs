@@ -46,6 +46,7 @@ struct Data {
     pub raw_scale: String,
     pub success_message: Option<String>,
     pub current_beacon: Option<i32>,
+    pub blueprint: Option<FileData>,
 }
 
 impl Data {
@@ -59,6 +60,7 @@ impl Data {
             raw_scale: "1".to_string(),
             success_message: None,
             current_beacon: None,
+            blueprint: None,
         }
     }
 
@@ -108,6 +110,7 @@ pub struct MapAddUpdate {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
+    binary_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
 }
@@ -137,6 +140,7 @@ impl Component for MapAddUpdate {
             fetch_service: FetchService::new(),
             fetch_task: None,
             get_fetch_task: None,
+            binary_fetch_task: None,
             self_link: link,
             user_type: props.user_type,
             file_reader: ReaderService::new(),
@@ -159,7 +163,7 @@ impl Component for MapAddUpdate {
                 self.file_task = Some(task);
             },
             Msg::FileLoaded(data) => {
-                Log!("data from file: {:?}", data);
+                self.data.blueprint = data;
             },
             Msg::AddAnotherMap => {
                 self.data = Data::new();
@@ -256,6 +260,14 @@ impl Component for MapAddUpdate {
                             self.fetch_service,
                             &map_url(&self.data.map.id.to_string()),
                             self.data.map,
+                            self.self_link,
+                            Msg::ResponseUpdateMap
+                        );
+
+                        self.binary_fetch_task = put_request!(
+                            self.fetch_service,
+                            &map_url(&self.data.map.id.to_string()),
+                            self.data.blueprint,
                             self.self_link,
                             Msg::ResponseUpdateMap
                         );
