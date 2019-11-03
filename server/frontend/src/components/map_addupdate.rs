@@ -9,9 +9,13 @@ use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
 use yew::IMouseEvent;
 use stdweb::traits::*;
+use yew::services::reader::{File, FileData, ReaderService, ReaderTask};
 
 pub enum Msg {
+    Ignore,
     AddAnotherMap,
+    InputFile(File),
+    FileLoaded(FileData),
     InputBound(usize, String),
     InputScale(String),
     InputName(String),
@@ -97,6 +101,8 @@ impl Data {
 }
 
 pub struct MapAddUpdate {
+    file_reader: ReaderService,
+    file_task: Option<ReaderTask>,
     canvas: Canvas,
     data: Data,
     fetch_service: FetchService,
@@ -133,6 +139,8 @@ impl Component for MapAddUpdate {
             get_fetch_task: None,
             self_link: link,
             user_type: props.user_type,
+            file_reader: ReaderService::new(),
+            file_task: None,
         };
 
         result.canvas.reset(&result.data.map);
@@ -143,6 +151,16 @@ impl Component for MapAddUpdate {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Ignore => {
+            },
+            Msg::InputFile(file) => {
+                let callback = self.self_link.send_back(Msg::FileLoaded);
+                let task = self.file_reader.read_file(file, callback);
+                self.file_task = Some(task);
+            },
+            Msg::FileLoaded(data) => {
+                Log!("data from file: {:?}", data);
+            },
             Msg::AddAnotherMap => {
                 self.data = Data::new();
             }
@@ -529,6 +547,24 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 rows=5,
                                 value=note,
                                 oninput=|e| Msg::InputNote(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Blueprint: " }</td>
+                        <td>
+                            <input
+                                type="file",
+                                onchange=|value| {
+                                    if let ChangeData::Files(file_names) = value {
+                                        match file_names.iter().next() {
+                                            Some(file_name) => Msg::InputFile(file_name),
+                                            None => Msg::Ignore,
+                                        }
+                                    } else {
+                                        Msg::Ignore
+                                    }
+                                },
                             />
                         </td>
                     </tr>
