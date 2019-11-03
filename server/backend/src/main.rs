@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_identity;
@@ -168,6 +168,12 @@ fn main() -> std::io::Result<()> {
                     .route(web::get().to_async(map_controller::get_map))
                     .route(web::put().to_async(map_controller::put_map))
                     .route(web::delete().to_async(map_controller::delete_map))
+            )
+            .service(
+                web::resource(&map_blueprint_url("{id}"))
+                    .route(web::put().to_async(map_controller::put_map_blueprint))
+                    //.route(web::put().to_async(map_controller::put_map))
+                    //.route(web::delete().to_async(map_controller::delete_map))
             )
             .service(
                 web::resource(&map_url(""))

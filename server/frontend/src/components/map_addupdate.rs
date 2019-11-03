@@ -33,6 +33,7 @@ pub enum Msg {
     ResponseGetMap(util::Response<Option<Map>>),
     ResponseUpdateMap(util::Response<Map>),
     ResponsePutBeacon(util::Response<Option<Beacon>>),
+    ResponseUpdateBlueprint(util::Response<()>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -163,7 +164,8 @@ impl Component for MapAddUpdate {
                 self.file_task = Some(task);
             },
             Msg::FileLoaded(data) => {
-                self.data.blueprint = data;
+                self.data.blueprint = Some(data);
+                self.file_task = None;
             },
             Msg::AddAnotherMap => {
                 self.data = Data::new();
@@ -263,14 +265,6 @@ impl Component for MapAddUpdate {
                             self.self_link,
                             Msg::ResponseUpdateMap
                         );
-
-                        self.binary_fetch_task = put_request!(
-                            self.fetch_service,
-                            &map_url(&self.data.map.id.to_string()),
-                            self.data.blueprint,
-                            self.self_link,
-                            Msg::ResponseUpdateMap
-                        );
                     },
                     None if success => {
                         self.fetch_task = post_request!(
@@ -336,6 +330,16 @@ impl Component for MapAddUpdate {
                         Ok(result) => {
                             self.data.success_message = Some("successfully updated map".to_string());
                             self.data.map = result;
+
+                            if let Some(file) = &self.data.blueprint {
+                                self.binary_fetch_task = put_image!(
+                                    self.fetch_service,
+                                    &map_blueprint_url(&self.data.map.id.to_string()),
+                                    file.content.clone(),
+                                    self.self_link,
+                                    Msg::ResponseUpdateBlueprint
+                                );
+                            }
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to update map, reason: {}", e));
@@ -363,6 +367,14 @@ impl Component for MapAddUpdate {
                     self.data.error_messages.push("failed to find map".to_string());
                 }
             },
+            Msg::ResponseUpdateBlueprint(response) => {
+                let (meta, _body) = response.into_parts();
+                if meta.status.is_success() {
+                    self.data.success_message = Some("successfully updated image".to_string());
+                } else {
+                    self.data.error_messages.push("failed to find map".to_string());
+                }
+            },
             Msg::ResponseAddMap(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -371,6 +383,16 @@ impl Component for MapAddUpdate {
                             self.data.success_message = Some("successfully added map".to_string());
                             self.data.map = result;
                             self.data.opt_id = Some(self.data.map.id);
+
+                            if let Some(file) = &self.data.blueprint {
+                                self.binary_fetch_task = put_image!(
+                                    self.fetch_service,
+                                    &map_blueprint_url(&self.data.map.id.to_string()),
+                                    file.content.clone(),
+                                    self.self_link,
+                                    Msg::ResponseUpdateBlueprint
+                                );
+                            }
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to add map, reason: {}", e));

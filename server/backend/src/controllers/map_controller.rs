@@ -4,7 +4,7 @@ use common::*;
 use crate::AkriveiaState;
 use crate::db_utils;
 use crate::models::map;
-use futures::{ future::ok, Future, future::Either, };
+use futures::{ Stream, future::ok, Future, future::Either, };
 use std::sync::*;
 use actix_identity::Identity;
 
@@ -80,6 +80,32 @@ pub fn put_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Http
                 None => HttpResponse::NotFound().finish(),
             }
         })
+}
+
+// update map blueprint
+pub fn put_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Payload) -> impl Future<Item=HttpResponse, Error=Error> {
+    /*db_utils::connect_id(&uid, &state)
+        .and_then(move |client| {
+            map::update_map(client, payload.0)
+                .map_err(|postgres_err| {
+                    error::ErrorBadRequest(postgres_err)
+                })
+        })
+        .and_then(|(_client, map)| {
+            match map {
+                Some(m) => HttpResponse::Ok().json(m),
+                None => HttpResponse::NotFound().finish(),
+            }
+        })*/
+    payload.map_err(Error::from)
+        .fold(web::BytesMut::new(), move |mut body, chunk| {
+            body.extend_from_slice(&chunk);
+            Ok::<_, Error>(body)
+         })
+         .and_then(|body| {
+             format!("Body {:?}!", body);
+             Ok(HttpResponse::Ok().finish())
+         })
 }
 
 pub fn delete_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
