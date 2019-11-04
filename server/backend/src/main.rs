@@ -172,8 +172,7 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource(&map_blueprint_url("{id}"))
                     .route(web::put().to_async(map_controller::put_map_blueprint))
-                    //.route(web::put().to_async(map_controller::put_map))
-                    //.route(web::delete().to_async(map_controller::delete_map))
+                    .route(web::get().to_async(map_controller::get_map_blueprint))
             )
             .service(
                 web::resource(&map_url(""))

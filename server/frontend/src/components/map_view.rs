@@ -5,10 +5,12 @@ use std::time::Duration;
 use stdweb::web::{ Node, };
 use super::value_button::ValueButton;
 use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::services::fetch::{ FetchService, FetchTask, Response as FetchResponse, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
+use failure::Error;
+
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
@@ -18,11 +20,13 @@ pub enum Msg {
 
     RequestGetBeaconsForMap(i32),
     RequestGetMap(i32),
+    RequestGetMapBlueprint(i32),
     RequestGetMaps,
     RequestRealtimeUser,
 
     ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
     ResponseGetMap(util::Response<Option<Map>>),
+    ResponseGetMapBlueprint(FetchResponse<Result<Vec<u8>, Error>>),
     ResponseGetMaps(util::Response<Vec<Map>>),
     ResponseRealtimeUser(util::Response<Vec<RealtimeUserData>>),
 }
@@ -37,11 +41,13 @@ pub struct MapViewComponent {
     fetch_task_users: Option<FetchTask>,
     fetch_task_beacons: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
+    binary_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
     current_map: Option<Map>,
+    map_img: Option<Vec<u8>>,
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
@@ -90,6 +96,7 @@ impl Component for MapViewComponent {
         if let Some(id) = props.opt_id {
             link.send_self(Msg::RequestGetMap(id));
             link.send_self(Msg::RequestGetBeaconsForMap(id));
+            link.send_self(Msg::RequestGetMapBlueprint(id));
         }
         link.send_self(Msg::RequestGetMaps);
         let click_callback = link.send_back(|_event| Msg::Ignore);
@@ -104,12 +111,14 @@ impl Component for MapViewComponent {
             fetch_task_users: None,
             fetch_task_beacons: None,
             get_fetch_task: None,
+            binary_fetch_task: None,
             get_many_fetch_task: None,
             interval_service: IntervalService::new(),
             interval_service_task: None,
             interval_service_task_beacon: None,
             maps: Vec::new(),
             current_map: None,
+            map_img: None,
             self_link: link,
             show_distance: None,
             users: Vec::new(),
@@ -144,7 +153,10 @@ impl Component for MapViewComponent {
                     },
                     _ => {
                         match self.maps.iter().find(|map| map.id == id) {
-                            Some(map) => Some(map.clone()),
+                            Some(map) => {
+                                self.self_link.send_self(Msg::RequestGetMapBlueprint(map.id));
+                                Some(map.clone())
+                            },
                             None => None,
                         }
                     }
@@ -184,6 +196,16 @@ impl Component for MapViewComponent {
                     &map_url(&id.to_string()),
                     self.self_link,
                     Msg::ResponseGetMap
+                );
+            },
+            Msg::RequestGetMapBlueprint(id) => {
+                self.error_messages = Vec::new();
+
+                self.binary_fetch_task = get_image!(
+                    self.fetch_service,
+                    &map_blueprint_url(&id.to_string()),
+                    self.self_link,
+                    Msg::ResponseGetMapBlueprint
                 );
             },
             Msg::RequestGetMaps => {
@@ -236,6 +258,17 @@ impl Component for MapViewComponent {
                         Err(e) => {
                             self.error_messages.push(format!("failed to get map, reason: {}", e));
                         }
+                    }
+                } else {
+                    self.error_messages.push("failed to get map".to_string());
+                }
+            },
+            Msg::ResponseGetMapBlueprint(response) => {
+                let (meta, body) = response.into_parts();
+                if meta.status.is_success() {
+                    match body {
+                        Ok(img) => self.map_img = Some(img),
+                        Err(_) => {},
                     }
                 } else {
                     self.error_messages.push("failed to get map".to_string());

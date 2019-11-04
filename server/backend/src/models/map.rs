@@ -4,13 +4,14 @@ use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
+use actix_web::web::{ BytesMut, Bytes, };
 
 pub fn row_to_map(row: &Row) -> Map {
     let mut entry = Map::new();
     for (i, column) in row.columns().iter().enumerate() {
         match column.name() {
             "m_id" => entry.id = row.get(i),
-            "m_blueprint" => {}, //panic!("blueprint data not handled yet"),
+            "m_blueprint" => {}, // handle BYTEA differently
             "m_bounds" => {
                 let bounds: Vec<i32> = row.get(i);
                 entry.bounds = na::Vector2::new(bounds[0], bounds[1]);
@@ -29,7 +30,7 @@ pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(toki
     // TODO paging
     client
         .prepare("
-            SELECT * FROM runtime.maps
+            SELECT m_id, m_bounds, m_scale, m_name, m_note FROM runtime.maps
         ")
         .and_then(move |statement| {
             client
@@ -45,7 +46,7 @@ pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(toki
 pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
     client
         .prepare("
-            SELECT * FROM runtime.maps
+            SELECT m_id, m_bounds, m_scale, m_name, m_note FROM runtime.maps
             WHERE m_id = $1::INTEGER
         ")
         .and_then(move |statement| {
@@ -64,6 +65,38 @@ pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
         })
 }
 
+pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Vec<u8>>), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            SELECT m_id, m_blueprint FROM runtime.maps
+            WHERE m_id = $1::INTEGER
+        ", &[
+            Type::INT4,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&id])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => {
+                            for (i, column) in r.columns().iter().enumerate() {
+                                match column.name() {
+                                    "m_blueprint" => return (client, Some(r.get(i))),
+                                    _ => {},
+                                }
+                            }
+                            (client, None)
+                        },
+                        None => (client, None),
+                    }
+                })
+        })
+}
+
 pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
     client
         .prepare_typed("
@@ -74,7 +107,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_scale
             )
             VALUES( $1, $2, $3, $4 )
-            RETURNING *
+            RETURNING m_id, m_bounds, m_scale, m_name, m_note
         ", &[
             Type::INT4_ARRAY,
             Type::VARCHAR,
@@ -114,7 +147,8 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                 m_scale = $4
              WHERE
                 m_id = $5
-            RETURNING *
+            RETURNING m_id, m_bounds, m_scale, m_name, m_note
+
         ", &[
             Type::INT4_ARRAY,
             Type::VARCHAR,
@@ -141,6 +175,34 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                         Some(r) => (client, Some(row_to_map(&r))),
                         _ => (client, None),
                     }
+                })
+        })
+}
+
+pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: BytesMut) -> impl Future<Item=(tokio_postgres::Client), Error=tokio_postgres::Error> {
+    client
+        .prepare_typed("
+            UPDATE runtime.maps
+            SET
+                m_blueprint = $1
+             WHERE
+                m_id = $2
+        ", &[
+            Type::BYTEA,
+            Type::INT4,
+        ])
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[
+                    &img.as_ref(),
+                    &mid,
+                ])
+                .into_future()
+                .map_err(|err| {
+                    err.0
+                })
+                .map(|(_row, _next)| {
+                    client
                 })
         })
 }
@@ -190,6 +252,32 @@ mod tests {
             .map_err(|e| {
                 println!("db error {:?}", e);
                 panic!("failed to insert map");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn update_blueprint() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                let id = opt_map.unwrap().id;
+                let file: BytesMut = (1..255).collect();
+                update_map_blueprint(client, id, file)
+            })
+            .map(|_client| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
             });
         runtime.block_on(task).unwrap();
     }
