@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
@@ -12,7 +13,7 @@ String EUI = "AA:BB:CC:DD:EE:FF:00:00";
 
 char* ssid = "akriveia";
 char* password = "";
-IPAddress hostIP(10, 0, 0, 2);
+IPAddress hostIP(192, 168, 1, 104);
 int UdpPort = 9996;
 int wifi_timeout = 10 * 1000;
 
@@ -26,6 +27,9 @@ void setup() {
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
   pinMode(TRIGGER_PIN, OUTPUT);
   digitalWrite(TRIGGER_PIN, HIGH);
+  EEPROM.begin(64);
+  IPAddress IP(EEPROM.read(0) , EEPROM.read(1) , EEPROM.read(2) , EEPROM.read(3));
+  hostIP = IP;
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
   unsigned long start_wait = millis();
@@ -33,22 +37,14 @@ void setup() {
     Serial.print(".");
     delay(500);
   }
-  get_eui();
   Serial.println("\nConnected to: " + String(ssid));
   Serial.println("Gateway IP: " + WiFi.gatewayIP().toString());
   Serial.println("Local IP: " + WiFi.localIP().toString());
   Serial.printf("UDP port: %d\n", UdpPort);
   Serial.println("Host IP: " + hostIP.toString());
-  Udp.begin(UdpPort);
-  udp_send("[" + EUI + "|esp_wifi_on]");
-}
-
-void get_eui() {
   delay(3000);
   Serial2.println("<get_eui>");
-  recvWithStartEndMarkers();
-  if (newData == true && String(receivedChars).indexOf("eui_ack") >= 0) EUI = String(receivedChars).substring(0, 23);
-  newData = false;
+  Udp.begin(UdpPort);
 }
 
 IPAddress str_to_ip(String msg) {
@@ -57,13 +53,15 @@ IPAddress str_to_ip(String msg) {
   for ( int i = 0; i < msg.length(); i++ ) {
     char c = msg[i];
     if ( c == '.' ) {
-      Part++;
-      continue;
+      Part++; continue;
     }
     Parts[Part] *= 10;
     Parts[Part] += c - '0';
   }
   IPAddress IP(Parts[0], Parts[1], Parts[2], Parts[3]);
+  EEPROM.write(0, Parts[0]); EEPROM.write(1, Parts[1]);
+  EEPROM.write(2, Parts[2]); EEPROM.write(3, Parts[3]);
+  EEPROM.commit();
   return IP;
 }
 
@@ -77,8 +75,7 @@ void recvWithStartEndMarkers() {
     rc = Serial2.read();
     if (recvInProgress == true) {
       if (rc != endMarker) {
-        receivedChars[ndx] = rc;
-        ndx++;
+        receivedChars[ndx] = rc; ndx++;
         if (ndx >= numChars) ndx = numChars - 1;
       }
       else {
@@ -130,7 +127,13 @@ void loop() {
   recvWithStartEndMarkers();
   if (newData == true) {
     Serial.println(String(receivedChars));
-    udp_send(String(receivedChars));
+    if (String(receivedChars).indexOf("eui_ack") >= 0) {
+      EUI = String(receivedChars).substring(0, 23);
+      udp_send("[" + EUI + "|esp_wifi_on]");
+    }
+    else {
+      udp_send(String(receivedChars));
+    }
   }
   newData = false;
 }
