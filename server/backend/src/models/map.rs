@@ -85,7 +85,9 @@ pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl
                         Some(r) => {
                             for (i, column) in r.columns().iter().enumerate() {
                                 match column.name() {
-                                    "m_blueprint" => return (client, Some(r.get(i))),
+                                    "m_blueprint" => {
+                                        return (client, r.get(i))
+                                    },
                                     _ => {},
                                 }
                             }

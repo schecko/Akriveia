@@ -2,7 +2,7 @@ use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util;
 use std::time::Duration;
-use stdweb::web::{ Node, };
+use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, Response as FetchResponse, };
@@ -74,7 +74,7 @@ impl MapViewComponent {
 
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
-            self.canvas.reset(map);
+            self.canvas.reset(map, None);
             self.canvas.draw_users(map, &self.users, self.show_distance);
             self.canvas.draw_beacons(map, &self.beacons);
             self.legend_canvas.legend(100, 600);
@@ -352,6 +352,14 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
+        let mut img = if let Some(map) = &self.current_map {
+            html! {
+                <img src={map_blueprint_url(&map.id.to_string())} />
+            }
+        } else {
+            html! {}
+        };
+
         html! {
             <div>
                 { for errors }
@@ -359,6 +367,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     <p>{ "Maps " }</p>
                     { for maps }
                 </div>
+                { img }
                 <div>
                     <p>
                     {

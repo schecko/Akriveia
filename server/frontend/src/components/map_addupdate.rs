@@ -148,7 +148,7 @@ impl Component for MapAddUpdate {
             file_task: None,
         };
 
-        result.canvas.reset(&result.data.map);
+        result.canvas.reset(&result.data.map, None);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons);
         result.data.opt_id = props.opt_id;
         result
@@ -202,7 +202,7 @@ impl Component for MapAddUpdate {
                                 let world_coords = screen_space(&self.data.map, pix_coords.x as f64, pix_coords.y as f64);
                                 let coords = na::Vector2::new(world_coords.x / self.data.map.scale as f64, world_coords.y / self.data.map.scale as f64);
                                 self.data.attached_beacons[index].coordinates = coords;
-                                self.canvas.reset(&self.data.map);
+                                self.canvas.reset(&self.data.map, None);
                                 self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
                             },
                             _ => {
@@ -404,7 +404,7 @@ impl Component for MapAddUpdate {
             },
         }
 
-        self.canvas.reset(&self.data.map);
+        self.canvas.reset(&self.data.map, None);
         self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
         true
     }

@@ -155,7 +155,7 @@ impl Canvas {
         self.context.restore();
     }
 
-    pub fn reset(&mut self, map: &Map, img: Option<Vec<u8>>) {
+    pub fn reset(&mut self, map: &Map, _img: Option<Vec<u8>>) {
         self.canvas.set_width(map.bounds[0] as u32);
         self.canvas.set_height(map.bounds[1] as u32);
 
