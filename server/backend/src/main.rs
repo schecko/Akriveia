@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_identity;

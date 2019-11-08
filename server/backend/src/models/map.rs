@@ -4,7 +4,7 @@ use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
-use actix_web::web::{ BytesMut, Bytes, };
+use actix_web::web::{ BytesMut, };
 
 pub fn row_to_map(row: &Row) -> Map {
     let mut entry = Map::new();
