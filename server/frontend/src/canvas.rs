@@ -221,7 +221,7 @@ impl Canvas {
         }
     }
 
-    pub fn draw_beacons(&mut self, map: &Map, beacons: &Vec<Beacon>) {
+    pub fn draw_beacons(&mut self, map: &Map, beacons: &Vec<&Beacon>) {
         self.context.save();
         for beacon in beacons {
             let beacon_loc = screen_space(

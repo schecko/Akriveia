@@ -13,6 +13,11 @@ use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::services::reader::{File, FileData, ReaderService, ReaderTask};
 use yew::virtual_dom::vnode::VNode;
 
+pub enum Coord {
+    X,
+    Y
+}
+
 pub enum Msg {
     Ignore,
     CheckImage,
@@ -25,6 +30,7 @@ pub enum Msg {
     InputNote(String),
     ToggleBeaconPlacement(i32),
     CanvasClick(ClickEvent),
+    ManualBeaconPlacement(usize, Coord, String),
 
     RequestAddUpdateMap,
     RequestGetMap(i32),
@@ -39,12 +45,17 @@ pub enum Msg {
     ResponseUpdateBlueprint(util::Response<()>),
 }
 
+struct BeaconData {
+    raw_x: String,
+    raw_y: String,
+}
+
 // keep all of the transient data together, since its not easy to create
 // a "new" method for a component.
 struct Data {
     pub map: Map,
     pub error_messages: Vec<String>,
-    pub attached_beacons: Vec<Beacon>,
+    pub attached_beacons: Vec<(Beacon, BeaconData)>,
     pub opt_id: Option<i32>,
     pub raw_bounds: [String; 2],
     pub raw_scale: String,
@@ -66,6 +77,37 @@ impl Data {
             current_beacon: None,
             blueprint: None,
         }
+    }
+
+    // NOTE: copypasta from beacon_addupdate
+    fn validate_beacon(&mut self, index: usize, suppress: bool) -> bool {
+        let mut success = match self.attached_beacons[index].1.raw_x.parse::<f64>() {
+            Ok(coord) => {
+                self.attached_beacons[index].0.coordinates.x = coord;
+                true
+            },
+            Err(e) => {
+                if !suppress {
+                    self.error_messages.push(format!("failed to parse x coordinate of beacon {}: {}", self.attached_beacons[index].0.name, e));
+                }
+                false
+            },
+        };
+
+        success = success && match self.attached_beacons[index].1.raw_y.parse::<f64>() {
+            Ok(coord) => {
+                self.attached_beacons[index].0.coordinates.y = coord;
+                true
+            },
+            Err(e) => {
+                if !suppress {
+                    self.error_messages.push(format!("failed to parse y coordinate of beacon {}: {}", self.attached_beacons[index].0.name, e));
+                }
+                false
+            },
+        };
+
+        success
     }
 
     fn validate(&mut self) -> bool {
@@ -158,7 +200,7 @@ impl Component for MapAddUpdate {
         };
 
         result.canvas.reset(&result.data.map, &result.map_img);
-        result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons);
+        result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons.iter().map(|(b, _d)| b).collect());
         result.data.opt_id = props.opt_id;
         result
     }
@@ -212,18 +254,32 @@ impl Component for MapAddUpdate {
                     },
                 }
             },
+            Msg::ManualBeaconPlacement(index, coord_type, value) => {
+                self.data.error_messages = Vec::new();
+                match coord_type {
+                    Coord::X => {
+                        self.data.attached_beacons[index].1.raw_x = value;
+                    },
+                    Coord::Y => {
+                        self.data.attached_beacons[index].1.raw_y = value;
+                    },
+                }
+                self.data.validate_beacon(index, true);
+            },
             Msg::CanvasClick(event) => {
                 let canvas_bound = self.canvas.canvas.get_bounding_client_rect();
                 match self.data.current_beacon {
                     Some(id) => {
-                        match self.data.attached_beacons.iter().position(|beacon| beacon.id == id) {
+                        match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == id) {
                             Some(index) => {
                                 let pix_coords = na::Vector2::new(event.client_x() - canvas_bound.get_left() as i32, event.client_y() - canvas_bound.get_top() as i32);
                                 let world_coords = screen_space(&self.data.map, pix_coords.x as f64, pix_coords.y as f64);
                                 let coords = na::Vector2::new(world_coords.x / self.data.map.scale as f64, world_coords.y / self.data.map.scale as f64);
-                                self.data.attached_beacons[index].coordinates = coords;
+                                self.data.attached_beacons[index].1.raw_x = coords.x.to_string();
+                                self.data.attached_beacons[index].1.raw_y = coords.y.to_string();
+                                self.data.attached_beacons[index].0.coordinates = coords;
                                 self.canvas.reset(&self.data.map, &self.map_img);
-                                self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
+                                self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
                             },
                             _ => {
                                 Log!("invalid current beacon");
@@ -236,15 +292,18 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::RequestPutBeacon(id) => {
-                match self.data.attached_beacons.iter().position(|beacon| beacon.id == id) {
+                self.data.error_messages = Vec::new();
+                match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == id) {
                     Some(index) => {
-                        self.fetch_task = put_request!(
-                            self.fetch_service,
-                            &beacon_url(&id.to_string()),
-                            self.data.attached_beacons[index],
-                            self.self_link,
-                            Msg::ResponsePutBeacon
-                        );
+                        if self.data.validate_beacon(index, false) {
+                            self.fetch_task = put_request!(
+                                self.fetch_service,
+                                &beacon_url(&id.to_string()),
+                                self.data.attached_beacons[index].0,
+                                self.self_link,
+                                Msg::ResponsePutBeacon
+                            );
+                        }
                     },
                     _ => {
                         Log!("could not save invalid beacon");
@@ -252,6 +311,7 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::RequestGetBeaconsForMap(id) => {
+                self.data.error_messages = Vec::new();
                 self.fetch_task = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
@@ -260,6 +320,7 @@ impl Component for MapAddUpdate {
                 );
             },
             Msg::RequestGetMap(id) => {
+                self.data.error_messages = Vec::new();
                 self.get_fetch_task = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
@@ -305,10 +366,12 @@ impl Component for MapAddUpdate {
                         Ok(opt_beacon) => {
                             match opt_beacon {
                                 Some(result) => {
-                                    match self.data.attached_beacons.iter().position(|beacon| beacon.id == result.id) {
+                                    match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == result.id) {
                                         Some(index) => {
                                             self.data.success_message = Some("successfully updated attached beacon".to_string());
-                                            self.data.attached_beacons[index] = result;
+                                            self.data.attached_beacons[index].1.raw_x = result.coordinates.x.to_string();
+                                            self.data.attached_beacons[index].1.raw_y = result.coordinates.y.to_string();
+                                            self.data.attached_beacons[index].0 = result;
                                         },
                                         _ => {
                                             Log!("updated beacon is no longer attached to this map");
@@ -333,7 +396,11 @@ impl Component for MapAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.data.attached_beacons = result;
+                            self.data.attached_beacons = result.into_iter().map(|beacon| {
+                                let raw_x = beacon.coordinates.x.to_string();
+                                let raw_y = beacon.coordinates.x.to_string();
+                                (beacon, BeaconData { raw_x, raw_y })
+                            }).collect();
                         },
                         Err(e) => {
                             self.data.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
@@ -430,7 +497,7 @@ impl Component for MapAddUpdate {
         }
 
         self.canvas.reset(&self.data.map, &self.map_img);
-        self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
+        self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
         true
     }
 
@@ -447,7 +514,7 @@ impl Component for MapAddUpdate {
 
 impl MapAddUpdate {
     fn render_beacon_placement(&self) -> Html<Self> {
-        let mut beacon_placement_rows = self.data.attached_beacons.iter().cloned().map(|beacon| {
+        let mut beacon_placement_rows = self.data.attached_beacons.iter().enumerate().map(|(index, (beacon, bdata))| {
             let beacon_id = beacon.id;
             let this_beacon_selected = match self.data.current_beacon {
                 Some(id) => id == beacon_id,
@@ -460,7 +527,16 @@ impl MapAddUpdate {
                         { &beacon.name }
                     </td>
                     <td>
-                        { &format!("{} {}", beacon.coordinates[0], beacon.coordinates[1]) }
+                        <input
+                            type="text",
+                            value=&bdata.raw_x,
+                            oninput=|e| Msg::ManualBeaconPlacement(index, Coord::X, e.value),
+                        />
+                        <input
+                            type="text",
+                            value=&bdata.raw_y,
+                            oninput=|e| Msg::ManualBeaconPlacement(index, Coord::Y, e.value),
+                        />
                     </td>
                     <td>
                         <button

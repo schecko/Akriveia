@@ -72,7 +72,7 @@ impl MapViewComponent {
         if let Some(map) = &self.current_map {
             self.canvas.reset(map, &self.map_img);
             self.canvas.draw_users(map, &self.users, self.show_distance);
-            self.canvas.draw_beacons(map, &self.beacons);
+            self.canvas.draw_beacons(map, &self.beacons.iter().collect());
             self.legend_canvas.legend(100, 600);
         }
     }
