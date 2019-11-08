@@ -110,22 +110,18 @@ pub fn put_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Http
 
 // update map blueprint
 pub fn put_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, payload: web::Payload) -> impl Future<Item=HttpResponse, Error=Error> {
-    println!("put map blueprint called");
     let mid = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match mid {
         Ok(id) => {
             Either::A(payload
                 .map_err(Error::from)
                 .fold(web::BytesMut::new(), move |mut acc_body, chunk| {
-                    println!("file chunk");
                     acc_body.extend_from_slice(&chunk);
                     Ok::<_, Error>(acc_body)
                 })
                 .and_then(move |blueprint_img| {
-                    println!("connecting");
                     db_utils::connect_id(&uid, &state)
                         .and_then(move |client| {
-                            println!("query");
                             map::update_map_blueprint(client, id, blueprint_img)
                                 .map_err(|postgres_err| {
                                     dbg!(&postgres_err);
@@ -134,7 +130,6 @@ pub fn put_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, 
                         })
                 })
                 .map(|_client| {
-                    println!("successful upload");
                     HttpResponse::Ok().finish()
                 })
             )

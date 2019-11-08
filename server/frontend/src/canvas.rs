@@ -170,13 +170,19 @@ impl Canvas {
         );
 
         if let Some(image) = img {
-            self.context.draw_image_s(
+            match self.context.draw_image_s(
                 image.clone(),
                 0.0, 0.0,
                 image.width().into(), image.height().into(),
                 0.0, 0.0,
                 map.bounds.x as f64, map.bounds.y as f64
-            ).expect("failed to render image");
+            ) {
+                Ok(_) => {
+                },
+                Err(e) => {
+                    Log!("failed to render map {}", e);
+                }
+            }
         }
 
         self.context.save();

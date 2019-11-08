@@ -5,11 +5,10 @@ use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
 use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, Response as FetchResponse, };
+use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
-use failure::Error;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -39,7 +38,6 @@ pub struct MapViewComponent {
     fetch_task_users: Option<FetchTask>,
     fetch_task_beacons: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
-    binary_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
@@ -108,7 +106,6 @@ impl Component for MapViewComponent {
             fetch_task_users: None,
             fetch_task_beacons: None,
             get_fetch_task: None,
-            binary_fetch_task: None,
             get_many_fetch_task: None,
             interval_service: IntervalService::new(),
             interval_service_task: None,
