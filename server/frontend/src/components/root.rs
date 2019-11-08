@@ -195,6 +195,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <MapViewComponent
                                 emergency={self.emergency},
                                 opt_id=opt_id,
+                                user_type=self.user_type,
                             />
                         </div>
                     </div>

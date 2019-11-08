@@ -138,24 +138,25 @@ pub struct BeaconTOFToUser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealtimeUserData {
-    pub id: i32,
     pub addr: ShortAddress,
+    pub beacon_tofs: Vec<BeaconTOFToUser>,
     pub coordinates: na::Vector2<f64>,
+    pub id: i32,
     pub last_active: DateTime<Utc>,
     pub map_id: Option<i32>,
-
-    pub beacon_tofs: Vec<BeaconTOFToUser>,
+    pub name: String,
 }
 
 impl From<TrackedUser> for RealtimeUserData {
     fn from(user: TrackedUser) -> Self {
         RealtimeUserData {
-            id: user.id,
             addr: user.mac_address.unwrap(), // user must have a mac address to be tracked
+            beacon_tofs: Vec::new(),
             coordinates: user.coordinates,
+            id: user.id,
             last_active: user.last_active,
             map_id: user.map_id,
-            beacon_tofs: Vec::new(),
+            name: user.name,
         }
     }
 }
