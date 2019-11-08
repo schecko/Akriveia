@@ -2,7 +2,7 @@ use common::*;
 use crate::canvas::{ Canvas, screen_space };
 use crate::util::{ self, WebUserType, };
 use stdweb::web::event::{ ClickEvent, };
-use stdweb::web::{ Node, };
+use stdweb::web::{ Node, html_element::ImageElement, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::virtual_dom::vnode::VNode;
@@ -104,14 +104,15 @@ impl Data {
 }
 
 pub struct MapAddUpdate {
-    file_reader: ReaderService,
-    file_task: Option<ReaderTask>,
+    binary_fetch_task: Option<FetchTask>,
     canvas: Canvas,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
+    file_reader: ReaderService,
+    file_task: Option<ReaderTask>,
     get_fetch_task: Option<FetchTask>,
-    binary_fetch_task: Option<FetchTask>,
+    map_img: Option<ImageElement>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
 }
@@ -136,19 +137,20 @@ impl Component for MapAddUpdate {
 
         let click_callback = link.send_back(|event| Msg::CanvasClick(event));
         let mut result = MapAddUpdate {
+            binary_fetch_task: None,
             canvas: Canvas::new("addupdate_canvas", click_callback),
             data,
             fetch_service: FetchService::new(),
             fetch_task: None,
-            get_fetch_task: None,
-            binary_fetch_task: None,
-            self_link: link,
-            user_type: props.user_type,
             file_reader: ReaderService::new(),
             file_task: None,
+            get_fetch_task: None,
+            map_img: None,
+            self_link: link,
+            user_type: props.user_type,
         };
 
-        result.canvas.reset(&result.data.map, None);
+        result.canvas.reset(&result.data.map, &None);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons);
         result.data.opt_id = props.opt_id;
         result
@@ -202,7 +204,7 @@ impl Component for MapAddUpdate {
                                 let world_coords = screen_space(&self.data.map, pix_coords.x as f64, pix_coords.y as f64);
                                 let coords = na::Vector2::new(world_coords.x / self.data.map.scale as f64, world_coords.y / self.data.map.scale as f64);
                                 self.data.attached_beacons[index].coordinates = coords;
-                                self.canvas.reset(&self.data.map, None);
+                                self.canvas.reset(&self.data.map, &self.map_img);
                                 self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
                             },
                             _ => {
@@ -404,7 +406,7 @@ impl Component for MapAddUpdate {
             },
         }
 
-        self.canvas.reset(&self.data.map, None);
+        self.canvas.reset(&self.data.map, &self.map_img);
         self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons);
         true
     }

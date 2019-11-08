@@ -20,13 +20,11 @@ pub enum Msg {
 
     RequestGetBeaconsForMap(i32),
     RequestGetMap(i32),
-    RequestGetMapBlueprint(i32),
     RequestGetMaps,
     RequestRealtimeUser,
 
     ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
     ResponseGetMap(util::Response<Option<Map>>),
-    ResponseGetMapBlueprint(FetchResponse<Result<Vec<u8>, Error>>),
     ResponseGetMaps(util::Response<Vec<Map>>),
     ResponseRealtimeUser(util::Response<Vec<RealtimeUserData>>),
 }
@@ -47,7 +45,7 @@ pub struct MapViewComponent {
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
     current_map: Option<Map>,
-    map_img: Option<Vec<u8>>,
+    map_img: Option<ImageElement>,
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
@@ -74,7 +72,7 @@ impl MapViewComponent {
 
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
-            self.canvas.reset(map, None);
+            self.canvas.reset(map, &self.map_img);
             self.canvas.draw_users(map, &self.users, self.show_distance);
             self.canvas.draw_beacons(map, &self.beacons);
             self.legend_canvas.legend(100, 600);
@@ -96,7 +94,6 @@ impl Component for MapViewComponent {
         if let Some(id) = props.opt_id {
             link.send_self(Msg::RequestGetMap(id));
             link.send_self(Msg::RequestGetBeaconsForMap(id));
-            link.send_self(Msg::RequestGetMapBlueprint(id));
         }
         link.send_self(Msg::RequestGetMaps);
         let click_callback = link.send_back(|_event| Msg::Ignore);
@@ -154,7 +151,9 @@ impl Component for MapViewComponent {
                     _ => {
                         match self.maps.iter().find(|map| map.id == id) {
                             Some(map) => {
-                                self.self_link.send_self(Msg::RequestGetMapBlueprint(map.id));
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
                                 Some(map.clone())
                             },
                             None => None,
@@ -196,16 +195,6 @@ impl Component for MapViewComponent {
                     &map_url(&id.to_string()),
                     self.self_link,
                     Msg::ResponseGetMap
-                );
-            },
-            Msg::RequestGetMapBlueprint(id) => {
-                self.error_messages = Vec::new();
-
-                self.binary_fetch_task = get_image!(
-                    self.fetch_service,
-                    &map_blueprint_url(&id.to_string()),
-                    self.self_link,
-                    Msg::ResponseGetMapBlueprint
                 );
             },
             Msg::RequestGetMaps => {
@@ -253,22 +242,16 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
+                            if let Some(map) = &result {
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
+                            }
                             self.current_map = result;
                         },
                         Err(e) => {
                             self.error_messages.push(format!("failed to get map, reason: {}", e));
                         }
-                    }
-                } else {
-                    self.error_messages.push("failed to get map".to_string());
-                }
-            },
-            Msg::ResponseGetMapBlueprint(response) => {
-                let (meta, body) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(img) => self.map_img = Some(img),
-                        Err(_) => {},
                     }
                 } else {
                     self.error_messages.push("failed to get map".to_string());
@@ -352,14 +335,6 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
-        let mut img = if let Some(map) = &self.current_map {
-            html! {
-                <img src={map_blueprint_url(&map.id.to_string())} />
-            }
-        } else {
-            html! {}
-        };
-
         html! {
             <div>
                 { for errors }
@@ -367,7 +342,6 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     <p>{ "Maps " }</p>
                     { for maps }
                 </div>
-                { img }
                 <div>
                     <p>
                     {
