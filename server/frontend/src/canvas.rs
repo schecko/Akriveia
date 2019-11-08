@@ -169,7 +169,7 @@ impl Canvas {
             self.canvas.width().into(), self.canvas.height().into()
         );
 
-        if let Some(image) = &img {
+        if let Some(image) = img {
             self.context.draw_image_s(
                 image.clone(),
                 0.0, 0.0,

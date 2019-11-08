@@ -1,18 +1,21 @@
 use common::*;
 use crate::canvas::{ Canvas, screen_space };
 use crate::util::{ self, WebUserType, };
+use std::time::Duration;
+use stdweb::traits::*;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::{ Node, html_element::ImageElement, };
-use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::virtual_dom::vnode::VNode;
-use yew::prelude::*;
 use yew::IMouseEvent;
-use stdweb::traits::*;
+use yew::format::Json;
+use yew::prelude::*;
+use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::services::reader::{File, FileData, ReaderService, ReaderTask};
+use yew::virtual_dom::vnode::VNode;
 
 pub enum Msg {
     Ignore,
+    CheckImage,
     AddAnotherMap,
     InputFile(File),
     FileLoaded(FileData),
@@ -115,6 +118,8 @@ pub struct MapAddUpdate {
     map_img: Option<ImageElement>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
+    interval_service: IntervalService,
+    interval_service_task: Option<IntervalTask>,
 }
 
 #[derive(Properties)]
@@ -145,12 +150,14 @@ impl Component for MapAddUpdate {
             file_reader: ReaderService::new(),
             file_task: None,
             get_fetch_task: None,
+            interval_service: IntervalService::new(),
+            interval_service_task: None,
             map_img: None,
             self_link: link,
             user_type: props.user_type,
         };
 
-        result.canvas.reset(&result.data.map, &None);
+        result.canvas.reset(&result.data.map, &result.map_img);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons);
         result.data.opt_id = props.opt_id;
         result
@@ -159,6 +166,17 @@ impl Component for MapAddUpdate {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Ignore => {
+            },
+            Msg::CheckImage => {
+                // The is necessary to force a rerender when the image finally loads,
+                // it would be nice to use an onload() callback, but that does not seem to
+                // work.
+                // once the map is loaded, we dont need to check it anymore.
+                if let Some(img) = &self.map_img {
+                    if img.complete() {
+                        self.interval_service_task = None;
+                    }
+                }
             },
             Msg::InputFile(file) => {
                 let callback = self.self_link.send_back(Msg::FileLoaded);
@@ -373,6 +391,11 @@ impl Component for MapAddUpdate {
                 let (meta, _body) = response.into_parts();
                 if meta.status.is_success() {
                     self.data.success_message = Some("successfully updated image".to_string());
+                    let img = ImageElement::new();
+                    img.set_src(&map_blueprint_url(&self.data.map.id.to_string()));
+                    let callback = self.self_link.send_back(|_| Msg::CheckImage);
+                    self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
+                    self.map_img = Some(img);
                 } else {
                     self.data.error_messages.push("failed to find map".to_string());
                 }
