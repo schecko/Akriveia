@@ -45,6 +45,9 @@ pub fn users_status_url() -> String {
 pub fn map_url(id: &str) -> String {
     return format!("/map/{}", id);
 }
+pub fn map_blueprint_url(id: &str) -> String {
+    return format!("/map/{}/blueprint", id);
+}
 pub fn maps_url() -> String {
     return String::from("/maps");
 }

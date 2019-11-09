@@ -12,6 +12,7 @@ extern crate lazy_static;
 extern crate chrono;
 extern crate palette;
 extern crate num;
+extern crate failure;
 
 #[macro_use]
 mod util;

@@ -2,13 +2,14 @@ use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util;
 use std::time::Duration;
-use stdweb::web::{ Node, };
+use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
+
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
@@ -42,6 +43,7 @@ pub struct MapViewComponent {
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
     current_map: Option<Map>,
+    map_img: Option<ImageElement>,
     maps: Vec<Map>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
@@ -68,9 +70,9 @@ impl MapViewComponent {
 
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
-            self.canvas.reset(map);
+            self.canvas.reset(map, &self.map_img);
             self.canvas.draw_users(map, &self.users, self.show_distance);
-            self.canvas.draw_beacons(map, &self.beacons);
+            self.canvas.draw_beacons(map, &self.beacons.iter().collect());
             self.legend_canvas.legend(100, 600);
         }
     }
@@ -110,6 +112,7 @@ impl Component for MapViewComponent {
             interval_service_task_beacon: None,
             maps: Vec::new(),
             current_map: None,
+            map_img: None,
             self_link: link,
             show_distance: None,
             users: Vec::new(),
@@ -144,7 +147,12 @@ impl Component for MapViewComponent {
                     },
                     _ => {
                         match self.maps.iter().find(|map| map.id == id) {
-                            Some(map) => Some(map.clone()),
+                            Some(map) => {
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
+                                Some(map.clone())
+                            },
                             None => None,
                         }
                     }
@@ -231,6 +239,11 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
+                            if let Some(map) = &result {
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
+                            }
                             self.current_map = result;
                         },
                         Err(e) => {
