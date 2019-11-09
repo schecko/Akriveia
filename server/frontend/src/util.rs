@@ -20,6 +20,19 @@ macro_rules! Log {
     )
 }
 
+macro_rules! put_image {
+    ($fetch_service:expr, $url:expr, $body:expr, $link:expr, $msg:expr) => {
+        match yew::services::fetch::Request::put($url)
+            .header("Content-Type", "image/png,image/jpg")
+            .header("Accept", "application/json")
+            .body(Ok($body))
+        {
+            Ok(req) => Some($fetch_service.fetch_binary(req, $link.send_back($msg))),
+            Err(_) =>  None,
+        };
+    };
+}
+
 macro_rules! post_request {
     ($fetch_service:expr, $url:expr, $request:expr, $link:expr, $msg:expr, $success:expr, $error:expr) => {
         match yew::services::fetch::Request::post($url)

@@ -2,13 +2,14 @@ use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util::{ self, WebUserType, };
 use std::time::Duration;
-use stdweb::web::{ Node, };
+use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
+
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
@@ -42,11 +43,12 @@ pub struct MapViewComponent {
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
     legend_canvas: Canvas,
+    map_img: Option<ImageElement>,
     maps: Vec<Map>,
+    realtime_users: Vec<RealtimeUserData>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
     user_type: WebUserType,
-    realtime_users: Vec<RealtimeUserData>,
 }
 
 impl MapViewComponent {
@@ -69,10 +71,10 @@ impl MapViewComponent {
 
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
-            self.canvas.reset(map);
+            self.canvas.reset(map, &self.map_img);
             self.canvas.draw_users(map, &self.realtime_users, self.show_distance);
             if self.user_type == WebUserType::Admin {
-                self.canvas.draw_beacons(map, &self.beacons);
+                self.canvas.draw_beacons(map, &self.beacons.iter().collect());
             }
             self.legend_canvas.legend(100, map.bounds.y as u32);
         }
@@ -114,11 +116,12 @@ impl Component for MapViewComponent {
             interval_service_task: None,
             interval_service_task_beacon: None,
             legend_canvas: Canvas::new("legend_canvas", click_callback),
+            map_img: None,
             maps: Vec::new(),
+            realtime_users: Vec::new(),
             self_link: link,
             show_distance: None,
             user_type: props.user_type,
-            realtime_users: Vec::new(),
         };
 
         if props.emergency {
@@ -150,7 +153,12 @@ impl Component for MapViewComponent {
                     },
                     _ => {
                         match self.maps.iter().find(|map| map.id == id) {
-                            Some(map) => Some(map.clone()),
+                            Some(map) => {
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
+                                Some(map.clone())
+                            },
                             None => None,
                         }
                     }
@@ -237,6 +245,11 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
+                            if let Some(map) = &result {
+                                let img = ImageElement::new();
+                                img.set_src(&map_blueprint_url(&map.id.to_string()));
+                                self.map_img = Some(img);
+                            }
                             self.current_map = result;
                         },
                         Err(e) => {
