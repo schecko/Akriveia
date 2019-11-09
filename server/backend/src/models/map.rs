@@ -336,6 +336,43 @@ mod tests {
     }
 
     #[test]
+    fn select_blueprint() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db()).unwrap();
+
+        let mut map = Map::new();
+        map.name = "map_0".to_string();
+
+        let file: BytesMut = (1..255).collect();
+        let file2 = file.clone();
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                insert_map(client, map)
+            })
+            .and_then(|(client, opt_map)| {
+                let id = opt_map.unwrap().id;
+                update_map_blueprint(client, id, file)
+                    .map(move |client| {
+                        (client, id)
+                    })
+            })
+            .and_then(|(client, id)| {
+                select_map_blueprint(client, id)
+            })
+            .map(move |(_client, data)| {
+                data.unwrap().iter().zip(file2).for_each(|(&a, b)| {
+                    assert!(a == b);
+                });
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
     fn select_many() {
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(crate::system::create_db()).unwrap();
