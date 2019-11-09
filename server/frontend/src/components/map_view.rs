@@ -176,7 +176,6 @@ impl Component for MapViewComponent {
             },
             Msg::RequestGetBeaconsForMap(id) => {
                 self.error_messages = Vec::new();
-
                 self.fetch_task_beacons = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
@@ -186,7 +185,6 @@ impl Component for MapViewComponent {
             },
             Msg::RequestGetMap(id) => {
                 self.error_messages = Vec::new();
-
                 self.get_fetch_task = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
@@ -196,7 +194,6 @@ impl Component for MapViewComponent {
             },
             Msg::RequestGetMaps => {
                 self.error_messages = Vec::new();
-
                 self.get_many_fetch_task = get_request!(
                     self.fetch_service,
                     &maps_url(),
