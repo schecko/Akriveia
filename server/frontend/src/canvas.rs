@@ -2,7 +2,7 @@ use common::*;
 use stdweb::traits::*;
 use na;
 use stdweb::web::event::{ ClickEvent, };
-use stdweb::web::html_element::CanvasElement;
+use stdweb::web::html_element::{ CanvasElement, ImageElement, };
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, TextAlign, };
 use yew::prelude::*;
 use palette::{ Gradient, LinSrgb, };
@@ -155,9 +155,9 @@ impl Canvas {
         self.context.restore();
     }
 
-    pub fn reset(&mut self, map: &Map) {
-        self.canvas.set_width(map.bounds[0] as u32);
-        self.canvas.set_height(map.bounds[1] as u32);
+    pub fn reset(&mut self, map: &Map, img: &Option<ImageElement>) {
+        self.canvas.set_width(map.bounds.x as u32);
+        self.canvas.set_height(map.bounds.y as u32);
 
         self.context.set_line_dash(vec![]);
         self.context.clear_rect(
@@ -168,6 +168,25 @@ impl Canvas {
             0.0, 0.0,
             self.canvas.width().into(), self.canvas.height().into()
         );
+
+        img.as_ref().and_then(|image| {
+            if image.complete() && image.width() > 0 {
+                match self.context.draw_image_s(
+                    image.clone(),
+                    0.0, 0.0,
+                    image.width() as f64, image.height() as f64,
+                    0.0, 0.0,
+                    map.bounds.x as f64, map.bounds.y as f64
+                ) {
+                    Ok(_) => {
+                    },
+                    Err(e) => {
+                        Log!("failed to render map {}", e);
+                    }
+                }
+            }
+            Some(())
+        });
 
         self.context.save();
         self.context.set_line_dash(vec![5.0, 15.0]);
@@ -205,7 +224,7 @@ impl Canvas {
         }
     }
 
-    pub fn draw_beacons(&mut self, map: &Map, beacons: &Vec<Beacon>) {
+    pub fn draw_beacons(&mut self, map: &Map, beacons: &Vec<&Beacon>) {
         self.context.save();
         for beacon in beacons {
             let beacon_loc = screen_space(
