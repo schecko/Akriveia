@@ -169,21 +169,24 @@ impl Canvas {
             self.canvas.width().into(), self.canvas.height().into()
         );
 
-        if let Some(image) = img {
-            match self.context.draw_image_s(
-                image.clone(),
-                0.0, 0.0,
-                image.width().into(), image.height().into(),
-                0.0, 0.0,
-                map.bounds.x as f64, map.bounds.y as f64
-            ) {
-                Ok(_) => {
-                },
-                Err(e) => {
-                    Log!("failed to render map {}", e);
+        img.as_ref().and_then(|image| {
+            if image.complete() && image.width() > 0 {
+                match self.context.draw_image_s(
+                    image.clone(),
+                    0.0, 0.0,
+                    image.width() as f64, image.height() as f64,
+                    0.0, 0.0,
+                    map.bounds.x as f64, map.bounds.y as f64
+                ) {
+                    Ok(_) => {
+                    },
+                    Err(e) => {
+                        Log!("failed to render map {}", e);
+                    }
                 }
             }
-        }
+            Some(())
+        });
 
         self.context.save();
         self.context.set_line_dash(vec![5.0, 15.0]);
