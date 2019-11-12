@@ -6,6 +6,7 @@ use stdweb::web::html_element::{ CanvasElement, ImageElement, };
 use stdweb::web::{ CanvasRenderingContext2d, FillRule, TextAlign, };
 use yew::prelude::*;
 use palette::{ Gradient, LinSrgb, };
+use crate::util::WebUserType;
 
 const USER_RADIUS: f64 = 5.0;
 const BEACON_RADIUS: f64 = 8.0;
@@ -81,58 +82,36 @@ impl Canvas {
         }
     }
 
-    // loc specifies top middle of the gradient
-    fn build_gradient(&self, loc: na::Vector2<f64>, bounds: na::Vector2<f64>) {
-        self.context.save();
-
-        // create a gradient from the top middle to the bottom middle.
-        let grad = self.context.create_linear_gradient(loc.x, loc.y, loc.x, loc.y + bounds.y);
-
-        GRAD_COLOR.colors.iter().enumerate().for_each(|(i, color)| {
-            grad.add_color_stop((i as f64 + 0.5) / GRAD_COLOR.colors.len() as f64, &color_to_hex(color)).unwrap();
-        });
-        self.context.set_fill_style_gradient(&grad);
-        self.context.fill_rect(loc.x - bounds.x / 2.0, loc.y, bounds.x, bounds.y);
-
-        self.context.set_fill_style_color("#000");
-        self.context.set_text_align(TextAlign::Center);
-        self.context.set_font("12px sans-serif");
-        self.context.fill_text("Data Freshness", loc.x, loc.y - 5.0, None);
-        self.context.set_font("10px sans-serif");
-        self.context.fill_text("Newest - 0s", loc.x, loc.y + 20.0, None);
-        self.context.fill_text(&format!("Oldest - {}s+", MAX_TIME / 1000.0), loc.x, loc.y + bounds.y - 10.0, None);
-
-        self.context.restore();
-    }
-
-    pub fn legend(&self, width: u32, height: u32) {
+    pub fn legend(&self, width: u32, height: u32, user_type: WebUserType) {
         self.canvas.set_width(width);
         self.canvas.set_height(height);
-
-        self.build_gradient(na::Vector2::new(width as f64 / 2.0, height as f64 / 2.0), na::Vector2::new(width as f64 * 0.8, height as f64 / 2.0));
 
         self.context.save();
 
         let legend_spacing = 30.0;
         let x_row_entry = 30.0;
-        let x_row_text = 60.0;
+        let x_row_text = 40.0;
 
         self.context.set_fill_style_color("#000");
         self.context.set_text_align(TextAlign::Left);
         self.context.set_font("10px sans-serif");
 
+        let mut current_y = 0.0;
+
         // Beacon
-        let mut current_y = legend_spacing;
-        self.context.set_fill_style_color("#0F0");
-        self.context.begin_path();
-        self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
-        self.context.fill(FillRule::NonZero);
-        self.context.set_fill_style_color("#000");
-        self.context.fill_rect(x_row_entry - BEACON_RADIUS / 4.0, current_y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
-        self.context.begin_path();
-        self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
-        self.context.stroke();
-        self.context.fill_text("Beacon", x_row_text, current_y, None);
+        if user_type == WebUserType::Admin {
+            current_y += legend_spacing;
+            self.context.set_fill_style_color("#0F0");
+            self.context.begin_path();
+            self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.fill(FillRule::NonZero);
+            self.context.set_fill_style_color("#000");
+            self.context.fill_rect(x_row_entry - BEACON_RADIUS / 4.0, current_y - BEACON_RADIUS / 4.0, BEACON_RADIUS / 2.0, BEACON_RADIUS / 2.0);
+            self.context.begin_path();
+            self.context.arc(x_row_entry, current_y, BEACON_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.stroke();
+            self.context.fill_text("Beacon", x_row_text, current_y, None);
+        }
 
         // Tag
         current_y += legend_spacing;
@@ -152,6 +131,28 @@ impl Canvas {
         self.context.set_text_align(TextAlign::Center);
         self.context.set_font("12px sans-serif");
         self.context.fill_text("Legend", width as f64 / 2.0, 10.0, None);
+
+        // Gradient
+        let gradient_width = width as f64 * 0.2;
+        current_y += height as f64 / 2.0; // start at the bottom half of the legend
+        let gradient_x_offset = x_row_entry / 2.0;
+        let grad = self.context.create_linear_gradient(gradient_x_offset, current_y, gradient_x_offset, height as f64);
+
+        GRAD_COLOR.colors.iter().enumerate().for_each(|(i, color)| {
+            grad.add_color_stop((i as f64 + 0.5) / GRAD_COLOR.colors.len() as f64, &color_to_hex(color)).unwrap();
+        });
+        self.context.set_fill_style_gradient(&grad);
+        self.context.fill_rect(gradient_x_offset, current_y, gradient_width, height as f64 / 2.0);
+
+        self.context.set_fill_style_color("#000");
+        self.context.set_text_align(TextAlign::Left);
+        self.context.set_font("12px sans-serif");
+        self.context.fill_text("Last Seen", 0.0, current_y - 5.0, None);
+        self.context.set_font("10px sans-serif");
+        self.context.set_text_align(TextAlign::Left);
+        self.context.fill_text("0s", x_row_text, current_y + 20.0, None);
+        self.context.fill_text(&format!("{}s+", MAX_TIME / 1000.0), x_row_text, height as f64 - 10.0, None);
+
         self.context.restore();
     }
 
@@ -257,23 +258,56 @@ impl Canvas {
                 user.coordinates.y as f64 * map.scale,
             );
 
+            let diff = stdweb::web::Date::now() - user.last_active.timestamp_millis() as f64;
+            let freshness = GRAD_COLOR.grad.get(num::clamp(diff / MAX_TIME, 0.0, 1.0));
+            let color_string = color_to_hex(&freshness);
+
+            // draw the user icon
+            self.context.set_fill_style_color(&color_string);
+            self.context.begin_path();
+            self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.fill(FillRule::NonZero);
+            self.context.set_fill_style_color("#000000");
+            self.context.begin_path();
+            self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
+            self.context.stroke();
+            self.context.set_text_align(TextAlign::Center);
+
+            // draw the user address ontop of the icon
+            let user_id = user.addr.to_string();
+            let text_metrics = self.context.measure_text(&user_id);
+            match text_metrics {
+                Ok(m) => {
+                    self.context.save();
+                    let mut name_pos = user_pos.clone();
+                    name_pos.y -= USER_RADIUS + 3.0; // offset the text upwards from the location
+                    self.context.set_fill_style_color("#00000033");
+                    let text_back_height = 13.0;
+                    let text_back_offset = 11.0;
+                    let text_back_width = m.get_width() + 8.0;
+                    self.context.fill_rect(
+                        name_pos.x - text_back_width / 2.0,
+                        name_pos.y - text_back_offset,
+                        text_back_width,
+                        text_back_height
+                    );
+
+                    self.context.set_fill_style_color("#000000");
+                    self.context.set_font("12px sans-serif");
+                    self.context.fill_text(&user_id, name_pos.x, name_pos.y, None);
+                    self.context.restore();
+                },
+                Err(e) => {
+                    Log!("failed to obtain text metrics: {}", e);
+                },
+            }
+
             for beacon_source in &user.beacon_tofs {
                 let beacon_loc = screen_space(
                     map,
                     beacon_source.location.x * map.scale,
                     beacon_source.location.y * map.scale,
                 );
-                let diff = stdweb::web::Date::now() - user.last_active.timestamp_millis() as f64;
-                let freshness = GRAD_COLOR.grad.get(num::clamp(diff / MAX_TIME, 0.0, 1.0));
-                let color_string = color_to_hex(&freshness);
-                self.context.set_fill_style_color(&color_string);
-                self.context.begin_path();
-                self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
-                self.context.fill(FillRule::NonZero);
-                self.context.set_fill_style_color("#000000");
-                self.context.begin_path();
-                self.context.arc(user_pos.x, user_pos.y, USER_RADIUS, 0.0, std::f64::consts::PI * 2.0, true);
-                self.context.stroke();
                 match &show_distance {
                     Some(tag_mac) if &user.addr == tag_mac => {
                         self.context.set_fill_style_color("#00000034");
@@ -281,7 +315,7 @@ impl Canvas {
                         self.context.arc(beacon_loc.x, beacon_loc.y, beacon_source.distance_to_tag * map.scale, 0.0, std::f64::consts::PI * 2.0, true);
                         self.context.fill(FillRule::NonZero);
                     },
-                    _ => { }
+                    _ => { },
                 }
             }
         }

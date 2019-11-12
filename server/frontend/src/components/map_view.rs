@@ -1,6 +1,6 @@
 use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
@@ -31,23 +31,24 @@ pub enum Msg {
 pub struct MapViewComponent {
     beacons: Vec<Beacon>,
     canvas: Canvas,
-    legend_canvas: Canvas,
+    current_map: Option<Map>,
     emergency: bool,
     error_messages: Vec<String>,
     fetch_service: FetchService,
-    fetch_task_users: Option<FetchTask>,
     fetch_task_beacons: Option<FetchTask>,
+    fetch_task_realtime_users: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
-    current_map: Option<Map>,
+    legend_canvas: Canvas,
     map_img: Option<ImageElement>,
     maps: Vec<Map>,
+    realtime_users: Vec<RealtimeUserData>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
-    users: Vec<RealtimeUserData>,
+    user_type: WebUserType,
 }
 
 impl MapViewComponent {
@@ -71,9 +72,12 @@ impl MapViewComponent {
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
             self.canvas.reset(map, &self.map_img);
-            self.canvas.draw_users(map, &self.users, self.show_distance);
-            self.canvas.draw_beacons(map, &self.beacons.iter().collect());
-            self.legend_canvas.legend(100, 600);
+
+            self.canvas.draw_users(map, &self.realtime_users, self.show_distance);
+            if self.user_type == WebUserType::Admin {
+                self.canvas.draw_beacons(map, &self.beacons.iter().collect());
+            }
+            self.legend_canvas.legend(80, map.bounds.y as u32, self.user_type);
         }
     }
 }
@@ -82,6 +86,8 @@ impl MapViewComponent {
 pub struct MapViewProps {
     pub emergency: bool,
     pub opt_id: Option<i32>,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for MapViewComponent {
@@ -99,28 +105,30 @@ impl Component for MapViewComponent {
         let mut result = MapViewComponent {
             beacons: Vec::new(),
             canvas: Canvas::new("map_canvas", click_callback.clone()),
-            legend_canvas: Canvas::new("legend_canvas", click_callback),
+            current_map: None,
             emergency: props.emergency,
             error_messages: Vec::new(),
             fetch_service: FetchService::new(),
-            fetch_task_users: None,
             fetch_task_beacons: None,
+            fetch_task_realtime_users: None,
             get_fetch_task: None,
             get_many_fetch_task: None,
             interval_service: IntervalService::new(),
             interval_service_task: None,
             interval_service_task_beacon: None,
-            maps: Vec::new(),
-            current_map: None,
+            legend_canvas: Canvas::new("legend_canvas", click_callback),
             map_img: None,
+            maps: Vec::new(),
+            realtime_users: Vec::new(),
             self_link: link,
             show_distance: None,
-            users: Vec::new(),
+            user_type: props.user_type,
         };
 
         if props.emergency {
             result.start_service();
         }
+
         result
     }
 
@@ -167,7 +175,7 @@ impl Component for MapViewComponent {
                 }
             },
             Msg::RequestRealtimeUser => {
-                self.fetch_task_users = get_request!(
+                self.fetch_task_realtime_users = get_request!(
                     self.fetch_service,
                     &users_status_url(),
                     self.self_link,
@@ -206,7 +214,7 @@ impl Component for MapViewComponent {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.users = result;
+                            self.realtime_users = result;
                         },
                         Err(e) => {
                             self.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
@@ -257,6 +265,9 @@ impl Component for MapViewComponent {
                     match body {
                         Ok(result) => {
                             self.maps = result;
+                            if self.maps.len() > 0 {
+                                self.self_link.send_self(Msg::ChooseMap(self.maps[0].id));
+                            }
                         },
                         Err(e) => {
                             self.error_messages.push(format!("failed to get maps, reason: {}", e));
@@ -282,7 +293,7 @@ impl Component for MapViewComponent {
             self.start_service();
         } else {
             self.end_service();
-            self.users = Vec::new();
+            self.realtime_users = Vec::new();
         }
         self.render();
         true
@@ -291,7 +302,7 @@ impl Component for MapViewComponent {
 
 impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
-        let mut render_distance_buttons = self.users.iter().map(|user| {
+        let mut render_distance_buttons = self.realtime_users.iter().map(|user| {
             let set_border = match &self.show_distance {
                 Some(selected) => &user.addr == selected,
                 None => false,
@@ -329,6 +340,16 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
+        let mut realtime_users = self.realtime_users.iter().map(|user| {
+            html! {
+                <tr>
+                    <td>{user.addr}</td>
+                    <td>{&user.name}</td>
+                    <td>{user.last_active}</td>
+                </tr>
+            }
+        });
+
         html! {
             <div>
                 { for errors }
@@ -339,7 +360,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <div>
                     <p>
                     {
-                        if self.users.len() > 0 {
+                        if self.realtime_users.len() > 0 {
                             "View TOF: "
                         } else {
                             ""
@@ -349,10 +370,24 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     { for render_distance_buttons }
                 </div>
                 <table>
-                    <tr><td>
-                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                    { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
-                    </td></tr>
+                    <tr>
+                        <td>
+                        { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
+                        </td>
+                        <td>
+                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                        </td>
+                        <td>
+                            <table>
+                                <tr>
+                                    <td>{"Address"}</td>
+                                    <td>{"Name"}</td>
+                                    <td>{"Last Seen"}</td>
+                                </tr>
+                                { for realtime_users }
+                            </table>
+                        </td>
+                    </tr>
                 </table>
             </div>
         }

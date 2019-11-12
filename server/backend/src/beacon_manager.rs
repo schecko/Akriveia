@@ -55,8 +55,8 @@ use actix::fut as afut;
     // as either will update their timestamp.
 // 5. as long as the stale map has elements, repeat the retry callback.
 
-const USE_DUMMY_BEACONS: bool = false;
-const USE_UDP_BEACONS: bool = true;
+const USE_DUMMY_BEACONS: bool = true;
+const USE_UDP_BEACONS: bool = false;
 const PING_INTERVAL: Duration = Duration::from_millis(100000);
 const EMERGENCY_PING_INTERVAL: Duration = Duration::from_millis(10000);
 const RESPONSE_THRESHOLD: Duration = Duration::from_millis(2000);

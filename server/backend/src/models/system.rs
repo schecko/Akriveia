@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 32] = [
+const SCHEMA: [&str; 33] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -99,6 +99,9 @@ const SCHEMA: [&str; 32] = [
     ",
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
             VALUES('test_user2', 'epoch', ARRAY [ 0, 0 ], CAST(x'0100' as INT4)::INT2)
+    ",
+    "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
+            VALUES('test_user3', 'epoch', ARRAY [ 0, 0 ], CAST(x'0003' as INT4)::INT2)
     ",
     "INSERT INTO runtime.maps(m_id, m_bounds, m_name, m_scale)
             VALUES(69, ARRAY [ 600, 600 ], 'test_map', 100)
