@@ -175,6 +175,7 @@ impl Component for Login {
 impl Login {
     fn render_switch(&self) -> Html<Self> {
         html! {
+            
             <>
                 //TODO Make a more intuintive layout for selecting admin or First Responder
                 <h1>{"Select Login"}</h1>
