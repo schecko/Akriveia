@@ -72,11 +72,12 @@ impl MapViewComponent {
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
             self.canvas.reset(map, &self.map_img);
+
             self.canvas.draw_users(map, &self.realtime_users, self.show_distance);
             if self.user_type == WebUserType::Admin {
                 self.canvas.draw_beacons(map, &self.beacons.iter().collect());
             }
-            self.legend_canvas.legend(100, map.bounds.y as u32);
+            self.legend_canvas.legend(80, map.bounds.y as u32, self.user_type);
         }
     }
 }
@@ -127,6 +128,7 @@ impl Component for MapViewComponent {
         if props.emergency {
             result.start_service();
         }
+
         result
     }
 
@@ -341,7 +343,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
         let mut realtime_users = self.realtime_users.iter().map(|user| {
             html! {
                 <tr>
-                    <td>{user.id}</td>
+                    <td>{user.addr}</td>
                     <td>{&user.name}</td>
                     <td>{user.last_active}</td>
                 </tr>
@@ -370,13 +372,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <table>
                     <tr>
                         <td>
-                        {
-                            if self.user_type == WebUserType::Admin {
-                              VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned())
-                            } else {
-                                html! { }
-                            }
-                        }
+                        { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
                         </td>
                         <td>
                         { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
