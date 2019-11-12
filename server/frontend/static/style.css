@@ -33,6 +33,12 @@
   border-radius: 0 0 10px 10px;
 }
 
+/* Change the color when hovering over links */
+.nav-item a:hover {
+  background-color: #e60013
+  text-transform: under;
+}
+
 /* TABLES FORMATTING */
 table th {
 	font-size: 16px;
@@ -49,32 +55,43 @@ h2.active {
   border-bottom: 2px solid #5fbae9;
 }
 
+
 /* FONT TYPOGRAPHY */
 .loginTypeHeader {
-  font-size: 40px;
-  position: absolute;
-  text-align: right;
-  vertical-align: text-top;
-  padding: 5px;
-  right:16px;
-  color: white;
-  background-color: transparent;
+  font-family: 'Poppins', sans-serif;
+  font-size: 28px;
+  vertical-align: text-center;
+  color:#ffffff !important;
+  background-color:#be0011;
   text-transform: uppercase;
   font-weight: bold;
+  margin-left: auto;
+  align-self: flex-end !important;
 }
 
 .navBarText {
   font-family: 'Poppins', sans-serif;
-  font-size: 22px;
-  padding: 8px 12px;
+  font-size: 18px;
+  padding: 2px 8px;
+  margin: auto;
+  color:#ffffff !important;
+  background-color:#be0011;
 }
 
 .logoutPlacement {
   font-family: 'Poppins', sans-serif;
-  font-size: 20px;
+  font-size: 14px;
   text-transform: uppercase;
-  text-align: right;
-  margin: 5px 18px 5px 5px;
+}
+
+.navbarColour {
+  background-color:#be0011;
+}
+
+.navbarJustify {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 /* FORM TYPOGRAPHY*/
@@ -174,86 +191,6 @@ input[type=password]:placeholder {
 
 /* ANIMATIONS */
 
-/* Simple CSS3 Fade-in-down Animation */
-.fadeInDown {
-  -webkit-animation-name: fadeInDown;
-  animation-name: fadeInDown;
-  -webkit-animation-duration: 1s;
-  animation-duration: 1s;
-  -webkit-animation-fill-mode: both;
-  animation-fill-mode: both;
-}
-
-@-webkit-keyframes fadeInDown {
-  0% {
-    opacity: 0;
-    -webkit-transform: translate3d(0, -100%, 0);
-    transform: translate3d(0, -100%, 0);
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: none;
-    transform: none;
-  }
-}
-
-@keyframes fadeInDown {
-  0% {
-    opacity: 0;
-    -webkit-transform: translate3d(0, -100%, 0);
-    transform: translate3d(0, -100%, 0);
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: none;
-    transform: none;
-  }
-}
-
-/* Simple CSS3 Fade-in Animation */
-@-webkit-keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-@-moz-keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-
-.fadeIn {
-  opacity:0;
-  -webkit-animation:fadeIn ease-in 1;
-  -moz-animation:fadeIn ease-in 1;
-  animation:fadeIn ease-in 1;
-
-  -webkit-animation-fill-mode:forwards;
-  -moz-animation-fill-mode:forwards;
-  animation-fill-mode:forwards;
-
-  -webkit-animation-duration:1s;
-  -moz-animation-duration:1s;
-  animation-duration:1s;
-}
-
-.fadeIn.first {
-  -webkit-animation-delay: 0.2s;
-  -moz-animation-delay: 0.2s;
-  animation-delay: 0.2s;
-}
-
-.fadeIn.second {
-  -webkit-animation-delay: 0.4s;
-  -moz-animation-delay: 0.4s;
-  animation-delay: 0.4s;
-}
-
-.fadeIn.third {
-  -webkit-animation-delay: 0.6s;
-  -moz-animation-delay: 0.6s;
-  animation-delay: 0.6s;
-}
-
-.fadeIn.fourth {
-  -webkit-animation-delay: 0.8s;
-  -moz-animation-delay: 0.8s;
-  animation-delay: 0.8s;
-}
-
 /* Simple CSS3 Fade-in Animation */
 .underlineHover:after {
   display: block;
@@ -321,7 +258,7 @@ input[type=password]:placeholder {
 }
 
 /* Change color of dropdown links on hover */
-.dropdown-content a:hover {background-color: #f1f1f1}
+.dropdown-content a:hover {background-color: #ff0015}
 
 /* Show the dropdown menu on hover */
 .dropdown:hover .dropdown-content {
@@ -330,5 +267,5 @@ input[type=password]:placeholder {
 
 /* Change the background color of the dropdown button when the dropdown content is shown */
 .dropdown:hover .dropbtn {
-  background-color: #3e8e41;
+  background-color: #be0011;
 }
