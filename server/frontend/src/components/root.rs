@@ -287,7 +287,7 @@ impl Renderable<RootComponent> for RootComponent {
 
 impl RootComponent {
     fn navigation(&self) -> Html<Self> {
-        let map_view = html! {
+        let view_map = html! {
             <>
                 <a
                     class="nav-link navBarText",
@@ -299,7 +299,7 @@ impl RootComponent {
                         }
                     },
                 >
-                    { "MapView" }
+                    { "View Map" }
                 </a>
             </>
         };
@@ -329,7 +329,8 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <li class="dropdown-list beacons-underline">
-                            <a 
+                            <a
+                                class="dropdown-item", 
                                 onclick=|_| Msg::ChangePage(Page::UserList), 
                                 disabled={self.current_page == Page::UserList},>
                                     { "User List" }
@@ -337,6 +338,7 @@ impl RootComponent {
                         </li>
                         <li class="dropdown-list beacons-underline">
                             <a
+                                class="dropdown-item",
                                 onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
                                 disabled={
                                     match self.current_page {
@@ -368,7 +370,10 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
-                            <a class="dropdown-item" onclick=|_| Msg::ChangePage(Page::BeaconList), disabled={self.current_page == Page::BeaconList},>
+                            <a 
+                                class="dropdown-item", 
+                                onclick=|_| Msg::ChangePage(Page::BeaconList), 
+                                disabled={self.current_page == Page::BeaconList},>
                                 { "Beacon List" }
                             </a>
                         </li>
@@ -480,7 +485,7 @@ impl RootComponent {
                 <div class="navbarJustify">
                     <ul class="nav navbarText">
                         <li class="nav-item mapview-underline my-auto">
-                            { map_view}
+                            {view_map}
                         </li>
                         <li class="nav-item diagnostics-underline my-auto">
                             { diagnostics }
