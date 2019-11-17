@@ -24,7 +24,7 @@ pub enum Page {
     UserList,
     Diagnostics,
     Status,
-    Login,
+    Login(bool),
     MapView(Option<i32>),
     MapList,
     MapAddUpdate(Option<i32>),
@@ -63,7 +63,7 @@ impl Component for RootComponent {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
             user_type: WebUserType::Responder,
-            current_page: Page::Login,
+            current_page: Page::Login(true),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -170,12 +170,13 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
-            Page::Login => {
+            Page::Login(auto_login) => {
                 html! {
                     <div class="container-fluid">
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
+                            auto_login = auto_login,
                         />
                     </div>
                 }
@@ -328,7 +329,7 @@ impl RootComponent {
                             { "User" }
                     </a>
                     <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
-                        <li class="dropdown-list beacons-underline">
+                        <li class="dropdown-list status-underline">
                             <a
                                 class="dropdown-item", 
                                 onclick=|_| Msg::ChangePage(Page::UserList), 
@@ -336,7 +337,7 @@ impl RootComponent {
                                     { "User List" }
                             </a>
                         </li>
-                        <li class="dropdown-list beacons-underline">
+                        <li class="dropdown-list status-underline">
                             <a
                                 class="dropdown-item",
                                 onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
@@ -369,7 +370,7 @@ impl RootComponent {
                         { "Beacons" }
                     </a>
                     <div class="dropdown-content navBarText">
-                        <li class="dropdown-list beacons-underline">
+                        <li class="dropdown-list status-underline">
                             <a 
                                 class="dropdown-item", 
                                 onclick=|_| Msg::ChangePage(Page::BeaconList), 
@@ -377,7 +378,7 @@ impl RootComponent {
                                 { "Beacon List" }
                             </a>
                         </li>
-                        <li class="dropdown-list beacons-underline">
+                        <li class="dropdown-list status-underline">
                             <a
                                 class="dropdown-item",
                                 onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
@@ -418,7 +419,7 @@ impl RootComponent {
                                     { "Map List" }
                             </a>
                         </li>
-                        <li class="dropdown-list beacons-underline">
+                        <li class="dropdown-list status-underline">
                             <a
                                 //class="dropdown-item"
                                 onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
@@ -455,8 +456,8 @@ impl RootComponent {
                 <>
                     <button
                         class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        onclick=|_| Msg::ChangePage(Page::Login(true)),
+                        disabled={self.current_page == Page::Login(true)},
                     >
                         { "Logout" }
                     </button>
@@ -466,11 +467,11 @@ impl RootComponent {
             WebUserType::Responder => html!{
                 <>
                     <button
-                        class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        class="btn btn-success btn-sm nav-link logoutPlacement ml-auto",
+                        onclick=|_| Msg::ChangePage(Page::Login(false)),
+                        disabled={self.current_page == Page::Login(false)},
                     >
-                        { "Logout" }
+                        { "Login" }
                     </button>
                     <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
                 </>
@@ -493,13 +494,13 @@ impl RootComponent {
                         <li class="nav-item status-underline my-auto">
                             { show_status }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="nav-item status-underline dropdown my-auto">
                             { select_beacon }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="nav-item status-underline dropdown my-auto">
                             { select_user }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="nav-item status-underline dropdown my-auto">
                             { select_map }
                         </li>
                     </ul>
