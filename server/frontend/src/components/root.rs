@@ -40,7 +40,6 @@ pub struct RootComponent {
 }
 
 pub enum Msg {
-    // local functionality
 
     // page changes
     ChangePage(Page),
@@ -412,7 +411,6 @@ impl RootComponent {
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
                             <a 
-                                //class="dropdown-item" 
                                 onclick=|_| Msg::ChangePage(Page::MapList), 
                                 disabled={self.current_page == Page::MapList},>
                                     { "Map List" }
@@ -420,7 +418,6 @@ impl RootComponent {
                         </li>
                         <li class="dropdown-list beacons-underline">
                             <a
-                                //class="dropdown-item"
                                 onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
                                 disabled={
                                     match self.current_page {
@@ -477,7 +474,6 @@ impl RootComponent {
             }
         };
         html! {
-            // TODO change background color to akriveia red #be0010
             <nav class="navbar navbar-expand-sm navbarColour">
                 <a class="navbar-brand">
                     <img src="/images/icon.PNG" width="52" height="48" class="d-inline-block align-top" alt=""/>
