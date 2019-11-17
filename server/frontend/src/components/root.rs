@@ -24,7 +24,7 @@ pub enum Page {
     UserList,
     Diagnostics,
     Status,
-    Login,
+    Login(bool),
     MapView(Option<i32>),
     MapList,
     MapAddUpdate(Option<i32>),
@@ -62,7 +62,7 @@ impl Component for RootComponent {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
             user_type: WebUserType::Responder,
-            current_page: Page::Login,
+            current_page: Page::Login(false),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -169,12 +169,13 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
-            Page::Login => {
+            Page::Login(auto_login) => {
                 html! {
                     <div class="container-fluid">
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
+                            auto_login = auto_login,
                         />
                     </div>
                 }
@@ -452,8 +453,8 @@ impl RootComponent {
                 <>
                     <button
                         class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        onclick=|_| Msg::ChangePage(Page::Login(true)),
+                        disabled={self.current_page == Page::Login(true)},
                     >
                         { "Logout" }
                     </button>
@@ -464,8 +465,8 @@ impl RootComponent {
                 <>
                     <button
                         class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        onclick=|_| Msg::ChangePage(Page::Login(false)),
+                        disabled={self.current_page == Page::Login(false)},
                     >
                         { "Logout" }
                     </button>

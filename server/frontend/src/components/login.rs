@@ -4,15 +4,9 @@ use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use super::root;
 
-pub enum State {
-    Switch,
-    Form,
-}
-
 pub enum Msg {
     ChangeRootPage(root::Page),
 
-    ChangeState(State),
     InputName(String),
     InputPassword(String),
 
@@ -43,7 +37,6 @@ impl Data {
 }
 
 pub struct Login {
-    state: State,
     change_page: Callback<root::Page>,
     change_user_type: Callback<WebUserType>,
     data: Data,
@@ -59,6 +52,7 @@ pub struct LoginProps {
     #[props(required)]
     pub change_user_type: Callback<WebUserType>,
     pub logout: bool,
+    pub auto_login:bool,
 }
 
 impl Component for Login {
@@ -69,8 +63,10 @@ impl Component for Login {
         if props.logout {
             link.send_self(Msg::RequestLogout);
         }
+        if props.auto_login == true {
+            link.send_self(Msg::RequestLoginAnon);
+        }
         let result = Login {
-            state: State::Switch,
             change_page: props.change_page,
             change_user_type: props.change_user_type,
             data: Data::new(),
@@ -85,9 +81,6 @@ impl Component for Login {
         match msg {
             Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
-            }
-            Msg::ChangeState(state) => {
-                self.state = state;
             }
             Msg::InputName(name) => {
                 self.data.login.name = name;
@@ -173,30 +166,6 @@ impl Component for Login {
 }
 
 impl Login {
-    fn render_switch(&self) -> Html<Self> {
-        html! {
-            
-            <>
-                //TODO Make a more intuintive layout for selecting admin or First Responder
-                <h1>{"Select Login"}</h1>
-                    <button
-                        type="button",
-                        class="btn btn-secondary btn-lg",
-                        onclick=|_| Msg::ChangeState(State::Form),
-                    >
-                        { "Admin" }
-                    </button>
-                    
-                    <button
-                        type="button",
-                        class="btn btn-primary btn-lg",
-                        onclick=|_| Msg::RequestLoginAnon,
-                    >
-                        { "First Responder" }
-                    </button>
-            </>
-        }
-    }
 
     fn render_form(&self) -> Html<Self> {
         html! {
@@ -262,10 +231,7 @@ impl Renderable<Login> for Login {
                 { for errors }
                 <div/>
                 {
-                    match self.state {
-                        State::Switch => self.render_switch(),
-                        State::Form => self.render_form(),
-                    }
+                    self.render_form()
                 }
             </>
         }
