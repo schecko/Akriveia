@@ -62,7 +62,7 @@ impl Component for RootComponent {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
             user_type: WebUserType::Responder,
-            current_page: Page::Login(false),
+            current_page: Page::Login(true),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -464,11 +464,11 @@ impl RootComponent {
             WebUserType::Responder => html!{
                 <>
                     <button
-                        class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
+                        class="btn btn-success btn-sm nav-link logoutPlacement ml-auto",
                         onclick=|_| Msg::ChangePage(Page::Login(false)),
                         disabled={self.current_page == Page::Login(false)},
                     >
-                        { "Logout" }
+                        { "Login" }
                     </button>
                     <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
                 </>
