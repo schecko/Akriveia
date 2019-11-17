@@ -59,7 +59,6 @@ pub struct LoginProps {
     #[props(required)]
     pub change_user_type: Callback<WebUserType>,
     pub logout: bool,
-    pub auto_login:bool,
 }
 
 impl Component for Login {
@@ -70,11 +69,6 @@ impl Component for Login {
         if props.logout {
             link.send_self(Msg::RequestLogout);
         }
-
-        if props.auto_login == true {
-            link.send_self(Msg::RequestLoginAnon);
-        }
-
         let result = Login {
             state: State::Switch,
             change_page: props.change_page,
@@ -86,7 +80,6 @@ impl Component for Login {
         };
         result
     }
-
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
@@ -107,7 +100,6 @@ impl Component for Login {
                 self.data.success_message = None;
                 let mut info = LoginInfo::new();
                 info.name = String::from("responder");
-
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &session_login_url(),
@@ -180,18 +172,28 @@ impl Component for Login {
     }
 }
 
-
 impl Login {
     fn render_switch(&self) -> Html<Self> {
         html! {
+            
             <>
-                <img src="/images/pyramid_head.jpeg" class="img-fluid" alt="Memes"/>
-                <button
-                    class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                    onclick=|_| Msg::ChangeState(State::Form),
-                >
-                    { "Change To Admin" }
-                </button>
+                //TODO Make a more intuintive layout for selecting admin or First Responder
+                <h1>{"Select Login"}</h1>
+                    <button
+                        type="button",
+                        class="btn btn-secondary btn-lg",
+                        onclick=|_| Msg::ChangeState(State::Form),
+                    >
+                        { "Admin" }
+                    </button>
+                    
+                    <button
+                        type="button",
+                        class="btn btn-primary btn-lg",
+                        onclick=|_| Msg::RequestLoginAnon,
+                    >
+                        { "First Responder" }
+                    </button>
             </>
         }
     }
@@ -259,7 +261,7 @@ impl Renderable<Login> for Login {
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
                 <div/>
-                {   
+                {
                     match self.state {
                         State::Switch => self.render_switch(),
                         State::Form => self.render_form(),
