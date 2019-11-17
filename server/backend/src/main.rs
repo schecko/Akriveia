@@ -49,20 +49,13 @@ use std::sync::*;
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum WatcherCommand {
-    NotifyShuttingDown,
-    SetNormal,
-    SetRebuildDB,
-}
-
-#[derive(Copy, Clone, Serialize, Deserialize)]
-pub enum WebserverCommand {
     StartNormal,
     RebuildDB,
 }
 
 pub struct AkriveiaState {
     pub tx: ipc::IpcSender<WatcherCommand>,
-    pub rx: ipc::IpcReceiver<WebserverCommand>,
+    pub rx: ipc::IpcReceiver<SystemCommand>,
     pub beacon_manager: Addr<BeaconManager>,
     pub data_processor: Addr<DataProcessor>,
     // I would prefer this was a per user connection pool,
@@ -73,7 +66,7 @@ pub struct AkriveiaState {
 pub type AKData = web::Data<Arc<Mutex<AkriveiaState>>>;
 
 impl AkriveiaState {
-    pub fn new(tx: IpcSender<WatcherCommand>, rx: IpcReceiver<WebserverCommand>) -> AKData {
+    pub fn new(tx: IpcSender<WatcherCommand>, rx: IpcReceiver<SystemCommand>) -> AKData {
         let data_processor_addr =  DataProcessor::new().start();
         let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone());
 
@@ -95,14 +88,14 @@ fn default_route(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().finish()
 }
 
-fn webserver_main(start_command: WebserverCommand, tx: IpcSender<WatcherCommand>, rx: IpcReceiver<WebserverCommand>) {
+fn webserver_main(start_command: SystemCommand, tx: IpcSender<WatcherCommand>, rx: IpcReceiver<SystemCommand>) {
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
 
     match start_command {
-        WebserverCommand::StartNormal => {},
-        WebserverCommand::RebuildDB => {
+        SystemCommand::StartNormal => {},
+        SystemCommand::RebuildDB => {
             let create_db_fut = system::create_db();
             // intentionally block all further execution
             tokio::run(create_db_fut);
@@ -216,6 +209,10 @@ fn webserver_main(start_command: WebserverCommand, tx: IpcSender<WatcherCommand>
                 web::resource(&system_diagnostics_url())
                     .route(web::get().to_async(system_controller::diagnostics))
             )
+            .service(
+                web::resource(&system_restart_url())
+                    .route(web::post().to_async(system_controller::restart))
+            )
 
             // network
             .service(
@@ -262,24 +259,22 @@ fn webserver_main(start_command: WebserverCommand, tx: IpcSender<WatcherCommand>
     }
 }
 
-fn watch(tx: IpcSender<WebserverCommand>, rx: IpcReceiver<WatcherCommand>) -> WebserverCommand {
-    println!("hello from watcher");
+fn watch(tx: IpcSender<SystemCommand>, rx: IpcReceiver<WatcherCommand>) -> SystemCommand {
     // just do nothing and wait on a response from the webserver.
     // maybe later implement pinging.
-    let mut current_command = WebserverCommand::StartNormal;
+    let mut current_command = SystemCommand::StartNormal;
 
     loop {
         match rx.recv() {
             Ok(command) => {
                 match command {
-                    WatcherCommand::NotifyShuttingDown => {
+                    WatcherCommand::StartNormal => {
+                        current_command = SystemCommand::StartNormal;
                         break;
                     },
-                    WatcherCommand::SetNormal => {
-                        current_command = WebserverCommand::StartNormal;
-                    },
-                    WatcherCommand::SetRebuildDB => {
-                        current_command = WebserverCommand::RebuildDB;
+                    WatcherCommand::RebuildDB => {
+                        current_command = SystemCommand::RebuildDB;
+                        break;
                     },
 
                 }
@@ -294,11 +289,11 @@ fn watch(tx: IpcSender<WebserverCommand>, rx: IpcReceiver<WatcherCommand>) -> We
 }
 
 fn main() {
-    let mut start_command = WebserverCommand::StartNormal;
+    let mut start_command = SystemCommand::StartNormal;
 
     loop {
         let (child_tx, parent_rx) = ipc::channel::<WatcherCommand>().unwrap();
-        let (parent_tx, child_rx) = ipc::channel::<WebserverCommand>().unwrap();
+        let (parent_tx, child_rx) = ipc::channel::<SystemCommand>().unwrap();
 
         let pid = unsafe { libc::fork() };
         match pid {
@@ -310,9 +305,13 @@ fn main() {
             -1 => {
                 panic!("failed to create child");
             },
-            _child_pid => {
+            child_pid => {
                 start_command = watch(parent_tx, parent_rx);
-                // TODO join on child before looping again
+                unsafe {
+                    let mut status = 0;
+                    let pid = libc::waitpid(child_pid, &mut status, 0);
+                    assert!(pid == child_pid);
+                }
             },
         };
     }

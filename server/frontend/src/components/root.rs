@@ -1,33 +1,35 @@
 
 use common::*;
 use crate::util::{ self, WebUserType, };
-use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::prelude::*;
-use super::map_view::MapViewComponent;
-use super::emergency_buttons::EmergencyButtons;
-use super::diagnostics::Diagnostics;
-use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
-use super::user_list::UserList;
-use super::user_addupdate::UserAddUpdate;
-use super::map_list::MapList;
-use super::map_addupdate::MapAddUpdate;
-use super::status::Status;
+use super::beacon_list::BeaconList;
+use super::diagnostics::Diagnostics;
+use super::emergency_buttons::EmergencyButtons;
 use super::login::Login;
+use super::map_addupdate::MapAddUpdate;
+use super::map_list::MapList;
+use super::map_view::MapViewComponent;
+use super::status::Status;
+use super::system_settings::SystemSettings;
+use super::user_addupdate::UserAddUpdate;
+use super::user_list::UserList;
+use yew::format::Json;
+use yew::prelude::*;
+use yew::services::fetch::{ FetchService, FetchTask, };
 
 #[derive(PartialEq)]
 pub enum Page {
     BeaconAddUpdate(Option<i32>),
     BeaconList,
+    Diagnostics,
+    Login,
+    MapAddUpdate(Option<i32>),
+    MapList,
+    MapView(Option<i32>),
+    Status,
+    SystemSettings,
     UserAddUpdate(Option<i32>),
     UserList,
-    Diagnostics,
-    Status,
-    Login,
-    MapView(Option<i32>),
-    MapList,
-    MapAddUpdate(Option<i32>),
 }
 
 pub struct RootComponent {
@@ -280,6 +282,19 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
+            Page::SystemSettings => {
+                html! {
+                    <div class="page-content-wrapper">
+                        { self.navigation() }
+                        <div class="container-fluid">
+                            <h1>{ "User" } </h1>
+                            <SystemSettings
+                                user_type=self.user_type,
+                            />
+                        </div>
+                    </div>
+                }
+            },
         }
     }
 }
@@ -305,7 +320,7 @@ impl RootComponent {
 
         let show_status = html! {
             <>
-                <a 
+                <a
                     class="nav-link navBarText",
                     onclick=|_| Msg::ChangePage(Page::Status),
                     disabled={self.current_page == Page::Status},
@@ -319,8 +334,11 @@ impl RootComponent {
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
-                        class="nav-link dropdown navBarText" id="navbarDropdown", role="button" data-toggle="dropdown" 
+                    <a
+                        class="nav-link dropdown navBarText"
+                        id="navbarDropdown",
+                        role="button"
+                        data-toggle="dropdown"
                         aria-haspopup="true" aria-expanded="false",
                         onclick=|_| Msg::ChangePage(Page::UserList)
                     >
@@ -329,8 +347,8 @@ impl RootComponent {
                     <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <li class="dropdown-list beacons-underline">
                             <a
-                                class="dropdown-item", 
-                                onclick=|_| Msg::ChangePage(Page::UserList), 
+                                class="dropdown-item",
+                                onclick=|_| Msg::ChangePage(Page::UserList),
                                 disabled={self.current_page == Page::UserList},>
                                     { "User List" }
                             </a>
@@ -353,25 +371,27 @@ impl RootComponent {
                     </div>
                 </>
             },
-            WebUserType::Responder => html! {
-                <></>
-            },
+            WebUserType::Responder => html! { },
         };
 
         let select_beacon = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
-                        class="nav-link dropdown navBarText" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                    <a
+                        class="nav-link dropdown navBarText"
+                        role="button"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::BeaconList)
                     >
                         { "Beacons" }
                     </a>
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
-                            <a 
-                                class="dropdown-item", 
-                                onclick=|_| Msg::ChangePage(Page::BeaconList), 
+                            <a
+                                class="dropdown-item",
+                                onclick=|_| Msg::ChangePage(Page::BeaconList),
                                 disabled={self.current_page == Page::BeaconList},>
                                 { "Beacon List" }
                             </a>
@@ -394,24 +414,26 @@ impl RootComponent {
                     </div>
                 </>
             },
-            WebUserType::Responder => html! {
-                <></>
-            }
+            WebUserType::Responder => html! { }
         };
 
         let select_map = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
-                        class="nav-link dropdown navBarText" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                    <a
+                        class="nav-link dropdown navBarText"
+                        role="button"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::MapList),
                     >
                             { "Maps" }
                     </a>
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
-                            <a 
-                                onclick=|_| Msg::ChangePage(Page::MapList), 
+                            <a
+                                onclick=|_| Msg::ChangePage(Page::MapList),
                                 disabled={self.current_page == Page::MapList},>
                                     { "Map List" }
                             </a>
@@ -433,18 +455,41 @@ impl RootComponent {
                     </div>
                 </>
             },
-            WebUserType::Responder => html! {
-                <></>
-            }
+            WebUserType::Responder => html! { }
         };
 
-        let diagnostics = match self.user_type {
+        let select_system = match self.user_type {
             WebUserType::Admin => html! {
-                <a class="nav-link navBarText" onclick=|_| Msg::ChangePage(Page::Diagnostics), disabled={self.current_page == Page::Diagnostics},>{ "Diagnostics" }</a>
+                <>
+                    <a
+                        class="nav-link dropdown navBarText"
+                        role="button"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        onclick=|_| Msg::ChangePage(Page::SystemSettings),
+                    >
+                        { "System" }
+                    </a>
+                    <div class="dropdown-content navBarText">
+                        <li class="dropdown-list beacons-underline">
+                            <a
+                                onclick=|_| Msg::ChangePage(Page::SystemSettings),
+                                disabled={self.current_page == Page::SystemSettings},>
+                                    { "System Settings" }
+                            </a>
+                        </li>
+                        <li class="dropdown-list beacons-underline">
+                            <a
+                                onclick=|_| Msg::ChangePage(Page::Diagnostics),
+                                disabled={self.current_page == Page::Diagnostics},>
+                                    { "Diagnostics" }
+                            </a>
+                        </li>
+                    </div>
+                </>
             },
-            WebUserType::Responder => html! {
-                <></>
-            }
+            WebUserType::Responder => html! { }
         };
 
         let login_type = match self.user_type {
@@ -481,13 +526,13 @@ impl RootComponent {
                 <div class="navbarJustify">
                     <ul class="nav navbarText">
                         <li class="nav-item mapview-underline my-auto">
-                            {view_map}
-                        </li>
-                        <li class="nav-item diagnostics-underline my-auto">
-                            { diagnostics }
+                            { view_map }
                         </li>
                         <li class="nav-item status-underline my-auto">
                             { show_status }
+                        </li>
+                        <li class="nav-item dropdown my-auto">
+                            { select_map }
                         </li>
                         <li class="nav-item dropdown my-auto">
                             { select_beacon }
@@ -496,7 +541,7 @@ impl RootComponent {
                             { select_user }
                         </li>
                         <li class="nav-item dropdown my-auto">
-                            { select_map }
+                            { select_system }
                         </li>
                     </ul>
                 </div>

@@ -59,11 +59,15 @@ pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpRes
         }})
 }
 
-pub fn restart(id: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> impl Future<Item=HttpResponse, Error=Error> {
     if let Some(name) = id.identity() {
         if name == "admin" {
             let s = state.lock().unwrap();
-            match s.tx.send(WatcherCommand::NotifyShuttingDown) {
+            let command = match payload.0 {
+                SystemCommand::StartNormal => WatcherCommand::StartNormal,
+                SystemCommand::RebuildDB => WatcherCommand::RebuildDB,
+            };
+            match s.tx.send(command) {
                 Ok(()) => {},
                 Err(e) => {
                     // TODO just change to println I guess...
