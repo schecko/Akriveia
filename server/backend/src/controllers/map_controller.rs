@@ -1,14 +1,14 @@
 
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
-use crate::AkriveiaState;
+use crate::AKData;
 use crate::db_utils;
 use crate::models::map;
 use futures::{ Stream, future::ok, Future, future::Either, };
 use std::sync::*;
 use actix_identity::Identity;
 
-pub fn get_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {
@@ -34,7 +34,7 @@ pub fn get_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpR
     }
 }
 
-pub fn get_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_map_blueprint(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {
@@ -60,7 +60,7 @@ pub fn get_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, 
     }
 }
 
-pub fn get_maps(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_maps(uid: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             map::select_maps(client)
@@ -75,7 +75,7 @@ pub fn get_maps(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Htt
 }
 
 // new map
-pub fn post_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<Map>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_map(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<Map>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             map::insert_map(client, payload.0)
@@ -92,7 +92,7 @@ pub fn post_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Htt
 }
 
 // update map
-pub fn put_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<Map>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_map(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<Map>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             map::update_map(client, payload.0)
@@ -109,7 +109,7 @@ pub fn put_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Http
 }
 
 // update map blueprint
-pub fn put_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, payload: web::Payload) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_map_blueprint(uid: Identity, state: AKData, req: HttpRequest, payload: web::Payload) -> impl Future<Item=HttpResponse, Error=Error> {
     let mid = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match mid {
         Ok(id) => {
@@ -140,7 +140,7 @@ pub fn put_map_blueprint(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, 
     }
 }
 
-pub fn delete_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {

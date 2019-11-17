@@ -1,7 +1,7 @@
 use tokio_postgres::NoTls;
 use common::LoginInfo;
 use futures::{ future::err, Future, future::Either, };
-use crate::AkriveiaState;
+use crate::AKData;
 use actix_web::{ error, web, };
 use std::sync::Mutex;
 use actix_identity::Identity;
@@ -25,7 +25,7 @@ pub fn connect(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=t
         })
 }
 
-pub fn connect_id(id: &Identity, state: &web::Data<Mutex<AkriveiaState>>) -> impl Future<Item=tokio_postgres::Client, Error=actix_web::Error> {
+pub fn connect_id(id: &Identity, state: &AKData) -> impl Future<Item=tokio_postgres::Client, Error=actix_web::Error> {
     let conn_fut = if let Some(name) = id.identity() {
         let s = state.lock().unwrap();
         if let Some(info) = s.pools.get(&name) {

@@ -1,5 +1,5 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
-use crate::AkriveiaState;
+use crate::AKData;
 use crate::beacon_manager::{ OutBeaconData, BMCommand, };
 use crate::db_utils;
 use crate::models::beacon;
@@ -14,7 +14,7 @@ pub struct GetParams {
     prefetch: Option<bool>,
 }
 
-pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn beacons_status(_uid: Identity, state: AKData) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(OutBeaconData{})
@@ -29,7 +29,7 @@ pub fn beacons_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>) ->
         }})
 }
 
-pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<common::BeaconRequest>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn beacon_command(_uid: Identity, state: AKData, payload: web::Json<common::BeaconRequest>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     let command = match payload.0 {
         BeaconRequest::StartEmergency(mac) => BMCommand::StartEmergency(mac),
@@ -50,7 +50,7 @@ pub fn beacon_command(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, pa
         }})
 }
 
-pub fn get_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_beacon(uid: Identity, state: AKData, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     let prefetch = params.prefetch.unwrap_or(false);
     match id {
@@ -90,7 +90,7 @@ pub fn get_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: Ht
     }
 }
 
-pub fn get_beacons_for_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_beacons_for_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {
@@ -113,7 +113,7 @@ pub fn get_beacons_for_map(uid: Identity, state: web::Data<Mutex<AkriveiaState>>
     }
 }
 
-pub fn get_beacons(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let prefetch = params.prefetch.unwrap_or(false);
     let connect = db_utils::connect_id(&uid, &state);
 
@@ -150,7 +150,7 @@ pub fn get_beacons(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: 
 }
 
 // new beacon
-pub fn post_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
 
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
@@ -169,7 +169,7 @@ pub fn post_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: 
 }
 
 // update beacon
-pub fn put_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             beacon::update_beacon(client, payload.0)
@@ -186,7 +186,7 @@ pub fn put_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: H
         })
 }
 
-pub fn delete_beacon(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_beacon(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {

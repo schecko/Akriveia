@@ -1,7 +1,7 @@
 
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use common::*;
-use crate::AkriveiaState;
+use crate::AKData;
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
@@ -16,7 +16,7 @@ pub struct GetParams {
     include_contacts: Option<bool>,
 }
 
-pub fn users_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn users_status(_uid: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.data_processor
         .send(OutUserData{})
@@ -31,7 +31,7 @@ pub fn users_status(_uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req
         }})
 }
 
-pub fn get_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     let prefetch = params.prefetch.unwrap_or(false);
     match id {
@@ -66,7 +66,7 @@ pub fn get_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: Http
     }
 }
 
-pub fn get_users(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
     let include_contacts = params.include_contacts.unwrap_or(true);
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
@@ -82,7 +82,7 @@ pub fn get_users(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Ht
 }
 
 // new user
-pub fn post_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
     let (user, opt_e_user) = payload.into_inner();
 
     db_utils::connect_id(&uid, &state)
@@ -122,7 +122,7 @@ pub fn post_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Ht
         })
 }
 
-pub fn put_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
     let (user, opt_e_user) = payload.into_inner();
 
     db_utils::connect_id(&uid, &state)
@@ -159,7 +159,7 @@ pub fn put_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, _req: Htt
         })
 }
 
-pub fn delete_user(uid: Identity, state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_user(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) => {

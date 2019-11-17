@@ -1,12 +1,12 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
-use crate::AkriveiaState;
+use crate::AKData;
 use common::NetworkInterface;
 use crate::db_utils;
 use crate::models::network_interface;
 use futures::{ future::ok, Future, future::Either, };
 use std::sync::*;
 
-pub fn get_network_interface(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_network_interface(_state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {
@@ -32,7 +32,7 @@ pub fn get_network_interface(_state: web::Data<Mutex<AkriveiaState>>, req: HttpR
     }
 }
 
-pub fn get_network_interfaces(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_network_interfaces(_state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             network_interface::select_network_interfaces(client)
@@ -47,7 +47,7 @@ pub fn get_network_interfaces(_state: web::Data<Mutex<AkriveiaState>>, _req: Htt
 }
 
 // new iface
-pub fn post_network_interface(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<NetworkInterface>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_network_interface(_state: AKData, _req: HttpRequest, payload: web::Json<NetworkInterface>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             network_interface::insert_network_interface(client, payload.0)
@@ -64,7 +64,7 @@ pub fn post_network_interface(_state: web::Data<Mutex<AkriveiaState>>, _req: Htt
 }
 
 // update iface
-pub fn put_network_interface(_state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<NetworkInterface>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_network_interface(_state: AKData, _req: HttpRequest, payload: web::Json<NetworkInterface>) -> impl Future<Item=HttpResponse, Error=Error> {
     db_utils::connect(db_utils::DEFAULT_CONNECTION)
         .and_then(move |client| {
             network_interface::update_network_interface(client, payload.0)
@@ -81,7 +81,7 @@ pub fn put_network_interface(_state: web::Data<Mutex<AkriveiaState>>, _req: Http
         })
 }
 
-pub fn delete_network_interface(_state: web::Data<Mutex<AkriveiaState>>, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_network_interface(_state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {

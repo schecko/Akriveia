@@ -1,11 +1,14 @@
-use actix_web::{ Error, web, HttpRequest, HttpResponse, };
-use crate::AkriveiaState;
-use futures::{ future::ok, Future, };
-use std::sync::*;
-use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
+use actix::System;
+use actix_identity::Identity;
+use actix_web::{ Error, error, web, HttpRequest, HttpResponse, };
 use common::*;
+use crate::AKData;
+use crate::WatcherCommand;
+use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
+use futures::{ future::err, future::ok, Future, };
+use std::sync::*;
 
-pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     let command = if payload.emergency {
         BMCommand::StartEmergency(None)
@@ -26,7 +29,7 @@ pub fn post_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest,
         }})
 }
 
-pub fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_emergency(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(BMCommand::GetEmergency)
@@ -41,7 +44,7 @@ pub fn get_emergency(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) 
         }})
 }
 
-pub fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)
@@ -56,3 +59,26 @@ pub fn diagnostics(state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) ->
         }})
 }
 
+pub fn restart(id: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+    if let Some(name) = id.identity() {
+        if name == "admin" {
+            let s = state.lock().unwrap();
+            match s.tx.send(WatcherCommand::NotifyShuttingDown) {
+                Ok(()) => {},
+                Err(e) => {
+                    // TODO just change to println I guess...
+                    panic!("Failed to notify watcher we are shutting down");
+                },
+            }
+
+            let system = System::current();
+            system.stop();
+            // TODO test to see if this request ever returns
+            ok(HttpResponse::Ok().finish())
+        } else {
+            err(error::ErrorUnauthorized("invalid credentials"))
+        }
+    } else {
+        err(error::ErrorUnauthorized("invalid credentials"))
+    }
+}

@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_identity;
@@ -10,7 +10,9 @@ extern crate env_logger;
 extern crate eui48;
 extern crate eui64;
 extern crate futures;
+extern crate ipc_channel;
 extern crate ipnet;
+extern crate libc;
 extern crate nalgebra as na;
 extern crate tokio_postgres;
 
@@ -39,12 +41,28 @@ use actix_web::{ error, middleware, web, App, HttpRequest, HttpResponse, HttpSer
 use beacon_manager::*;
 use common::*;
 use data_processor::*;
+use ipc_channel::ipc::{ self, IpcReceiver, IpcSender, };
+use serde_derive::{ Deserialize, Serialize, };
+use std::collections::HashMap;
 use std::env;
 use std::sync::*;
-use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum WatcherCommand {
+    NotifyShuttingDown,
+    SetNormal,
+    SetRebuildDB,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum WebserverCommand {
+    StartNormal,
+    RebuildDB,
+}
+
 pub struct AkriveiaState {
+    pub tx: ipc::IpcSender<WatcherCommand>,
+    pub rx: ipc::IpcReceiver<WebserverCommand>,
     pub beacon_manager: Addr<BeaconManager>,
     pub data_processor: Addr<DataProcessor>,
     // I would prefer this was a per user connection pool,
@@ -52,19 +70,22 @@ pub struct AkriveiaState {
     pub pools: HashMap<String, LoginInfo>,
 }
 
-impl AkriveiaState {
-    pub fn new() -> web::Data<Mutex<AkriveiaState>> {
+pub type AKData = web::Data<Arc<Mutex<AkriveiaState>>>;
 
+impl AkriveiaState {
+    pub fn new(tx: IpcSender<WatcherCommand>, rx: IpcReceiver<WebserverCommand>) -> AKData {
         let data_processor_addr =  DataProcessor::new().start();
         let beacon_manager_addr = BeaconManager::new(data_processor_addr.clone());
 
         beacon_manager_addr.do_send(BMCommand::ScanBeacons);
 
-        web::Data::new(Mutex::new(AkriveiaState {
+        web::Data::new(Arc::new(Mutex::new(AkriveiaState {
             beacon_manager: beacon_manager_addr,
             data_processor: data_processor_addr,
             pools: HashMap::new(),
-        }))
+            tx,
+            rx,
+        })))
     }
 }
 
@@ -74,15 +95,21 @@ fn default_route(req: HttpRequest) -> HttpResponse {
     HttpResponse::NotFound().finish()
 }
 
-fn main() -> std::io::Result<()> {
+fn webserver_main(start_command: WebserverCommand, tx: IpcSender<WatcherCommand>, rx: IpcReceiver<WebserverCommand>) {
     let system = System::new("Akriviea");
     env::set_var("RUST_LOG", "actix_server=info,actix_web=info");
     env_logger::init();
-    let create_db_fut = system::create_db();
-    // intentionally block all further execution
-    tokio::run(create_db_fut);
 
-    let state = AkriveiaState::new();
+    match start_command {
+        WebserverCommand::StartNormal => {},
+        WebserverCommand::RebuildDB => {
+            let create_db_fut = system::create_db();
+            // intentionally block all further execution
+            tokio::run(create_db_fut);
+        },
+    }
+
+    let state = AkriveiaState::new(tx, rx);
 
     // start the webserver
     HttpServer::new(move || {
@@ -223,9 +250,71 @@ fn main() -> std::io::Result<()> {
             .service(fs::Files::new("/", "static").index_file("index.html"))
             .default_service(web::resource("").to(default_route))
     })
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:8080").unwrap()
     .start();
 
-    system.run()
+    let sys_result = system.run();
+    match sys_result {
+        Err(e) => {
+            println!("actix system error: {}", e);
+        },
+        _ => {},
+    }
+}
+
+fn watch(tx: IpcSender<WebserverCommand>, rx: IpcReceiver<WatcherCommand>) -> WebserverCommand {
+    println!("hello from watcher");
+    // just do nothing and wait on a response from the webserver.
+    // maybe later implement pinging.
+    let mut current_command = WebserverCommand::StartNormal;
+
+    loop {
+        match rx.recv() {
+            Ok(command) => {
+                match command {
+                    WatcherCommand::NotifyShuttingDown => {
+                        break;
+                    },
+                    WatcherCommand::SetNormal => {
+                        current_command = WebserverCommand::StartNormal;
+                    },
+                    WatcherCommand::SetRebuildDB => {
+                        current_command = WebserverCommand::RebuildDB;
+                    },
+
+                }
+            },
+            Err(e) => {
+                println!("error with communication, {}", e);
+                // TODO restart server at this point?
+            },
+        }
+    }
+    return current_command;
+}
+
+fn main() {
+    let mut start_command = WebserverCommand::StartNormal;
+
+    loop {
+        let (child_tx, parent_rx) = ipc::channel::<WatcherCommand>().unwrap();
+        let (parent_tx, child_rx) = ipc::channel::<WebserverCommand>().unwrap();
+
+        let pid = unsafe { libc::fork() };
+        match pid {
+            0 => {
+                println!("starting webserver");
+                webserver_main(start_command, child_tx, child_rx);
+                return;
+            },
+            -1 => {
+                panic!("failed to create child");
+            },
+            _child_pid => {
+                start_command = watch(parent_tx, parent_rx);
+                // TODO join on child before looping again
+            },
+        };
+    }
 }
 
