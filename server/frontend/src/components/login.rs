@@ -175,6 +175,7 @@ impl Component for Login {
 impl Login {
     fn render_switch(&self) -> Html<Self> {
         html! {
+            
             <>
                 //TODO Make a more intuintive layout for selecting admin or First Responder
                 <h1>{"Select Login"}</h1>
@@ -206,13 +207,14 @@ impl Login {
                         <div class="fadeIn first">
                             <img src="/images/company_name.PNG" id="company_name" width="480" height="270"/>
                         </div>
+                        //TODO Add akriveia product name image
 
                         <div class="justify-content-center">
                             <input
                                 type="text",
                                 id="login",
                                 name="login",
-                                class="fadeIn first",
+                                class="fadeIn second",
                                 placeholder="Username",
                                 value=&self.data.login.name,
                                 oninput=|e| Msg::InputName(e.value),
@@ -221,14 +223,14 @@ impl Login {
                                 type="password",
                                 id="password",
                                 name="login",
-                                class="fadeIn first",
+                                class="fadeIn third",
                                 placeholder="Password",
                                 value=&self.data.login.pw,
                                 oninput=|e| Msg::InputPassword(e.value),
                             />
                             <input
                                 type="submit",
-                                class="fadeIn first",
+                                class="fadeIn fourth",
                                 value="Login",
                                 onclick=|_| Msg::RequestLogin,
                             />
