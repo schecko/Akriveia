@@ -287,11 +287,11 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
     fn view(&self) -> Html<Self> {
         let submit_name = match self.data.id {
             Some(_id) => "Update Beacon",
-            None => "Add Beacon",
+            None => "Add New Beacon",
         };
         let title_name = match self.data.id {
-            Some(_id) => "Beacon Update",
-            None => "Beacon Add",
+            Some(_id) => "Update Beacon",
+            None => "Add New Beacon",
         };
         let chosen_floor_id = match self.data.beacon.map_id {
             Some(id) => id,
@@ -330,7 +330,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         html! {
             <>
-                <p>{ title_name }</p>
+                <h2>{ title_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },

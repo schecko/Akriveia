@@ -200,7 +200,6 @@ impl Renderable<BeaconList> for BeaconList {
                 { for errors }
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Beacon List" }</h2>
                         <tr>
                             <th>{ "Mac" }</th>
                             <th>{ "Coordinates" }</th>

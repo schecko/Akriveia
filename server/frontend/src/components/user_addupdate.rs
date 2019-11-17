@@ -330,11 +330,11 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
         let submit_name = match self.data.id {
             Some(_id) => "Update User",
-            None => "Add User",
+            None => "Add New User",
         };
         let title_name = match self.data.id {
-            Some(_id) => "User Update",
-            None => "User Add",
+            Some(_id) => "Update User",
+            None => "Add New User",
         };
 
         let add_another_button = match &self.data.id {
@@ -356,7 +356,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
 
         html! {
             <>
-                <p>{ title_name }</p>
+                <h2>{ title_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },

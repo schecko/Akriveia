@@ -142,7 +142,6 @@ impl Renderable<MapList> for MapList {
             <>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Map List" }</h2>                 
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "Bounds" }</th>
