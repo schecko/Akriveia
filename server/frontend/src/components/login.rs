@@ -4,6 +4,19 @@ use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use super::root;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum AutoAction {
+    Nothing,
+    Logout,
+    Login,
+}
+
+impl Default for AutoAction {
+    fn default() -> Self {
+        AutoAction::Nothing
+    }
+}
+
 pub enum Msg {
     ChangeRootPage(root::Page),
 
@@ -43,6 +56,7 @@ pub struct Login {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    auto_action: AutoAction,
 }
 
 #[derive(Properties)]
@@ -51,8 +65,7 @@ pub struct LoginProps {
     pub change_page: Callback<root::Page>,
     #[props(required)]
     pub change_user_type: Callback<WebUserType>,
-    pub logout: bool,
-    pub auto_login:bool,
+    pub auto_action: AutoAction,
 }
 
 impl Component for Login {
@@ -60,13 +73,14 @@ impl Component for Login {
     type Properties = LoginProps;
 
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
-        if props.logout {
-            link.send_self(Msg::RequestLogout);
+        match props.auto_action {
+            AutoAction::Nothing => {},
+            AutoAction::Login => link.send_self(Msg::RequestLoginAnon),
+            AutoAction::Logout => link.send_self(Msg::RequestLogout),
         }
-        if props.auto_login == true {
-            link.send_self(Msg::RequestLoginAnon);
-        }
+
         let result = Login {
+            auto_action: props.auto_action,
             change_page: props.change_page,
             change_user_type: props.change_user_type,
             data: Data::new(),
@@ -141,6 +155,7 @@ impl Component for Login {
                         self.data.error_messages.push("Failed to loginerror.".to_string());
                     }
                 }
+                self.auto_action = AutoAction::Nothing;
             },
             Msg::ResponseLogout(response) => {
                 let (meta, _body) = response.into_parts();
@@ -158,26 +173,36 @@ impl Component for Login {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if props.logout {
-            self.self_link.send_self(Msg::RequestLogout);
+        Log!("change is called");
+        if props.auto_action != self.auto_action {
+            match props.auto_action {
+                AutoAction::Nothing => {},
+                AutoAction::Login => self.self_link.send_self(Msg::RequestLoginAnon),
+                AutoAction::Logout => self.self_link.send_self(Msg::RequestLogout),
+            }
         }
+        self.auto_action = props.auto_action;
         true
     }
 }
 
 impl Login {
-
     fn render_form(&self) -> Html<Self> {
         html! {
             <>
                 <div class="wrapper fadeInDown">
                     <div id = "formContent">
-                        
-                        <div class="fadeIn first">
-                            <img src="/images/company_name.PNG" id="company_name" width="480" height="270"/>
-                        </div>
-                        //TODO Add akriveia product name image
 
+                        <div class="fadeIn first">
+                            <img
+                                src="/images/company_name.PNG"
+                                id="company_name"
+                                width="480"
+                                height="270"
+                            />
+                        </div>
+
+                        //TODO Add akriveia product name image
                         <div class="justify-content-center">
                             <input
                                 type="text",
@@ -203,7 +228,13 @@ impl Login {
                                 value="Login",
                                 onclick=|_| Msg::RequestLogin,
                             />
-                        </div>                           
+                            <input
+                                type="submit",
+                                class="fadeIn fourth",
+                                value="Cancel",
+                                onclick=|_| Msg::RequestLoginAnon,
+                            />
+                        </div>
                     </div>
                 </div>
             </>
@@ -224,14 +255,17 @@ impl Renderable<Login> for Login {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
+                        None => { "".to_owned() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
                 <div/>
                 {
-                    self.render_form()
+                    match self.auto_action {
+                        AutoAction::Login => html! { },
+                        _ => self.render_form(),
+                    }
                 }
             </>
         }

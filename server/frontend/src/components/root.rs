@@ -14,7 +14,7 @@ use super::user_addupdate::UserAddUpdate;
 use super::map_list::MapList;
 use super::map_addupdate::MapAddUpdate;
 use super::status::Status;
-use super::login::Login;
+use super::login::{ self, Login, };
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -24,7 +24,7 @@ pub enum Page {
     UserList,
     Diagnostics,
     Status,
-    Login(bool),
+    Login(login::AutoAction),
     MapView(Option<i32>),
     MapList,
     MapAddUpdate(Option<i32>),
@@ -62,7 +62,7 @@ impl Component for RootComponent {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
             user_type: WebUserType::Responder,
-            current_page: Page::Login(true),
+            current_page: Page::Login(login::AutoAction::Login),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -169,13 +169,13 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
-            Page::Login(auto_login) => {
+            Page::Login(auto_action) => {
                 html! {
                     <div class="container-fluid">
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
-                            auto_login = auto_login,
+                            auto_action=auto_action,
                         />
                     </div>
                 }
@@ -306,7 +306,7 @@ impl RootComponent {
 
         let show_status = html! {
             <>
-                <a 
+                <a
                     class="nav-link navBarText",
                     onclick=|_| Msg::ChangePage(Page::Status),
                     disabled={self.current_page == Page::Status},
@@ -320,8 +320,8 @@ impl RootComponent {
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
-                        class="nav-link dropdown navBarText" id="navbarDropdown", role="button" data-toggle="dropdown" 
+                    <a
+                        class="nav-link dropdown navBarText" id="navbarDropdown", role="button" data-toggle="dropdown"
                         aria-haspopup="true" aria-expanded="false",
                         onclick=|_| Msg::ChangePage(Page::UserList)
                     >
@@ -330,8 +330,8 @@ impl RootComponent {
                     <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                         <li class="dropdown-list beacons-underline">
                             <a
-                                class="dropdown-item", 
-                                onclick=|_| Msg::ChangePage(Page::UserList), 
+                                class="dropdown-item",
+                                onclick=|_| Msg::ChangePage(Page::UserList),
                                 disabled={self.current_page == Page::UserList},>
                                     { "User List" }
                             </a>
@@ -362,7 +362,7 @@ impl RootComponent {
         let select_beacon = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
+                    <a
                         class="nav-link dropdown navBarText" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::BeaconList)
                     >
@@ -370,9 +370,9 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
-                            <a 
-                                class="dropdown-item", 
-                                onclick=|_| Msg::ChangePage(Page::BeaconList), 
+                            <a
+                                class="dropdown-item",
+                                onclick=|_| Msg::ChangePage(Page::BeaconList),
                                 disabled={self.current_page == Page::BeaconList},>
                                 { "Beacon List" }
                             </a>
@@ -403,7 +403,7 @@ impl RootComponent {
         let select_map = match self.user_type {
             WebUserType::Admin => html! {
                 <>
-                    <a 
+                    <a
                         class="nav-link dropdown navBarText" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::MapList),
                     >
@@ -411,8 +411,8 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content navBarText">
                         <li class="dropdown-list beacons-underline">
-                            <a 
-                                onclick=|_| Msg::ChangePage(Page::MapList), 
+                            <a
+                                onclick=|_| Msg::ChangePage(Page::MapList),
                                 disabled={self.current_page == Page::MapList},>
                                     { "Map List" }
                             </a>
@@ -449,28 +449,38 @@ impl RootComponent {
         };
 
         let login_type = match self.user_type {
-            WebUserType::Admin => html!{
+            WebUserType::Admin => html! {
                 <>
                     <button
                         class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login(true)),
-                        disabled={self.current_page == Page::Login(true)},
+                        onclick=|_| Msg::ChangePage(Page::Login(login::AutoAction::Logout)),
+                        disabled={
+                            match self.current_page {
+                                Page::Login{..} => true,
+                                _ => false,
+                            }
+                        },
                     >
                         { "Logout" }
                     </button>
-                    <a class="loginTypeHeader">{"ADMIN"}</a>
+                    <a class="loginTypeHeader">{ "ADMIN" }</a>
                 </>
             },
-            WebUserType::Responder => html!{
+            WebUserType::Responder => html! {
                 <>
                     <button
                         class="btn btn-success btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login(false)),
-                        disabled={self.current_page == Page::Login(false)},
+                        onclick=|_| Msg::ChangePage(Page::Login(login::AutoAction::Nothing)),
+                        disabled={
+                            match self.current_page {
+                                Page::Login{..} => true,
+                                _ => false,
+                            }
+                        },
                     >
                         { "Login" }
                     </button>
-                    <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
+                    <a class="loginTypeHeader">{ "FIRST RESPONDER" }</a>
                 </>
             }
         };
