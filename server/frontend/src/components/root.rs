@@ -328,7 +328,7 @@ impl RootComponent {
                     aria-haspopup="true" aria-expanded="false",
                     onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
                 >
-                        { "Status" }
+                    { "Status" }
                 </a>
                 <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
                     <li class="dropdown-list beacons-underline">
