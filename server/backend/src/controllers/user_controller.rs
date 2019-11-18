@@ -7,7 +7,6 @@ use crate::db_utils;
 use crate::models::user;
 use futures::{ future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
-use std::sync::*;
 use actix_identity::Identity;
 
 #[derive(Deserialize)]

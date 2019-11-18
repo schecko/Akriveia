@@ -6,7 +6,6 @@ use crate::AKData;
 use crate::WatcherCommand;
 use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
 use futures::{ future::err, future::ok, Future, };
-use std::sync::*;
 
 pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
@@ -70,8 +69,7 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
             match s.tx.send(command) {
                 Ok(()) => {},
                 Err(e) => {
-                    // TODO just change to println I guess...
-                    panic!("Failed to notify watcher we are shutting down");
+                    println!("Failed to notify watcher we are shutting down {}", e);
                 },
             }
 

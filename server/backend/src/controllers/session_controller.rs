@@ -4,11 +4,9 @@ use actix_identity::Identity;
 use common::*;
 use crate::AKData;
 use crate::db_utils;
-use std::sync::*;
 use futures::future::{ Either, ok, Future, };
 
 pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
-    println!("wtf");
     if payload.name == "responder" {
         let mut info = LoginInfo::new();
         info.name = payload.name.clone();

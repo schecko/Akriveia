@@ -4,7 +4,6 @@ use common::NetworkInterface;
 use crate::db_utils;
 use crate::models::network_interface;
 use futures::{ future::ok, Future, future::Either, };
-use std::sync::*;
 
 pub fn get_network_interface(_state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();

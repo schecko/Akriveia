@@ -2,8 +2,7 @@ use tokio_postgres::NoTls;
 use common::LoginInfo;
 use futures::{ future::err, Future, future::Either, };
 use crate::AKData;
-use actix_web::{ error, web, };
-use std::sync::Mutex;
+use actix_web::{ error, };
 use actix_identity::Identity;
 
 pub const DEFAULT_CONNECTION: &str = "dbname=ak host=localhost password=postgres user=postgres";

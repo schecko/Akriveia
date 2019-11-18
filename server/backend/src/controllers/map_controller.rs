@@ -5,7 +5,6 @@ use crate::AKData;
 use crate::db_utils;
 use crate::models::map;
 use futures::{ Stream, future::ok, Future, future::Either, };
-use std::sync::*;
 use actix_identity::Identity;
 
 pub fn get_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {

@@ -1,4 +1,4 @@
-//#![deny(warnings)]
+#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_identity;
@@ -259,33 +259,27 @@ fn webserver_main(start_command: SystemCommand, tx: IpcSender<WatcherCommand>, r
     }
 }
 
-fn watch(tx: IpcSender<SystemCommand>, rx: IpcReceiver<WatcherCommand>) -> SystemCommand {
+fn watch(_tx: IpcSender<SystemCommand>, rx: IpcReceiver<WatcherCommand>) -> SystemCommand {
     // just do nothing and wait on a response from the webserver.
     // maybe later implement pinging.
-    let mut current_command = SystemCommand::StartNormal;
-
     loop {
         match rx.recv() {
             Ok(command) => {
                 match command {
                     WatcherCommand::StartNormal => {
-                        current_command = SystemCommand::StartNormal;
-                        break;
+                        return SystemCommand::StartNormal;
                     },
                     WatcherCommand::RebuildDB => {
-                        current_command = SystemCommand::RebuildDB;
-                        break;
+                        return SystemCommand::RebuildDB;
                     },
-
                 }
             },
             Err(e) => {
-                println!("error with communication, {}", e);
+                println!("watcher error with recv communication, {}", e);
                 // TODO restart server at this point?
             },
         }
     }
-    return current_command;
 }
 
 fn main() {
@@ -298,7 +292,6 @@ fn main() {
         let pid = unsafe { libc::fork() };
         match pid {
             0 => {
-                println!("starting webserver");
                 webserver_main(start_command, child_tx, child_rx);
                 return;
             },
