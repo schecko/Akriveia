@@ -11,6 +11,7 @@ use yew::services::interval::{ IntervalTask, IntervalService, };
 
 const POLL_RATE: Duration = Duration::from_millis(1000);
 
+#[derive(PartialEq, Copy, Clone)]
 pub enum PageState {
     BeaconStatus,
     UserStatus,
@@ -72,6 +73,8 @@ impl Status {
 pub struct StatusProps {
     #[props(required)]
     pub change_page: Callback<root::Page>,
+    #[props(required)]
+    pub state: PageState,
 }
 
 impl Component for Status {
@@ -83,7 +86,7 @@ impl Component for Status {
         link.send_self(Msg::RequestGetUsers);
         link.send_self(Msg::RequestGetMaps);
         let mut result = Status {
-            state: PageState::UserStatus,
+            state: props.state,
             fetch_service: FetchService::new(),
             interval_service: IntervalService::new(),
             interval_service_task: None,
@@ -319,7 +322,10 @@ impl Component for Status {
         true
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        if self.state != props.state {
+            self.self_link.send_self(Msg::ChangeStatus(props.state));
+        }
         true
     }
 }
@@ -477,19 +483,6 @@ impl Renderable<Status> for Status {
 
         html! {
             <>
-                <h2>{ "Select To View" }</h2>
-                <button
-                    type="button" class="btn-lg btn-default"
-                    onclick=|_| Msg::ChangeStatus(PageState::UserStatus),
-                >
-                    {"User Status"}
-                </button>
-                <button
-                    type="button" class="btn-lg btn-default"
-                    onclick=|_| Msg::ChangeStatus(PageState::BeaconStatus),
-                >
-                    {"Beacon Status"}
-                </button>
                 <table>
                     { table }
                 </table>
