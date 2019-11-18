@@ -9,7 +9,7 @@ use super::login::Login;
 use super::map_addupdate::MapAddUpdate;
 use super::map_list::MapList;
 use super::map_view::MapViewComponent;
-use super::status::Status;
+use super::status::{ self, Status, };
 use super::system_settings::SystemSettings;
 use super::user_addupdate::UserAddUpdate;
 use super::user_list::UserList;
@@ -26,7 +26,7 @@ pub enum Page {
     MapAddUpdate(Option<i32>),
     MapList,
     MapView(Option<i32>),
-    Status,
+    Status(status::PageState),
     SystemSettings,
     UserAddUpdate(Option<i32>),
     UserList,
@@ -42,7 +42,6 @@ pub struct RootComponent {
 }
 
 pub enum Msg {
-
     // page changes
     ChangePage(Page),
     ChangeWebUserType(WebUserType),
@@ -153,7 +152,7 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
-            Page::Status => {
+            Page::Status(state) => {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
@@ -166,6 +165,7 @@ impl Renderable<RootComponent> for RootComponent {
                             />
                             <Status
                                 change_page=|page| Msg::ChangePage(page),
+                                state=state,
                             />
                         </div>
                     </div>
@@ -321,14 +321,48 @@ impl RootComponent {
         let show_status = html! {
             <>
                 <a
-                    class="nav-link navBarText",
-                    onclick=|_| Msg::ChangePage(Page::Status),
-                    disabled={self.current_page == Page::Status},
+                    class="nav-link dropdown navBarText"
+                    id="navbarDropdown",
+                    role="button"
+                    data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false",
+                    onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
                 >
                     { "Status" }
                 </a>
+                <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
+                    <li class="dropdown-list beacons-underline">
+                        <a
+                            class="dropdown-item",
+                            onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
+                            disabled={
+                                match self.current_page {
+                                    Page::Status(status::PageState::UserStatus) => true,
+                                    _ => false,
+                                }
+                            },
+                        >
+                            { "User Status" }
+                        </a>
+                    </li>
+                    <li class="dropdown-list beacons-underline">
+                        <a
+                            class="dropdown-item",
+                            onclick=|_| Msg::ChangePage(Page::Status(status::PageState::BeaconStatus)),
+                            disabled={
+                                match self.current_page {
+                                    Page::Status(status::PageState::BeaconStatus) => true,
+                                    _ => false,
+                                }
+                            },
+                        >
+                            { "Beacon Status" }
+                        </a>
+                    </li>
+                </div>
             </>
         };
+
 
 
         let select_user = match self.user_type {
@@ -528,7 +562,7 @@ impl RootComponent {
                         <li class="nav-item mapview-underline my-auto">
                             { view_map }
                         </li>
-                        <li class="nav-item status-underline my-auto">
+                        <li class="nav-item dropdown my-auto">
                             { show_status }
                         </li>
                         <li class="nav-item dropdown my-auto">
