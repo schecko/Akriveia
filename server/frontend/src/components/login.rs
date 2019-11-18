@@ -173,7 +173,6 @@ impl Component for Login {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        Log!("change is called");
         if props.auto_action != self.auto_action {
             match props.auto_action {
                 AutoAction::Nothing => {},
