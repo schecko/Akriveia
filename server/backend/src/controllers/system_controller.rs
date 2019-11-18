@@ -88,7 +88,6 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
                 });
             Arbiter::spawn(shutdown_fut);
 
-            // TODO test to see if this request ever returns
             Ok(HttpResponse::Ok().finish())
         } else {
             Err(error::ErrorUnauthorized("invalid credentials"))
