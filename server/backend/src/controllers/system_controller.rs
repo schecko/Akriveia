@@ -5,7 +5,9 @@ use common::*;
 use crate::AKData;
 use crate::WatcherCommand;
 use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
-use futures::{ future::err, future::ok, Future, };
+use futures::{ future::ok, Future, };
+use actix::Arbiter;
+use std::time::Duration;
 
 pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
     let s = state.lock().unwrap();
@@ -58,7 +60,7 @@ pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpRes
         }})
 }
 
-pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> Result<HttpResponse, Error> {
     if let Some(name) = id.identity() {
         if name == "admin" {
             let s = state.lock().unwrap();
@@ -73,14 +75,25 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
                 },
             }
 
-            let system = System::current();
-            system.stop();
+            // HACK, attempt to give the request enough time to reply to the client before
+            // shutting down
+            println!("initiating shutdown");
+            let shutdown_fut = tokio::timer::Delay::new(tokio::clock::now() + Duration::from_millis(500))
+                .map(|_| {
+                    println!("shutting down now");
+                    let system = System::current();
+                    system.stop();
+                })
+                .map_err(|_e| {
+                });
+            Arbiter::spawn(shutdown_fut);
+
             // TODO test to see if this request ever returns
-            ok(HttpResponse::Ok().finish())
+            Ok(HttpResponse::Ok().finish())
         } else {
-            err(error::ErrorUnauthorized("invalid credentials"))
+            Err(error::ErrorUnauthorized("invalid credentials"))
         }
     } else {
-        err(error::ErrorUnauthorized("invalid credentials"))
+        Err(error::ErrorUnauthorized("invalid credentials"))
     }
 }
