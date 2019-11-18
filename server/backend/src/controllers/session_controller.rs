@@ -2,12 +2,11 @@
 use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
 use actix_identity::Identity;
 use common::*;
-use crate::AkriveiaState;
+use crate::AKData;
 use crate::db_utils;
-use std::sync::*;
 use futures::future::{ Either, ok, Future, };
 
-pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     if payload.name == "responder" {
         let mut info = LoginInfo::new();
         info.name = payload.name.clone();
@@ -31,7 +30,7 @@ pub fn login(id: Identity, state: web::Data<Mutex<AkriveiaState>>, payload: web:
     }
 }
 
-pub fn check(id: Identity, _state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn check(id: Identity, _state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     if let Some(_name) = id.identity() {
         ok(HttpResponse::Ok().finish())
     } else {
@@ -39,7 +38,7 @@ pub fn check(id: Identity, _state: web::Data<Mutex<AkriveiaState>>, _req: HttpRe
     }
 }
 
-pub fn logout(id: Identity, _state: web::Data<Mutex<AkriveiaState>>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn logout(id: Identity, _state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
     id.forget();
     ok(HttpResponse::Ok().finish())
 }
