@@ -66,6 +66,9 @@ pub fn system_emergency_url() -> String {
 pub fn system_diagnostics_url() -> String {
     return String::from("/system/diagnostics");
 }
+pub fn system_restart_url() -> String {
+    return String::from("/system/restart");
+}
 
 pub fn session_login_url() -> String {
     return String::from("/session/login");
@@ -402,3 +405,10 @@ impl LoginInfo {
         self.pw = String::new();
     }
 }
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum SystemCommand {
+    StartNormal,
+    RebuildDB,
+}
+
