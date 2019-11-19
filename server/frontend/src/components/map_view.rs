@@ -257,8 +257,6 @@ impl Component for MapViewComponent {
                                 });
                                 Some(())
                             });
-
-
                         },
                         Err(e) => {
                             self.error_messages.push(format!("failed to get map, reason: {}", e));
