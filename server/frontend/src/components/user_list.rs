@@ -68,7 +68,8 @@ impl Component for UserList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(users) => {
+                        Ok(mut users) => {
+                            users.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                             self.list = users;
                         }
                         _ => { }
@@ -140,7 +141,7 @@ impl Renderable<UserList> for UserList {
             <>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "User List" }</h2>                 
+                        <h2>{ "User List" }</h2>
                         <tr>
                             <th>{ "Name"}</th>
                             <th>{ "Coordinates" }</th>

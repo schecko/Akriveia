@@ -249,7 +249,14 @@ impl Component for MapViewComponent {
                                 img.set_src(&map_blueprint_url(&map.id.to_string()));
                                 self.map_img = Some(img);
                             }
-                            self.current_map = result;
+                            self.current_map = result.clone();
+                            result.and_then(|new_map_data| {
+                                self.maps.iter_mut().find(|m| m.id == new_map_data.id).and_then(|map| {
+                                    *map = new_map_data;
+                                    Some(())
+                                });
+                                Some(())
+                            });
                         },
                         Err(e) => {
                             self.error_messages.push(format!("failed to get map, reason: {}", e));
@@ -263,7 +270,8 @@ impl Component for MapViewComponent {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(result) => {
+                        Ok(mut result) => {
+                            result.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                             self.maps = result;
                             if self.maps.len() > 0 {
                                 self.self_link.send_self(Msg::ChooseMap(self.maps[0].id));
