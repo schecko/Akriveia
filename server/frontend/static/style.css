@@ -34,46 +34,6 @@
 }
 
 
-/* NAVITEMS UNDERLINE*/
-.nav-item:hover {
-  opacity: 1;
-}
-
-.nav-item::before {
-  transition: 300ms;
-  height: 3px;
-  content: "";
-  position: absolute;
-  background-color: #ffffff;
-}
-
-.mapview-underline::before {
-  width: 0%;
-  bottom: 15px;
-}
-.mapview-underline:hover::before {
-  width: 6rem;
-}
-
-.diagnostics-underline::before {
-  width: 0%;
-  bottom: 15px;
-}
-
-.diagnostics-underline:hover::before {
-  width: 7.35rem;
-}
-
-.status-underline::before {
-  width: 0%;
-  bottom: 15px;
-}
-
-.status-underline:hover::before {
-  width: 4.5rem;
-}
-
-
 /* TABLES FORMATTING */
 table th {
 	font-size: 16px;
@@ -90,10 +50,19 @@ h2.active {
   border-bottom: 2px solid #5fbae9;
 }
 
-a.active {
-  /*font-weight:bold;*/
+a.active, a:disabled {
   background-color: #f99d32;
   border: 2px solid white;
+}
+
+button.e-buttons:disabled, button.e-button:active{
+  background-color:#8a8a8a !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+button.e-buttons:hover {
+  box-shadow: 2px 2px #8a8a8a;
 }
 
 /* FONT TYPOGRAPHY */
@@ -151,6 +120,14 @@ nav div ul li a.navBarText:hover {
   background-color:#be0011;
   box-shadow: 0 3px 10px -2px rgba(0,0,0,.1);
   border: 1px solid rgba(0,0,0,.1);
+}
+
+.e-buttons {
+  margin: 5px 10px 5px 5px;
+}
+
+div div.container-fluid {
+  margin-top: 10px;
 }
 
 /* FORM TYPOGRAPHY*/

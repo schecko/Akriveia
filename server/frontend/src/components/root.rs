@@ -325,7 +325,7 @@ impl RootComponent {
                         } 
                         id="navbarDropdown", role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false",
                         onclick=|_| Msg::ChangePage(Page::UserList),
-                        active={
+                        disabled = {
                             match self.current_page {
                                 Page::UserList => true,
                                 Page::UserAddUpdate{..} => true,
@@ -337,7 +337,7 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content" aria-labelledby="navbarDropdown">
                         <a
-                            class="dropdown-item navBarText", 
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::UserList), 
                             disabled={
                                 match self.current_page {
@@ -349,7 +349,7 @@ impl RootComponent {
                                 { "User List" }
                         </a>
                         <a
-                            class="dropdown-item  navBarText",
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
                             disabled={
                                 match self.current_page {
@@ -378,9 +378,8 @@ impl RootComponent {
                             Page::BeaconAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
                         } 
-                        aria-haspopup="true" aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::BeaconList),
-                        active={
+                        disabled={
                             match self.current_page {
                                 Page::BeaconList => true,
                                 Page::BeaconAddUpdate {..} => true,
@@ -392,13 +391,13 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content">
                         <a 
-                            class="dropdown-item navBarText", 
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::BeaconList), 
                             disabled={self.current_page == Page::BeaconList},>
                             { "Beacon List" }
                         </a>
                         <a
-                            class="dropdown-item navBarText",
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
                             disabled={
                                 match self.current_page {
@@ -441,14 +440,14 @@ impl RootComponent {
                     </a>
                     <div class="dropdown-content">
                         <a 
-                            class="dropdown-item navBarText"
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::MapList), 
                             disabled={self.current_page == Page::MapList},
                         >
                                 { "Map List" }
                         </a>
                         <a
-                            class="dropdown-item navBarText"
+                            class = {"dropdown-item navBarText"},
                             onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
                             disabled={
                                 match self.current_page {
