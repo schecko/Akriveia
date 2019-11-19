@@ -1,28 +1,32 @@
 
 use common::*;
 use crate::util::{ self, WebUserType, };
-use super::beacon_addupdate::BeaconAddUpdate;
-use super::beacon_list::BeaconList;
-use super::diagnostics::Diagnostics;
-use super::emergency_buttons::EmergencyButtons;
-use super::login::Login;
-use super::map_addupdate::MapAddUpdate;
-use super::map_list::MapList;
-use super::map_view::MapViewComponent;
-use super::status::{ self, Status, };
-use super::system_settings::SystemSettings;
-use super::user_addupdate::UserAddUpdate;
-use super::user_list::UserList;
 use yew::format::Json;
-use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::prelude::*;
+use super::map_view::MapViewComponent;
+use super::emergency_buttons::EmergencyButtons;
+use super::diagnostics::Diagnostics;
+use super::beacon_list::BeaconList;
+use super::beacon_addupdate::BeaconAddUpdate;
+use super::user_list::UserList;
+use super::user_addupdate::UserAddUpdate;
+use super::map_list::MapList;
+use super::map_addupdate::MapAddUpdate;
+use super::status::{ self, Status, };
+use super::login::{ self, Login, };
+use super::system_settings::SystemSettings;
+
 
 #[derive(PartialEq)]
 pub enum Page {
     BeaconAddUpdate(Option<i32>),
     BeaconList,
     Diagnostics,
-    Login,
+    Status,
+    Login(login::AutoAction),
+    MapView(Option<i32>),
+    MapList,
     MapAddUpdate(Option<i32>),
     MapList,
     MapView(Option<i32>),
@@ -63,7 +67,7 @@ impl Component for RootComponent {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
             user_type: WebUserType::Responder,
-            current_page: Page::Login,
+            current_page: Page::Login(login::AutoAction::Login),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -171,12 +175,13 @@ impl Renderable<RootComponent> for RootComponent {
                     </div>
                 }
             },
-            Page::Login => {
+            Page::Login(auto_action) => {
                 html! {
                     <div class="container-fluid">
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
+                            auto_action=auto_action,
                         />
                     </div>
                 }
@@ -527,28 +532,38 @@ impl RootComponent {
         };
 
         let login_type = match self.user_type {
-            WebUserType::Admin => html!{
+            WebUserType::Admin => html! {
                 <>
                     <button
                         class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        onclick=|_| Msg::ChangePage(Page::Login(login::AutoAction::Logout)),
+                        disabled={
+                            match self.current_page {
+                                Page::Login{..} => true,
+                                _ => false,
+                            }
+                        },
                     >
                         { "Logout" }
                     </button>
-                    <a class="loginTypeHeader">{"ADMIN"}</a>
+                    <a class="loginTypeHeader">{ "ADMIN" }</a>
                 </>
             },
-            WebUserType::Responder => html!{
+            WebUserType::Responder => html! {
                 <>
                     <button
-                        class="btn btn-danger btn-sm nav-link logoutPlacement ml-auto",
-                        onclick=|_| Msg::ChangePage(Page::Login),
-                        disabled={self.current_page == Page::Login},
+                        class="btn btn-success btn-sm nav-link logoutPlacement ml-auto",
+                        onclick=|_| Msg::ChangePage(Page::Login(login::AutoAction::Nothing)),
+                        disabled={
+                            match self.current_page {
+                                Page::Login{..} => true,
+                                _ => false,
+                            }
+                        },
                     >
-                        { "Logout" }
+                        { "Login" }
                     </button>
-                    <a class="loginTypeHeader">{"FIRST RESPONDER"}</a>
+                    <a class="loginTypeHeader">{ "FIRST RESPONDER" }</a>
                 </>
             }
         };
