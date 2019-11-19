@@ -189,7 +189,7 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                <p>{ "Beacon List" }</p>
+                <h2>{ "List of Beacons" }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
