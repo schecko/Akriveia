@@ -96,7 +96,8 @@ impl Component for BeaconList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(beacons_and_maps) => {
+                        Ok(mut beacons_and_maps) => {
+                            beacons_and_maps.sort_unstable_by(|(beacon_a, _), (beacon_b, _)| beacon_a.name.cmp(&beacon_b.name));
                             self.list = beacons_and_maps;
                         }
                         _ => { }

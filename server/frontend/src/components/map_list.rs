@@ -68,7 +68,8 @@ impl Component for MapList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(maps) => {
+                        Ok(mut maps) => {
+                            maps.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                             self.list = maps;
                         }
                         _ => { }
@@ -148,7 +149,7 @@ impl Renderable<MapList> for MapList {
                             <th>{ "Bounds" }</th>
                             <th>{ "Scale" }</th>
                             <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>                                
+                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
                     <tbody>
