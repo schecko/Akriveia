@@ -68,7 +68,8 @@ impl Component for MapList {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
-                        Ok(maps) => {
+                        Ok(mut maps) => {
+                            maps.sort_unstable_by(|a, b| a.name.cmp(&b.name));
                             self.list = maps;
                         }
                         _ => { }
@@ -142,13 +143,13 @@ impl Renderable<MapList> for MapList {
             <>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Map List" }</h2>                 
+                        <h2>{ "Map List" }</h2>
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "Bounds" }</th>
                             <th>{ "Scale" }</th>
                             <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>                                
+                            <th>{ "Actions" }</th>
                         </tr>
                     </thead>
                     <tbody>
