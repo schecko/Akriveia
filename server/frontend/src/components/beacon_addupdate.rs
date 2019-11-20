@@ -3,6 +3,7 @@ use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
+use super::user_message::UserMessage;
 
 pub enum Msg {
     AddAnotherBeacon,
@@ -28,59 +29,57 @@ struct Data {
     pub beacon: Beacon,
     // the mac address needs to be parsed (and validated) as a mac address.
     // keep the raw string from the user in case the parsing fails.
-    pub error_messages: Vec<String>,
     pub avail_floors: Vec<Map>,
     pub id: Option<i32>,
     pub raw_coord0: String,
     pub raw_coord1: String,
     pub raw_mac: String,
-    pub success_message: Option<String>,
 }
 
 impl Data {
     fn new() -> Data {
         Data {
             beacon: Beacon::new(),
-            error_messages: Vec::new(),
             avail_floors: Vec::new(),
             id: None,
             raw_coord0: "0".to_string(),
             raw_coord1: "0".to_string(),
             raw_mac: MacAddress8::nil().to_hex_string(),
-            success_message: None,
         }
     }
+}
 
+impl BeaconAddUpdate {
     fn validate(&mut self) -> bool {
-        let mut success = match MacAddress8::parse_str(&self.raw_mac) {
+        let mut success = match MacAddress8::parse_str(&self.data.raw_mac) {
             Ok(m) => {
-                self.beacon.mac_address = m;
+                self.data.beacon.mac_address = m;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse mac address: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse mac address: {}", e));
                 false
             },
         };
 
-        success = success && match self.raw_coord0.parse::<f64>() {
+        success = success && match self.data.raw_coord0.parse::<f64>() {
             Ok(coord) => {
-                self.beacon.coordinates[0] = coord;
+                self.data.beacon.coordinates[0] = coord;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse x coordinate: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse x coordinate: {}", e));
                 false
             },
         };
 
-        success = success && match self.raw_coord1.parse::<f64>() {
+        success = success && match self.data.raw_coord1.parse::<f64>() {
             Ok(coord) => {
-                self.beacon.coordinates[1] = coord;
+                self.data.beacon.coordinates[1] = coord;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse y coordinate: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse y coordinate: {}", e));
                 false
             },
         };
@@ -90,6 +89,7 @@ impl Data {
 }
 
 pub struct BeaconAddUpdate {
+    user_msg: UserMessage<Self>,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
@@ -116,6 +116,7 @@ impl Component for BeaconAddUpdate {
             link.send_self(Msg::RequestGetBeacon(id));
         }
         let mut result = BeaconAddUpdate {
+            user_msg: UserMessage::new(),
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -169,10 +170,8 @@ impl Component for BeaconAddUpdate {
                 );
             },
             Msg::RequestAddUpdateBeacon => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
-
-                let success = self.data.validate();
+                self.user_msg.reset();
+                let success = self.validate();
 
                 match self.data.id {
                     Some(id) if success => {
@@ -213,11 +212,11 @@ impl Component for BeaconAddUpdate {
                             self.data.avail_floors = result;
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to obtain available floors list".to_string());
+                    self.user_msg.error_messages.push("failed to obtain available floors list".to_string());
                 }
             },
             Msg::ResponseUpdateBeacon(response) => {
@@ -225,15 +224,15 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.data.success_message = Some("successfully updated beacon".to_string());
+                            self.user_msg.success_message = Some("successfully updated beacon".to_string());
                             self.data.beacon = result;
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to update beacon, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to update beacon, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to update beacon".to_string());
+                    self.user_msg.error_messages.push("failed to update beacon".to_string());
                 }
             },
             Msg::ResponseGetBeacon(response) => {
@@ -247,11 +246,11 @@ impl Component for BeaconAddUpdate {
                             self.data.raw_coord1 = self.data.beacon.coordinates[1].to_string();
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to find beacon, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to find beacon, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to find beacon".to_string());
+                    self.user_msg.error_messages.push("failed to find beacon".to_string());
                 }
             },
             Msg::ResponseAddBeacon(response) => {
@@ -259,17 +258,17 @@ impl Component for BeaconAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.data.success_message = Some("successfully added beacon".to_string());
+                            self.user_msg.success_message = Some("successfully added beacon".to_string());
                             self.data.beacon = result;
                             self.data.id = Some(self.data.beacon.id);
                             self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to add beacon, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to add beacon, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add beacon".to_string());
+                    self.user_msg.error_messages.push("failed to add beacon".to_string());
                 }
             },
         }
@@ -320,25 +319,12 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             }
         });
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         let note = self.data.beacon.note.clone().unwrap_or(String::new());
 
         html! {
             <>
                 <p>{ title_name }</p>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <div/>
                 <table>
                     <tr>

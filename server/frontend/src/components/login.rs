@@ -3,6 +3,7 @@ use crate::util::{ self, WebUserType, };
 use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use super::root;
+use super::user_message::UserMessage;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum AutoAction {
@@ -35,16 +36,12 @@ pub enum Msg {
 // a "new" method for a component.
 struct Data {
     pub login: LoginInfo,
-    pub error_messages: Vec<String>,
-    pub success_message: Option<String>,
 }
 
 impl Data {
     fn new() -> Data {
         Data {
             login: LoginInfo::new(),
-            error_messages: Vec::new(),
-            success_message: None,
         }
     }
 }
@@ -57,6 +54,7 @@ pub struct Login {
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
     auto_action: AutoAction,
+    user_msg: UserMessage<Self>,
 }
 
 #[derive(Properties)]
@@ -87,6 +85,7 @@ impl Component for Login {
             fetch_service: FetchService::new(),
             fetch_task: None,
             self_link: link,
+            user_msg: UserMessage::new(),
         };
         result
     }
@@ -103,8 +102,8 @@ impl Component for Login {
                 self.data.login.pw = pw;
             },
             Msg::RequestLoginAnon => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
+                self.user_msg.error_messages = Vec::new();
+                self.user_msg.success_message = None;
                 let mut info = LoginInfo::new();
                 info.name = String::from("responder");
                 self.fetch_task = post_request!(
@@ -117,8 +116,7 @@ impl Component for Login {
                 self.change_user_type.emit(WebUserType::Responder);
             },
             Msg::RequestLogin => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
+                self.user_msg.reset();
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &session_login_url(),
@@ -130,8 +128,7 @@ impl Component for Login {
                 self.change_user_type.emit(WebUserType::Admin);
             },
             Msg::RequestLogout => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
+                self.user_msg.reset();
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &session_logout_url(),
@@ -145,14 +142,14 @@ impl Component for Login {
                 let (meta, _body) = response.into_parts();
                 match meta.status {
                     StatusCode::OK => {
-                        self.data.success_message = Some("Successfully logged in.".to_string());
+                        self.user_msg.success_message = Some("Successfully logged in.".to_string());
                         self.self_link.send_self(Msg::ChangeRootPage(root::Page::MapView(None)));
                     },
                     StatusCode::UNAUTHORIZED => {
-                        self.data.error_messages.push("Failed to login, username or password is incorrect.".to_string());
+                        self.user_msg.error_messages.push("Failed to login, username or password is incorrect.".to_string());
                     },
                     _ => {
-                        self.data.error_messages.push("Failed to loginerror.".to_string());
+                        self.user_msg.error_messages.push("Failed to loginerror.".to_string());
                     }
                 }
                 self.auto_action = AutoAction::Nothing;
@@ -161,10 +158,10 @@ impl Component for Login {
                 let (meta, _body) = response.into_parts();
                 match meta.status {
                     StatusCode::OK | StatusCode::UNAUTHORIZED => {
-                        self.data.success_message = Some("Successfully logged out.".to_string());
+                        self.user_msg.success_message = Some("Successfully logged out.".to_string());
                     },
                     _ => {
-                        self.data.error_messages.push("Failed to logout.".to_string());
+                        self.user_msg.error_messages.push("Failed to logout.".to_string());
                     }
                 }
             },
@@ -243,22 +240,11 @@ impl Login {
 
 impl Renderable<Login> for Login {
     fn view(&self) -> Html<Self> {
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         html! {
             <>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_owned() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                <div>
+                    { self.user_msg.view() }
+                </div>
                 <div/>
                 {
                     match self.auto_action {

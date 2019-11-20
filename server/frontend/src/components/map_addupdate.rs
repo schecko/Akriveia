@@ -587,9 +587,7 @@ impl MapAddUpdate {
                 }
             },
             None => {
-                html! {
-                    <></>
-                }
+                html! { }
             },
         }
     }
@@ -613,7 +611,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                 }
             },
             None => {
-                html! { <></> }
+                html! { }
             },
         };
 

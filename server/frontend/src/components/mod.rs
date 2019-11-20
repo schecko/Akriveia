@@ -13,3 +13,4 @@ pub mod system_settings;
 pub mod user_addupdate;
 pub mod user_list;
 pub mod value_button;
+pub mod user_message;
