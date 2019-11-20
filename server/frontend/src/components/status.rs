@@ -510,7 +510,7 @@ impl Status {
                             border=false,
                             disabled=!valid_map,
                             value={user.map_id},
-                            style="btn-info",
+                            style="btn-secondary",
                         />
                     </td>
                 </tr>
