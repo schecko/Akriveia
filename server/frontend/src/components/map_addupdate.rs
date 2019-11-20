@@ -12,6 +12,7 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::services::reader::{File, FileData, ReaderService, ReaderTask};
 use yew::virtual_dom::vnode::VNode;
+use super::user_message::UserMessage;
 
 pub enum Coord {
     X,
@@ -54,12 +55,10 @@ struct BeaconData {
 // a "new" method for a component.
 struct Data {
     pub map: Map,
-    pub error_messages: Vec<String>,
     pub attached_beacons: Vec<(Beacon, BeaconData)>,
     pub opt_id: Option<i32>,
     pub raw_bounds: [String; 2],
     pub raw_scale: String,
-    pub success_message: Option<String>,
     pub current_beacon: Option<i32>,
     pub blueprint: Option<FileData>,
 }
@@ -68,40 +67,40 @@ impl Data {
     fn new() -> Data {
         Data {
             map: Map::new(),
-            error_messages: Vec::new(),
             attached_beacons: Vec::new(),
             opt_id: None,
             raw_bounds: ["0".to_string(), "0".to_string()],
             raw_scale: "1".to_string(),
-            success_message: None,
             current_beacon: None,
             blueprint: None,
         }
     }
+}
 
+impl MapAddUpdate {
     // NOTE: copypasta from beacon_addupdate
     fn validate_beacon(&mut self, index: usize, suppress: bool) -> bool {
-        let mut success = match self.attached_beacons[index].1.raw_x.parse::<f64>() {
+        let mut success = match self.data.attached_beacons[index].1.raw_x.parse::<f64>() {
             Ok(coord) => {
-                self.attached_beacons[index].0.coordinates.x = coord;
+                self.data.attached_beacons[index].0.coordinates.x = coord;
                 true
             },
             Err(e) => {
                 if !suppress {
-                    self.error_messages.push(format!("failed to parse x coordinate of beacon {}: {}", self.attached_beacons[index].0.name, e));
+                    self.user_msg.error_messages.push(format!("failed to parse x coordinate of beacon {}: {}", self.data.attached_beacons[index].0.name, e));
                 }
                 false
             },
         };
 
-        success = success && match self.attached_beacons[index].1.raw_y.parse::<f64>() {
+        success = success && match self.data.attached_beacons[index].1.raw_y.parse::<f64>() {
             Ok(coord) => {
-                self.attached_beacons[index].0.coordinates.y = coord;
+                self.data.attached_beacons[index].0.coordinates.y = coord;
                 true
             },
             Err(e) => {
                 if !suppress {
-                    self.error_messages.push(format!("failed to parse y coordinate of beacon {}: {}", self.attached_beacons[index].0.name, e));
+                    self.user_msg.error_messages.push(format!("failed to parse y coordinate of beacon {}: {}", self.data.attached_beacons[index].0.name, e));
                 }
                 false
             },
@@ -111,35 +110,35 @@ impl Data {
     }
 
     fn validate(&mut self) -> bool {
-        let mut success = match self.raw_bounds[0].parse::<i32>() {
+        let mut success = match self.data.raw_bounds[0].parse::<i32>() {
             Ok(coord) => {
-                self.map.bounds[0] = coord;
+                self.data.map.bounds[0] = coord;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse x coordinate: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse x coordinate: {}", e));
                 false
             },
         };
 
-        success = success && match self.raw_bounds[1].parse::<i32>() {
+        success = success && match self.data.raw_bounds[1].parse::<i32>() {
             Ok(coord) => {
-                self.map.bounds[1] = coord;
+                self.data.map.bounds[1] = coord;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse y coordinate: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse y coordinate: {}", e));
                 false
             },
         };
 
-        success = success && match self.raw_scale.parse::<f64>() {
+        success = success && match self.data.raw_scale.parse::<f64>() {
             Ok(scale) => {
-                self.map.scale = scale;
+                self.data.map.scale = scale;
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse scale: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse scale: {}", e));
                 false
             },
         };
@@ -149,6 +148,7 @@ impl Data {
 }
 
 pub struct MapAddUpdate {
+    user_msg: UserMessage<Self>,
     binary_fetch_task: Option<FetchTask>,
     canvas: Canvas,
     data: Data,
@@ -184,6 +184,7 @@ impl Component for MapAddUpdate {
 
         let click_callback = link.send_back(|event| Msg::CanvasClick(event));
         let mut result = MapAddUpdate {
+            user_msg: UserMessage::new(),
             binary_fetch_task: None,
             canvas: Canvas::new("addupdate_canvas", click_callback),
             data,
@@ -255,7 +256,7 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::ManualBeaconPlacement(index, coord_type, value) => {
-                self.data.error_messages = Vec::new();
+                self.user_msg.error_messages = Vec::new();
                 match coord_type {
                     Coord::X => {
                         self.data.attached_beacons[index].1.raw_x = value;
@@ -264,7 +265,7 @@ impl Component for MapAddUpdate {
                         self.data.attached_beacons[index].1.raw_y = value;
                     },
                 }
-                self.data.validate_beacon(index, true);
+                self.validate_beacon(index, true);
             },
             Msg::CanvasClick(event) => {
                 let canvas_bound = self.canvas.canvas.get_bounding_client_rect();
@@ -292,10 +293,10 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::RequestPutBeacon(id) => {
-                self.data.error_messages = Vec::new();
+                self.user_msg.error_messages = Vec::new();
                 match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == id) {
                     Some(index) => {
-                        if self.data.validate_beacon(index, false) {
+                        if self.validate_beacon(index, false) {
                             self.fetch_task = put_request!(
                                 self.fetch_service,
                                 &beacon_url(&id.to_string()),
@@ -311,7 +312,7 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::RequestGetBeaconsForMap(id) => {
-                self.data.error_messages = Vec::new();
+                self.user_msg.error_messages = Vec::new();
                 self.fetch_task = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
@@ -320,7 +321,7 @@ impl Component for MapAddUpdate {
                 );
             },
             Msg::RequestGetMap(id) => {
-                self.data.error_messages = Vec::new();
+                self.user_msg.error_messages = Vec::new();
                 self.get_fetch_task = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
@@ -329,10 +330,8 @@ impl Component for MapAddUpdate {
                 );
             },
             Msg::RequestAddUpdateMap => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
-
-                let success = self.data.validate();
+                self.user_msg.reset();
+                let success = self.validate();
 
                 match self.data.opt_id {
                     Some(id) if success => {
@@ -368,27 +367,27 @@ impl Component for MapAddUpdate {
                                 Some(result) => {
                                     match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == result.id) {
                                         Some(index) => {
-                                            self.data.success_message = Some("successfully updated attached beacon".to_string());
+                                            self.user_msg.success_message = Some("successfully updated attached beacon".to_string());
                                             self.data.attached_beacons[index].1.raw_x = result.coordinates.x.to_string();
                                             self.data.attached_beacons[index].1.raw_y = result.coordinates.y.to_string();
                                             self.data.attached_beacons[index].0 = result;
                                         },
                                         _ => {
-                                            Log!("updated beacon is no longer attached to this map");
+                                            self.user_msg.error_messages.push("failed to update attached beacon, reason: beacon is no longer attached to this map".to_owned());
                                         },
                                     }
                                 },
                                 None => {
-                                    Log!("beacon does not exist");
+                                    self.user_msg.error_messages.push("failed to update attached beacon, reason: beacon does not exist".to_owned());
                                 }
                             }
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to update attached beacon, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to update attached beacon, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to updated attached beacon".to_string());
+                    self.user_msg.error_messages.push("failed to updated attached beacon".to_string());
                 }
             },
             Msg::ResponseGetBeaconsForMap(response) => {
@@ -403,11 +402,11 @@ impl Component for MapAddUpdate {
                             }).collect();
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to obtain available floors list".to_string());
+                    self.user_msg.error_messages.push("failed to obtain available floors list".to_owned());
                 }
             },
             Msg::ResponseUpdateMap(response) => {
@@ -415,7 +414,7 @@ impl Component for MapAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.data.success_message = Some("successfully updated map".to_string());
+                            self.user_msg.success_message = Some("successfully updated map".to_owned());
                             self.data.map = result;
 
                             if let Some(file) = &self.data.blueprint {
@@ -429,11 +428,11 @@ impl Component for MapAddUpdate {
                             }
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to update map, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to update map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to update map".to_string());
+                    self.user_msg.error_messages.push("failed to update map".to_owned());
                 }
             },
             Msg::ResponseGetMap(response) => {
@@ -447,24 +446,24 @@ impl Component for MapAddUpdate {
                             self.data.raw_scale = self.data.map.scale.to_string();
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to find map, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to find map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to find map".to_string());
+                    self.user_msg.error_messages.push("failed to find map".to_owned());
                 }
             },
             Msg::ResponseUpdateBlueprint(response) => {
                 let (meta, _body) = response.into_parts();
                 if meta.status.is_success() {
-                    self.data.success_message = Some("successfully updated image".to_string());
+                    self.user_msg.success_message = Some("successfully updated image".to_owned());
                     let img = ImageElement::new();
                     img.set_src(&map_blueprint_url(&self.data.map.id.to_string()));
                     let callback = self.self_link.send_back(|_| Msg::CheckImage);
                     self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
                     self.map_img = Some(img);
                 } else {
-                    self.data.error_messages.push("failed to find map".to_string());
+                    self.user_msg.error_messages.push("failed to find map".to_owned());
                 }
             },
             Msg::ResponseAddMap(response) => {
@@ -472,7 +471,7 @@ impl Component for MapAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
-                            self.data.success_message = Some("successfully added map".to_string());
+                            self.user_msg.success_message = Some("successfully added map".to_owned());
                             self.data.map = result;
                             self.data.opt_id = Some(self.data.map.id);
 
@@ -487,11 +486,11 @@ impl Component for MapAddUpdate {
                             }
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to add map, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to add map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add map".to_string());
+                    self.user_msg.error_messages.push("failed to add map".to_string());
                 }
             },
         }
@@ -615,25 +614,12 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         let note = self.data.map.note.clone().unwrap_or(String::new());
 
         html! {
             <>
                 <p>{ title_name }</p>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { String::new() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <div/>
                 <table>
                     <tr>

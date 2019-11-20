@@ -3,6 +3,7 @@ use crate::util::{ self, WebUserType, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
+use super::user_message::UserMessage;
 
 #[derive(Copy, Clone)]
 pub enum UserType {
@@ -29,10 +30,8 @@ pub enum Msg {
 struct Data {
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
-    pub error_messages: Vec<String>,
     pub id: Option<i32>,
     pub raw_mac: String,
-    pub success_message: Option<String>,
 }
 
 impl Data {
@@ -40,21 +39,21 @@ impl Data {
         Data {
             user: TrackedUser::new(),
             emergency_user: None,
-            error_messages: Vec::new(),
             id: None,
             raw_mac: ShortAddress::nil().to_string(),
-            success_message: None,
         }
     }
+}
 
+impl UserAddUpdate {
     fn validate(&mut self) -> bool {
-        let success = match ShortAddress::parse_str(&self.raw_mac) {
+        let success = match ShortAddress::parse_str(&self.data.raw_mac) {
             Ok(m) => {
-                self.user.mac_address = Some(m);
+                self.data.user.mac_address = Some(m);
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse mac address: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse mac address: {}", e));
                 false
             }
         };
@@ -63,6 +62,7 @@ impl Data {
 }
 
 pub struct UserAddUpdate {
+    user_msg: UserMessage<Self>,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
@@ -88,6 +88,7 @@ impl Component for UserAddUpdate {
         }
 
         let mut result = UserAddUpdate {
+            user_msg: UserMessage::new(),
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -168,10 +169,8 @@ impl Component for UserAddUpdate {
             },
 
             Msg::RequestAddUpdateUser => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
-
-                let success = self.data.validate();
+                self.user_msg.reset();
+                let success = self.validate();
 
                 match self.data.id {
                     Some(id) if success => {
@@ -220,11 +219,11 @@ impl Component for UserAddUpdate {
                             self.data.emergency_user = opt_e_user;
                         }
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to find user, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to find user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to find user".to_string());
+                    self.user_msg.error_messages.push("failed to find user".to_string());
                 }
             },
             Msg::ResponseAddUser(response) => {
@@ -232,7 +231,7 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            self.data.success_message = Some("successfully added user".to_string());
+                            self.user_msg.success_message = Some("successfully added user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
 
@@ -240,11 +239,11 @@ impl Component for UserAddUpdate {
                             self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to add user, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to add user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to add user".to_string());
+                    self.user_msg.error_messages.push("failed to add user".to_string());
                 }
             },
             Msg::ResponseUpdateUser(response) => {
@@ -252,16 +251,16 @@ impl Component for UserAddUpdate {
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
-                            self.data.success_message = Some("successfully updated user".to_string());
+                            self.user_msg.success_message = Some("successfully updated user".to_string());
                             self.data.user = opt_user;
                             self.data.emergency_user = opt_e_user;
                         },
                         Err(e) => {
-                            self.data.error_messages.push(format!("failed to update user, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to update user, reason: {}", e));
                         }
                     }
                 } else {
-                    self.data.error_messages.push("failed to update user".to_string());
+                    self.user_msg.error_messages.push("failed to update user".to_string());
                 }
             },
         }
@@ -348,23 +347,10 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         html! {
             <>
                 <p>{ title_name }</p>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { String::new() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <div/>
                 <table>
                     <tr>

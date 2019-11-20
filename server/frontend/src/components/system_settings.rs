@@ -4,28 +4,15 @@ use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
 use stdweb::web;
+use super::user_message::UserMessage;
 
 pub enum Msg {
     RequestRestart(SystemCommand),
     ResponseRestart(util::Response<()>),
 }
 
-struct Data {
-    pub error_messages: Vec<String>,
-    pub success_message: Option<String>,
-}
-
-impl Data {
-    fn new() -> Data {
-        Data {
-            error_messages: Vec::new(),
-            success_message: None,
-        }
-    }
-}
-
 pub struct SystemSettings {
-    data: Data,
+    user_msg: UserMessage<Self>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
@@ -44,7 +31,7 @@ impl Component for SystemSettings {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let result = SystemSettings {
-            data: Data::new(),
+            user_msg: UserMessage::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
             self_link: link,
@@ -74,9 +61,9 @@ impl Component for SystemSettings {
             Msg::ResponseRestart(response) => {
                 let (meta, Json(_body)) = response.into_parts();
                 if meta.status.is_success() {
-                    self.data.success_message = Some("successfully sent restart command".to_owned());
+                    self.user_msg.success_message = Some("successfully sent restart command".to_owned());
                 } else {
-                    self.data.error_messages.push("failed to send restart command".to_string());
+                    self.user_msg.error_messages.push("failed to send restart command".to_string());
                 }
             },
         }
@@ -92,22 +79,9 @@ impl Component for SystemSettings {
 // The front-end layout in HTML
 impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
-        let mut errors = self.data.error_messages.iter().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         html! {
             <>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { String::new() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <div/>
                 <table>
                     <tr>
