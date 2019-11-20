@@ -62,7 +62,14 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
     where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq + std::fmt::Display
 {
     fn view(&self) -> Html<Self> {
-        let cls = if self.border { "btn btn-secondary btn-sm font-weight-bold" } else { "btn btn-secondary btn-sm" };
+        let bold = if self.border {
+            "font-weight-bold"
+        } else {
+            ""
+        };
+
+        let style = "btn-primary";
+        let cls = format!("btn {} btn-sm {}", style, bold);
 
         html! {
             <>
@@ -85,6 +92,7 @@ pub struct DisplayButton<T> {
     pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
+    pub style: String,
 }
 
 #[derive(Properties)]
@@ -96,6 +104,8 @@ pub struct DisplayButtonProps<T> {
     pub disabled: bool,
     pub border: bool,
     pub display: String,
+    #[props(required)]
+    pub style: String,
 }
 
 impl <T: 'static> Component for DisplayButton<T>
@@ -111,6 +121,7 @@ impl <T: 'static> Component for DisplayButton<T>
             disabled: props.disabled,
             border: props.border,
             display: props.display,
+            style: props.style,
         }
     }
 
@@ -128,6 +139,7 @@ impl <T: 'static> Component for DisplayButton<T>
         self.on_click = props.on_click;
         self.disabled = props.disabled;
         self.border = props.border;
+        self.style = props.style;
         true
     }
 }
@@ -136,8 +148,13 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
     where T: std::default::Default + std::clone::Clone + std::cmp::PartialEq
 {
     fn view(&self) -> Html<Self> {
-        let cls = if self.border { "btn btn-primary btn-sm font-weight-bold" } else { "btn btn-primary btn-sm font-italic" };
+        let bold = if self.border {
+            "font-weight-bold"
+        } else {
+            ""
+        };
 
+        let cls = format!("btn {} btn-sm {}", self.style, bold);
         html! {
             <>
                 <button

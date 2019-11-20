@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use std::collections::HashMap;
 use std::time::Duration;
 use super::root;
@@ -11,6 +11,20 @@ use yew::services::interval::{ IntervalTask, IntervalService, };
 
 const POLL_RATE: Duration = Duration::from_millis(1000);
 
+struct Data {
+    pub error_messages: Vec<String>,
+    pub success_message: Option<String>,
+}
+
+impl Data {
+    fn new() -> Data {
+        Data {
+            error_messages: Vec::new(),
+            success_message: None,
+        }
+    }
+}
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum PageState {
     BeaconStatus,
@@ -21,35 +35,40 @@ pub enum Msg {
     ChangeRootPage(root::Page),
     ChangeStatus(PageState),
 
+    RequestCommandBeacon(BeaconRequest),
     RequestGetBeacons,
     RequestGetBeaconsStatus,
-    RequestGetUsers,
-    RequestGetUser(i32),
-    RequestGetUsersStatus,
-    RequestGetMaps,
     RequestGetMap(i32),
+    RequestGetMaps,
+    RequestGetUser(i32),
+    RequestGetUsers,
+    RequestGetUsersStatus,
 
+    ResponseCommandBeacon(util::Response<()>),
     ResponseGetBeacons(util::Response<Vec<Beacon>>),
     ResponseGetBeaconsStatus(util::Response<Vec<RealtimeBeacon>>),
+    ResponseGetMap(util::Response<Map>),
+    ResponseGetMaps(util::Response<Vec<Map>>),
+    ResponseGetUser(util::Response<TrackedUser>),
     ResponseGetUsers(util::Response<Vec<TrackedUser>>),
     ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
-    ResponseGetUser(util::Response<TrackedUser>),
-    ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseGetMap(util::Response<Map>),
 }
 
 pub struct Status {
-    state: PageState,
+    data: Data,
+    beacons: HashMap<i32, Beacon>,
     change_page: Callback<root::Page>,
     fetch_service: FetchService,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
-    users: HashMap<i32, TrackedUser>,
-    beacons: HashMap<i32, Beacon>,
     maps: HashMap<i32, Map>,
     self_link: ComponentLink<Self>,
+    state: PageState,
+    user_type: WebUserType,
+    users: HashMap<i32, TrackedUser>,
 
     // ugh.
+    fetch_commands: Option<FetchTask>,
     fetch_beacons: Option<FetchTask>,
     fetch_beacons_status: Option<FetchTask>,
     fetch_users: Option<FetchTask>,
@@ -75,6 +94,8 @@ pub struct StatusProps {
     pub change_page: Callback<root::Page>,
     #[props(required)]
     pub state: PageState,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for Status {
@@ -86,17 +107,20 @@ impl Component for Status {
         link.send_self(Msg::RequestGetUsers);
         link.send_self(Msg::RequestGetMaps);
         let mut result = Status {
-            state: props.state,
+            data: Data::new(),
+            beacons: HashMap::new(),
+            change_page: props.change_page,
             fetch_service: FetchService::new(),
             interval_service: IntervalService::new(),
             interval_service_task: None,
-            users: HashMap::new(),
-            beacons: HashMap::new(),
             maps: HashMap::new(),
             self_link: link,
-            change_page: props.change_page,
+            state: props.state,
+            user_type: props.user_type,
+            users: HashMap::new(),
 
             fetch_beacons: None,
+            fetch_commands: None,
             fetch_beacons_status: None,
             fetch_map: None,
             fetch_maps: None,
@@ -148,6 +172,17 @@ impl Component for Status {
                     &beacons_status_url(),
                     self.self_link,
                     Msg::ResponseGetBeaconsStatus
+                );
+            },
+            Msg::RequestCommandBeacon(command) => {
+                self.data.success_message = None;
+                self.data.error_messages = Vec::new();
+                self.fetch_commands = post_request!(
+                    self.fetch_service,
+                    &beacon_command_url(),
+                    command,
+                    self.self_link,
+                    Msg::ResponseCommandBeacon
                 );
             },
             Msg::RequestGetUsers => {
@@ -248,6 +283,14 @@ impl Component for Status {
                     }
                 } else {
                     Log!("response - failed to obtain beacon list");
+                }
+            },
+            Msg::ResponseCommandBeacon(response) => {
+                let (meta, Json(_body)) = response.into_parts();
+                if meta.status.is_success() {
+                    self.data.success_message = Some("Successfully sent command".to_string());
+                } else {
+                    Log!("response - failed to command beacon");
                 }
             },
             Msg::ResponseGetUser(response) => {
@@ -352,6 +395,28 @@ impl Status {
                 }
             };
 
+            let command_buttons = match self.user_type {
+                WebUserType::Admin => html! {
+                    <>
+                        <DisplayButton<BeaconRequest>
+                            display="Ping".to_owned(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Ping(Some(beacon.mac_address)),
+                            style="btn-secondary",
+                        />
+                        <DisplayButton<BeaconRequest>
+                            display="Reboot".to_owned(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Reboot(Some(beacon.mac_address)),
+                            style="btn-secondary",
+                        />
+                    </>
+                },
+                _ => html! {},
+            };
+
             html! {
                 <tr>
                     <td>{ &beacon.name }</td>
@@ -363,18 +428,20 @@ impl Status {
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some("Details".to_string()),
+                            display=Some("Details".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
                             value={beacon.id}
                         />
                         <DisplayButton<Option<i32>>
-                            display="Map".to_string(),
+                            display="Map".to_owned(),
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
-                            value={beacon.map_id}
+                            value={beacon.map_id},
+                            style="btn-primary",
                         />
+                        { command_buttons }
                     </td>
                 </tr>
             }
@@ -442,7 +509,8 @@ impl Status {
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
-                            value={user.map_id}
+                            value={user.map_id},
+                            style="btn-info",
                         />
                     </td>
                 </tr>
@@ -481,8 +549,22 @@ impl Renderable<Status> for Status {
             PageState::UserStatus => self.user_table(),
         };
 
+        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+            html! {
+                <p>{msg}</p>
+            }
+        });
+
         html! {
             <>
+                {
+                    match &self.data.success_message {
+                        Some(msg) => { format!("Success: {}", msg) },
+                        None => { String::new() },
+                    }
+                }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <table>
                     { table }
                 </table>

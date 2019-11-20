@@ -166,6 +166,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <Status
                                 change_page=|page| Msg::ChangePage(page),
                                 state=state,
+                                user_type=self.user_type,
                             />
                         </div>
                     </div>
