@@ -1,5 +1,7 @@
 use common::*;
 use crate::util::{ self, WebUserType, };
+use super::root;
+use yew::Callback;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
@@ -12,15 +14,17 @@ pub enum UserType {
 
 pub enum Msg {
     AddAnotherUser,
-    InputMacAddress(String),
-    InputName(String, UserType),
+    ChangeRootPage(root::Page),
     InputEmployeeID(String, UserType),
-    InputWorkPhone(String, UserType),
+    InputMacAddress(String),
     InputMobilePhone(String, UserType),
+    InputName(String, UserType),
     InputNote(String, UserType),
+    InputWorkPhone(String, UserType),
 
     RequestAddUpdateUser,
     RequestGetUser(i32),
+
     ResponseAddUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
     ResponseGetUser(util::Response<(Option<TrackedUser>, Option<TrackedUser>)>),
     ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
@@ -63,6 +67,7 @@ impl Data {
 }
 
 pub struct UserAddUpdate {
+    change_page: Callback<root::Page>,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
@@ -73,6 +78,8 @@ pub struct UserAddUpdate {
 
 #[derive(Properties)]
 pub struct UserAddUpdateProps {
+    #[props(required)]
+    pub change_page: Callback<root::Page>,
     pub id: Option<i32>,
     #[props(required)]
     pub user_type: WebUserType,
@@ -88,6 +95,7 @@ impl Component for UserAddUpdate {
         }
 
         let mut result = UserAddUpdate {
+            change_page: props.change_page,
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -103,6 +111,9 @@ impl Component for UserAddUpdate {
         match msg {
             Msg::AddAnotherUser => {
                 self.data = Data::new();
+            }
+            Msg::ChangeRootPage(page) => {
+                self.change_page.emit(page);
             }
             Msg::InputMacAddress(mac) => {
                 self.data.raw_mac = mac;
@@ -418,11 +429,10 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                                 { add_another_button }
                             </>
                         },
-                        WebUserType::Responder => html! {
-                            <></>
-                        },
+                        WebUserType::Responder => html! { },
                     }
                 }
+                <button onclick=|_| Msg::ChangeRootPage(root::Page::UserList),>{ "Cancel" }</button>
             </>
         }
     }

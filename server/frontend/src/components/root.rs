@@ -224,6 +224,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <BeaconAddUpdate
                                 id=id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
@@ -251,6 +252,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <UserAddUpdate
                                 id=id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
@@ -278,6 +280,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <MapAddUpdate
                                 opt_id=opt_id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
