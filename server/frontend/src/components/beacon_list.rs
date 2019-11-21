@@ -5,6 +5,7 @@ use super::value_button::{ ValueButton, DisplayButton, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
+use super::user_message::UserMessage;
 
 pub enum Msg {
     ChangeRootPage(root::Page),
@@ -17,28 +18,13 @@ pub enum Msg {
     ResponseDeleteBeacon(util::Response<Vec<()>>),
     ResponseCommandBeacon(util::Response<()>),
 }
-
-struct Data {
-    pub error_messages: Vec<String>,
-    pub success_message: Option<String>,
-}
-
 pub struct BeaconList {
     change_page: Callback<root::Page>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     list: Vec<(Beacon, Map)>,
     self_link: ComponentLink<Self>,
-    data: Data,
-}
-
-impl Data {
-    fn new() -> Data {
-        Data {
-            error_messages: Vec::new(),
-            success_message: None,
-        }
-    }
+    user_msg: UserMessage<Self>,
 }
 
 #[derive(Properties)]
@@ -59,7 +45,7 @@ impl Component for BeaconList {
             fetch_task: None,
             self_link: link,
             change_page: props.change_page,
-            data: Data::new(),
+            user_msg: UserMessage::new(),
         };
         result
     }
@@ -109,9 +95,9 @@ impl Component for BeaconList {
             Msg::ResponseCommandBeacon(response) => {
                 let (meta, Json(_body)) = response.into_parts();
                 if meta.status.is_success() {
-                    self.data.success_message = Some("Successfully sent command".to_string());
+                    self.user_msg.success_message = Some("Successfully sent command".to_owned());
                 } else {
-                    Log!("response - failed to command beacon");
+                    self.user_msg.error_messages.push("failed to command beacon".to_owned());
                 }
             },
             Msg::ResponseDeleteBeacon(response) => {
@@ -119,12 +105,12 @@ impl Component for BeaconList {
                 if meta.status.is_success() {
                     match body {
                         Ok(_list) => {
-                            Log!("successfully deleted beacon");
+                            self.user_msg.success_message = Some("Successfully deleted beacon".to_owned());
                         }
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to delete beacon");
+                    self.user_msg.error_messages.push("failed to delete beacon".to_owned());
                 }
                 // now that the beacon is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetBeacons);
@@ -182,23 +168,10 @@ impl Renderable<BeaconList> for BeaconList {
             }
         });
 
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         html! {
             <>
                 <p>{ "Beacon List" }</p>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <h2>{ "Beacon List" }</h2>

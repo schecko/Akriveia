@@ -7,6 +7,7 @@ use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::prelude::*;
+use super::user_message::UserMessage;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -30,6 +31,7 @@ pub struct Diagnostics {
     interval_service_task: Option<IntervalTask>,
     selected_beacons: BTreeSet<MacAddress8>,
     self_link: ComponentLink<Diagnostics>,
+    user_msg: UserMessage<Self>,
 }
 
 #[derive(Properties)]
@@ -65,6 +67,7 @@ impl Component for Diagnostics {
             interval_service_task: None,
             selected_beacons: BTreeSet::new(),
             self_link: link,
+            user_msg: UserMessage::new(),
         };
 
         if result.emergency {
@@ -86,6 +89,7 @@ impl Component for Diagnostics {
                 }
             },
             Msg::RequestDiagnostics => {
+                self.user_msg.reset();
                 self.fetch_task = get_request!(
                     self.fetch_service,
                     &system_diagnostics_url(),
@@ -110,7 +114,7 @@ impl Component for Diagnostics {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to request diagnostics");
+                    self.user_msg.error_messages.push("failed to request diagnostics".to_owned());
                 }
             },
         }
@@ -162,11 +166,11 @@ impl Renderable<Diagnostics> for Diagnostics {
                     <button type="button" class="btn btn-warning"
                         onclick=|_| Msg::ClearBuffer,
                     >
-                        {"Reset Data"}
+                        { "Reset Data" }
                     </button>
-
+                    { self.user_msg.view() }
                     <table class="table table-striped">
-                        <thead class="thead-dark">                 
+                        <thead class="thead-dark">
                             <div>
                                 <h2>{ "Select Beacons:  " }</h2>
                                 { for beacon_selections }
@@ -174,8 +178,8 @@ impl Renderable<Diagnostics> for Diagnostics {
                             <tr>
                                 <th>{ "Beacon Mac" }</th>
                                 <th>{ "User Mac" }</th>
-                                <th>{ "Distance" }</th>                                
-                                <th>{"Timestamp"}</th>                                
+                                <th>{ "Distance" }</th>
+                                <th>{ "Timestamp" }</th>
                             </tr>
                         </thead>
                         <tbody>

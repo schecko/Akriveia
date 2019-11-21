@@ -3,12 +3,13 @@ use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util::{ self, WebUserType, };
 use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
-use super::value_button::ValueButton;
+use super::value_button::{ ValueButton, DisplayButton, };
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
 use yew::prelude::*;
+use super::user_message::UserMessage;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -33,7 +34,6 @@ pub struct MapViewComponent {
     canvas: Canvas,
     current_map: Option<Map>,
     emergency: bool,
-    error_messages: Vec<String>,
     fetch_service: FetchService,
     fetch_task_beacons: Option<FetchTask>,
     fetch_task_realtime_users: Option<FetchTask>,
@@ -48,6 +48,7 @@ pub struct MapViewComponent {
     realtime_users: Vec<RealtimeUserData>,
     self_link: ComponentLink<MapViewComponent>,
     show_distance: Option<ShortAddress>,
+    user_msg: UserMessage<Self>,
     user_type: WebUserType,
 }
 
@@ -107,7 +108,6 @@ impl Component for MapViewComponent {
             canvas: Canvas::new("map_canvas", click_callback.clone()),
             current_map: None,
             emergency: props.emergency,
-            error_messages: Vec::new(),
             fetch_service: FetchService::new(),
             fetch_task_beacons: None,
             fetch_task_realtime_users: None,
@@ -122,6 +122,7 @@ impl Component for MapViewComponent {
             realtime_users: Vec::new(),
             self_link: link,
             show_distance: None,
+            user_msg: UserMessage::new(),
             user_type: props.user_type,
         };
 
@@ -175,6 +176,7 @@ impl Component for MapViewComponent {
                 }
             },
             Msg::RequestRealtimeUser => {
+                self.user_msg.reset();
                 self.fetch_task_realtime_users = get_request!(
                     self.fetch_service,
                     &users_status_url(),
@@ -183,7 +185,7 @@ impl Component for MapViewComponent {
                 );
             },
             Msg::RequestGetBeaconsForMap(id) => {
-                self.error_messages = Vec::new();
+                self.user_msg.reset();
                 self.fetch_task_beacons = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
@@ -192,7 +194,7 @@ impl Component for MapViewComponent {
                 );
             },
             Msg::RequestGetMap(id) => {
-                self.error_messages = Vec::new();
+                self.user_msg.reset();
                 self.get_fetch_task = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
@@ -201,7 +203,7 @@ impl Component for MapViewComponent {
                 );
             },
             Msg::RequestGetMaps => {
-                self.error_messages = Vec::new();
+                self.user_msg.reset();
                 self.get_many_fetch_task = get_request!(
                     self.fetch_service,
                     &maps_url(),
@@ -217,11 +219,11 @@ impl Component for MapViewComponent {
                             self.realtime_users = result;
                         },
                         Err(e) => {
-                            self.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to request realtime user data, reason: {}", e));
                         }
                     }
                 } else {
-                    Log!("response - failed to get realtime user data");
+                    self.user_msg.error_messages.push("failed to request realtime user data, reason: {}".to_owned());
                 }
             },
             Msg::ResponseGetBeaconsForMap(response) => {
@@ -232,11 +234,11 @@ impl Component for MapViewComponent {
                             self.beacons = result;
                         },
                         Err(e) => {
-                            self.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to obtain list of beacons for this map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.error_messages.push("failed to obtain available floors list".to_string());
+                    self.user_msg.error_messages.push("failed to obtain list of beacons for this map".to_owned());
                 }
             },
             Msg::ResponseGetMap(response) => {
@@ -259,11 +261,11 @@ impl Component for MapViewComponent {
                             });
                         },
                         Err(e) => {
-                            self.error_messages.push(format!("failed to get map, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to get map, reason: {}", e));
                         }
                     }
                 } else {
-                    self.error_messages.push("failed to get map".to_string());
+                    self.user_msg.error_messages.push("failed to get map".to_owned());
                 }
             },
             Msg::ResponseGetMaps(response) => {
@@ -278,11 +280,11 @@ impl Component for MapViewComponent {
                             }
                         },
                         Err(e) => {
-                            self.error_messages.push(format!("failed to get maps, reason: {}", e));
+                            self.user_msg.error_messages.push(format!("failed to get maps, reason: {}", e));
                         }
                     }
                 } else {
-                    self.error_messages.push("failed to get map".to_string());
+                    self.user_msg.error_messages.push("failed to get map".to_string());
                 }
             },
             Msg::Ignore => {
@@ -310,20 +312,6 @@ impl Component for MapViewComponent {
 
 impl Renderable<MapViewComponent> for MapViewComponent {
     fn view(&self) -> Html<Self> {
-        let mut render_distance_buttons = self.realtime_users.iter().map(|user| {
-            let set_border = match &self.show_distance {
-                Some(selected) => &user.addr == selected,
-                None => false,
-            };
-            html! {
-                <ValueButton<String>
-                    on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
-                    border=set_border,
-                    value={user.addr.to_string()}
-                />
-            }
-        });
-
         let current_map_id = match &self.current_map {
             Some(map) => map.id,
             None => -1,
@@ -342,40 +330,39 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
-        let mut errors = self.error_messages.iter().cloned().map(|msg| {
-            html! {
-                <p>{msg}</p>
-            }
-        });
-
         let mut realtime_users = self.realtime_users.iter().map(|user| {
+            let set_border = match &self.show_distance {
+                Some(selected) => &user.addr == selected,
+                None => false,
+            };
             html! {
                 <tr>
                     <td>{user.addr}</td>
                     <td>{&user.name}</td>
                     <td>{user.last_active}</td>
+                    {
+                        match self.user_type {
+                            WebUserType::Admin => html! {
+                                <DisplayButton<String>
+                                    on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
+                                    border=set_border,
+                                    value={user.addr.to_string()},
+                                    display={"TOF"},
+                                />
+                            },
+                            _ => html! {}
+                        }
+                    }
                 </tr>
             }
         });
 
         html! {
             <div>
-                { for errors }
+                { self.user_msg.view() }
                 <div>
                     <p>{ "Maps " }</p>
                     { for maps }
-                </div>
-                <div>
-                    <p>
-                    {
-                        if self.realtime_users.len() > 0 {
-                            "View TOF: "
-                        } else {
-                            ""
-                        }
-                    }
-                    </p>
-                    { for render_distance_buttons }
                 </div>
                 <table>
                     <tr>
@@ -388,9 +375,17 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                         <td>
                             <table>
                                 <tr>
-                                    <td>{"Address"}</td>
-                                    <td>{"Name"}</td>
-                                    <td>{"Last Seen"}</td>
+                                    <td>{ "Address" }</td>
+                                    <td>{ "Name" }</td>
+                                    <td>{ "Last Seen" }</td>
+                                    {
+                                        match self.user_type {
+                                            WebUserType::Admin => html! {
+                                                <td>{ "Debug" }</td>
+                                            },
+                                            _ => html! {},
+                                        }
+                                    }
                                 </tr>
                                 { for realtime_users }
                             </table>
