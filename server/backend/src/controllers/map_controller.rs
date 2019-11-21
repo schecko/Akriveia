@@ -6,20 +6,31 @@ use crate::db_utils;
 use crate::models::map;
 use futures::{ Stream, future::ok, Future, future::Either, };
 use actix_identity::Identity;
+use crate::ak_error::{ AkError, AkErrorType, };
 
-pub fn get_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) if id != -1 => {
             Either::A(db_utils::connect_id(&uid, &state)
+                .map_err(|connect_err| {
+                    AkError {
+                        t: AkErrorType::Unauthorized,
+                        reason: "fucking fuck fuc".to_owned(),
+                    }
+                })
                 .and_then(move |client| {
                     map::select_map(client, id)
                         .map_err(|postgres_err| {
-                            // TODO can this be better?
-                            error::ErrorBadRequest(postgres_err)
+                            AkError {
+                                t: AkErrorType::Validation,
+                                reason: "fuck".to_owned(),
+                            }
+
+                            //error::ErrorBadRequest(postgres_err)
                         })
                 })
-                .and_then(|(_client, map)| {
+                .map(|(_client, map)| {
                     match map {
                         Some(m) => HttpResponse::Ok().json(m),
                         None => HttpResponse::NotFound().finish(),

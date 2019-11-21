@@ -412,3 +412,8 @@ pub enum SystemCommand {
     RebuildDB,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct WebError {
+    pub reason: String,
+}
+

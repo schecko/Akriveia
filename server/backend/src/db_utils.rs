@@ -42,3 +42,4 @@ pub fn connect_id(id: &Identity, state: &AKData) -> impl Future<Item=tokio_postg
 
     conn_fut
 }
+

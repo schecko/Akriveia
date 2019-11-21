@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 extern crate actix;
 extern crate actix_files;
 extern crate actix_identity;
@@ -24,6 +24,7 @@ mod data_processor;
 mod db_utils;
 mod models;
 mod conn_common;
+mod ak_error;
 
 use controllers::beacon_controller;
 use controllers::map_controller;
