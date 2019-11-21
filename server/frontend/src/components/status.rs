@@ -8,6 +8,7 @@ use yew::format::Json;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
+use super::user_message::UserMessage;
 
 const POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -39,15 +40,16 @@ pub enum Msg {
 }
 
 pub struct Status {
-    state: PageState,
+    beacons: HashMap<i32, Beacon>,
     change_page: Callback<root::Page>,
     fetch_service: FetchService,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
-    users: HashMap<i32, TrackedUser>,
-    beacons: HashMap<i32, Beacon>,
     maps: HashMap<i32, Map>,
     self_link: ComponentLink<Self>,
+    state: PageState,
+    user_msg: UserMessage<Self>,
+    users: HashMap<i32, TrackedUser>,
 
     // ugh.
     fetch_beacons: Option<FetchTask>,
@@ -86,15 +88,16 @@ impl Component for Status {
         link.send_self(Msg::RequestGetUsers);
         link.send_self(Msg::RequestGetMaps);
         let mut result = Status {
-            state: props.state,
+            beacons: HashMap::new(),
+            change_page: props.change_page,
             fetch_service: FetchService::new(),
             interval_service: IntervalService::new(),
             interval_service_task: None,
-            users: HashMap::new(),
-            beacons: HashMap::new(),
             maps: HashMap::new(),
             self_link: link,
-            change_page: props.change_page,
+            state: props.state,
+            user_msg: UserMessage::new(),
+            users: HashMap::new(),
 
             fetch_beacons: None,
             fetch_beacons_status: None,
@@ -119,6 +122,7 @@ impl Component for Status {
                 self.change_page.emit(page);
             }
             Msg::RequestGetMaps => {
+                self.user_msg.reset();
                 self.fetch_maps = get_request!(
                     self.fetch_service,
                     &maps_url(),
@@ -127,6 +131,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetMap(id) => {
+                self.user_msg.reset();
                 self.fetch_map = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
@@ -135,6 +140,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetBeacons => {
+                self.user_msg.reset();
                 self.fetch_beacons = get_request!(
                     self.fetch_service,
                     &beacons_url(),
@@ -143,6 +149,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetBeaconsStatus => {
+                self.user_msg.reset();
                 self.fetch_beacons_status = get_request!(
                     self.fetch_service,
                     &beacons_status_url(),
@@ -151,6 +158,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetUsers => {
+                self.user_msg.reset();
                 self.fetch_users = get_request!(
                     self.fetch_service,
                     &users_url(),
@@ -159,6 +167,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetUsersStatus => {
+                self.user_msg.reset();
                 self.fetch_user_status = get_request!(
                     self.fetch_service,
                     &users_status_url(),
@@ -167,6 +176,7 @@ impl Component for Status {
                 );
             },
             Msg::RequestGetUser(id) => {
+                self.user_msg.reset();
                 self.fetch_user = get_request!(
                     self.fetch_service,
                     &user_url(&id.to_string()),
@@ -186,7 +196,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to obtain map list".to_owned());
                 }
             },
             Msg::ResponseGetMap(response) => {
@@ -199,7 +209,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to get map".to_owned());
                 }
             },
             Msg::ResponseGetBeacons(response) => {
@@ -220,7 +230,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to obtain beacon list".to_owned());
                 }
             },
             Msg::ResponseGetBeaconsStatus(response) => {
@@ -247,7 +257,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to get beacon status".to_owned());
                 }
             },
             Msg::ResponseGetUser(response) => {
@@ -266,7 +276,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to get user".to_owned());
                 }
             },
             Msg::ResponseGetUsers(response) => {
@@ -287,7 +297,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to get user list".to_owned());
                 }
             },
             Msg::ResponseGetUsersStatus(response) => {
@@ -295,7 +305,6 @@ impl Component for Status {
                 if meta.status.is_success() {
                     match body {
                         Ok(realtime_users) => {
-                            println!("realtime is  {:?}", realtime_users);
                             for ru in realtime_users {
                                 match self.users.get_mut(&ru.id) {
                                     Some(u) => {
@@ -315,7 +324,7 @@ impl Component for Status {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain beacon list");
+                    self.user_msg.error_messages.push("failed to get user status".to_owned());
                 }
             },
         }
@@ -381,29 +390,27 @@ impl Status {
         });
 
         html! {
-            <>
-                // TODO find the reason why table is not container-fluid
-                <div class="container-fluid">
-                    <table class="table table-striped">
-                        <thead class="thead-light">
-                            <h2>{ "Beacon Status" }</h2>
-                            <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "State" }</th>
-                                <th>{ "Last Active" }</th>
-                                <th>{ "Coordinates" }</th>
-                                <th>{ "Floor" }</th>
-                                <th>{ "Mac" }</th>
-                                <th>{ "Note" }</th>
-                                <th>{ "Actions" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for rows }
-                        </tbody>
-                    </table>
-                </div>
-            </>
+            // TODO find the reason why table is not container-fluid
+            <div class="container-fluid">
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "Beacon Status" }</h2>
+                        <tr>
+                            <th>{ "Name" }</th>
+                            <th>{ "State" }</th>
+                            <th>{ "Last Active" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
+            </div>
         }
     }
 
@@ -450,26 +457,24 @@ impl Status {
         });
 
         html! {
-            <>
-                <div class="container-fluid">
-                    <table class="table table-striped">
-                        <thead class="thead-light">
-                            <h2>{ "User Status" }</h2>
-                            <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "Coordinates" }</th>
-                                <th>{ "Floor" }</th>
-                                <th>{ "Last Seen" }</th>
-                                <th>{ "Note" }</th>
-                                <th>{ "Actions" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for rows }
-                        </tbody>
-                    </table>
-                </div>
-            </>
+            <div class="container-fluid">
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <h2>{ "User Status" }</h2>
+                        <tr>
+                            <th>{ "Name" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Last Seen" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
+            </div>
         }
     }
 }
@@ -483,6 +488,7 @@ impl Renderable<Status> for Status {
 
         html! {
             <>
+                { self.user_msg.view() }
                 <table>
                     { table }
                 </table>

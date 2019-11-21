@@ -5,6 +5,7 @@ use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
+use super::user_message::UserMessage;
 
 pub enum Msg {
     ChangeRootPage(root::Page),
@@ -22,6 +23,7 @@ pub struct MapList {
     fetch_task: Option<FetchTask>,
     list: Vec<Map>,
     self_link: ComponentLink<Self>,
+    user_msg: UserMessage<Self>,
 }
 
 #[derive(Properties)]
@@ -42,6 +44,7 @@ impl Component for MapList {
             fetch_task: None,
             self_link: link,
             change_page: props.change_page,
+            user_msg: UserMessage::new(),
         };
         result
     }
@@ -75,7 +78,7 @@ impl Component for MapList {
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to obtain map list");
+                    self.user_msg.error_messages.push("failed to obtain map list".to_owned());
                 }
             },
             Msg::ResponseDeleteMap(response) => {
@@ -83,12 +86,12 @@ impl Component for MapList {
                 if meta.status.is_success() {
                     match body {
                         Ok(_list) => {
-                            Log!("successfully deleted map");
-                        }
+                            self.user_msg.success_message = Some("successfully deleted user".to_owned());
+                        },
                         _ => { }
                     }
                 } else {
-                    Log!("response - failed to delete map");
+                    self.user_msg.error_messages.push("failed to delete user".to_owned());
                 }
                 // now that the map is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetMaps);
@@ -141,6 +144,7 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
+                { self.user_msg.view() }
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <h2>{ "Map List" }</h2>
