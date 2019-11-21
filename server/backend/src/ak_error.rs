@@ -2,10 +2,11 @@ use actix_web::{ error, HttpResponse, http::StatusCode, };
 use serde_derive::{ Deserialize, Serialize, };
 use std::fmt;
 use common::*;
+use tokio_postgres::error::Error as TError;
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum AkErrorType {
-    InternalFailure,
+    Internal,
     NotFound,
     Unauthorized,
     Validation,
@@ -15,6 +16,36 @@ pub enum AkErrorType {
 pub struct AkError {
     pub reason: String,
     pub t: AkErrorType,
+}
+
+impl AkError {
+    fn internal(reason: &str) -> AkError {
+        AkError {
+            reason: reason.to_string(),
+            t: AkErrorType::Internal,
+        }
+    }
+
+    fn not_found(reason: &str) -> AkError {
+        AkError {
+            reason: reason.to_string(),
+            t: AkErrorType::NotFound,
+        }
+    }
+
+    fn unauthorized(reason: &str) -> AkError {
+        AkError {
+            reason: reason.to_string(),
+            t: AkErrorType::Unauthorized,
+        }
+    }
+
+    fn validation(reason: &str) -> AkError {
+        AkError {
+            reason: reason.to_string(),
+            t: AkErrorType::Validation,
+        }
+    }
 }
 
 impl fmt::Display for AkError {
@@ -34,10 +65,30 @@ impl fmt::Debug for AkError {
 impl error::ResponseError for AkError {
     fn error_response(&self) -> HttpResponse {
         match self.t {
-            AkErrorType::InternalFailure => HttpResponse::InternalServerError().finish(),
+            AkErrorType::Internal => HttpResponse::InternalServerError().finish(),
             AkErrorType::NotFound => HttpResponse::NotFound().finish(),
             AkErrorType::Unauthorized => HttpResponse::Unauthorized().finish(),
             AkErrorType::Validation => HttpResponse::BadRequest().finish(),
+        }
+    }
+}
+
+impl From<TError> for AkError {
+    fn from(other: TError) -> Self {
+        match other.into_source() {
+            Some(err) => {
+                dbg!(err);
+                AkError {
+                    t: AkErrorType::Validation,
+                    reason: err.to_string(),
+                }
+            },
+            None => {
+                AkError {
+                    t: AkErrorType::Internal,
+                    reason: "Unknown database error.".to_owned(),
+                }
+            }
         }
     }
 }

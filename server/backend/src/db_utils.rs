@@ -4,6 +4,7 @@ use futures::{ future::err, Future, future::Either, };
 use crate::AKData;
 use actix_web::{ error, };
 use actix_identity::Identity;
+use crate::ak_error::AkError;
 
 pub const DEFAULT_CONNECTION: &str = "dbname=ak host=localhost password=postgres user=postgres";
 
@@ -24,20 +25,20 @@ pub fn connect(params: &str) -> impl Future<Item=tokio_postgres::Client, Error=t
         })
 }
 
-pub fn connect_id(id: &Identity, state: &AKData) -> impl Future<Item=tokio_postgres::Client, Error=actix_web::Error> {
+pub fn connect_id(id: &Identity, state: &AKData) -> impl Future<Item=tokio_postgres::Client, Error=AkError> {
     let conn_fut = if let Some(name) = id.identity() {
         let s = state.lock().unwrap();
         if let Some(info) = s.pools.get(&name) {
             Either::A(connect_login(info)
                 .map_err(|postgres_err| {
-                    error::ErrorBadRequest(postgres_err)
+                    AkError::from(postgres_err)
                 })
             )
         } else {
-            Either::B(err(error::ErrorInternalServerError("Empty connection pool for valid user.")))
+            Either::B(err(AkError::internal("Incorrect connection pool state for valid user")))
         }
     } else {
-        Either::B(err(error::ErrorUnauthorized("invalid credentials")))
+        Either::B(err(AkError::unauthorized("Invalid credentials")))
     };
 
     conn_fut
