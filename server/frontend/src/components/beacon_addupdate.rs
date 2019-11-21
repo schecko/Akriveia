@@ -1,12 +1,15 @@
 use common::*;
 use crate::util::{ self, WebUserType, };
-use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::prelude::*;
+use super::root;
 use super::user_message::UserMessage;
+use yew::Callback;
+use yew::format::Json;
+use yew::prelude::*;
+use yew::services::fetch::{ FetchService, FetchTask, };
 
 pub enum Msg {
     AddAnotherBeacon,
+    ChangeRootPage(root::Page),
     InputCoordinate(usize, String),
     InputFloorName(i32),
     InputMacAddress(String),
@@ -97,10 +100,13 @@ pub struct BeaconAddUpdate {
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
+    change_page: Callback<root::Page>,
 }
 
 #[derive(Properties)]
 pub struct BeaconAddUpdateProps {
+    #[props(required)]
+    pub change_page: Callback<root::Page>,
     pub id: Option<i32>,
     #[props(required)]
     pub user_type: WebUserType,
@@ -117,6 +123,7 @@ impl Component for BeaconAddUpdate {
         }
         let mut result = BeaconAddUpdate {
             user_msg: UserMessage::new(),
+            change_page: props.change_page,
             data: Data::new(),
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -130,6 +137,9 @@ impl Component for BeaconAddUpdate {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ChangeRootPage(page) => {
+                self.change_page.emit(page);
+            }
             Msg::AddAnotherBeacon => {
                 self.data = Data::new();
                 self.self_link.send_self(Msg::RequestGetAvailMaps);
@@ -391,11 +401,10 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                 { add_another_button }
                             </>
                         },
-                        WebUserType::Responder => html! {
-                            <></>
-                        },
+                        WebUserType::Responder => html! { },
                     }
                 }
+                <button onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),>{ "Cancel" }</button>
             </>
         }
     }

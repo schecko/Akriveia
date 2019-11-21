@@ -5,6 +5,7 @@ use std::time::Duration;
 use stdweb::traits::*;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::{ Node, html_element::ImageElement, };
+use super::root;
 use yew::IMouseEvent;
 use yew::format::Json;
 use yew::prelude::*;
@@ -20,18 +21,19 @@ pub enum Coord {
 }
 
 pub enum Msg {
-    Ignore,
-    CheckImage,
     AddAnotherMap,
-    InputFile(File),
+    CanvasClick(ClickEvent),
+    ChangeRootPage(root::Page),
+    CheckImage,
     FileLoaded(FileData),
+    Ignore,
     InputBound(usize, String),
-    InputScale(String),
+    InputFile(File),
     InputName(String),
     InputNote(String),
-    ToggleBeaconPlacement(i32),
-    CanvasClick(ClickEvent),
+    InputScale(String),
     ManualBeaconPlacement(usize, Coord, String),
+    ToggleBeaconPlacement(i32),
 
     RequestAddUpdateMap,
     RequestGetMap(i32),
@@ -151,17 +153,18 @@ pub struct MapAddUpdate {
     user_msg: UserMessage<Self>,
     binary_fetch_task: Option<FetchTask>,
     canvas: Canvas,
+    change_page: Callback<root::Page>,
     data: Data,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     file_reader: ReaderService,
     file_task: Option<ReaderTask>,
     get_fetch_task: Option<FetchTask>,
+    interval_service: IntervalService,
+    interval_service_task: Option<IntervalTask>,
     map_img: Option<ImageElement>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
-    interval_service: IntervalService,
-    interval_service_task: Option<IntervalTask>,
 }
 
 #[derive(Properties)]
@@ -169,6 +172,8 @@ pub struct MapAddUpdateProps {
     pub opt_id: Option<i32>,
     #[props(required)]
     pub user_type: WebUserType,
+    #[props(required)]
+    pub change_page: Callback<root::Page>,
 }
 
 impl Component for MapAddUpdate {
@@ -187,6 +192,7 @@ impl Component for MapAddUpdate {
             user_msg: UserMessage::new(),
             binary_fetch_task: None,
             canvas: Canvas::new("addupdate_canvas", click_callback),
+            change_page: props.change_page,
             data,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -210,6 +216,9 @@ impl Component for MapAddUpdate {
         match msg {
             Msg::Ignore => {
             },
+            Msg::ChangeRootPage(page) => {
+                self.change_page.emit(page);
+            }
             Msg::CheckImage => {
                 // The is necessary to force a rerender when the image finally loads,
                 // it would be nice to use an onload() callback, but that does not seem to
@@ -702,6 +711,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     }
                 }
                 { self.render_beacon_placement() }
+                <button onclick=|_| Msg::ChangeRootPage(root::Page::MapList),>{ "Cancel" }</button>
             </>
         }
     }

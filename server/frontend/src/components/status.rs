@@ -1,5 +1,5 @@
 use common::*;
-use crate::util;
+use crate::util::{ self, WebUserType, };
 use std::collections::HashMap;
 use std::time::Duration;
 use super::root;
@@ -22,21 +22,23 @@ pub enum Msg {
     ChangeRootPage(root::Page),
     ChangeStatus(PageState),
 
+    RequestCommandBeacon(BeaconRequest),
     RequestGetBeacons,
     RequestGetBeaconsStatus,
-    RequestGetUsers,
-    RequestGetUser(i32),
-    RequestGetUsersStatus,
-    RequestGetMaps,
     RequestGetMap(i32),
+    RequestGetMaps,
+    RequestGetUser(i32),
+    RequestGetUsers,
+    RequestGetUsersStatus,
 
+    ResponseCommandBeacon(util::Response<()>),
     ResponseGetBeacons(util::Response<Vec<Beacon>>),
     ResponseGetBeaconsStatus(util::Response<Vec<RealtimeBeacon>>),
+    ResponseGetMap(util::Response<Map>),
+    ResponseGetMaps(util::Response<Vec<Map>>),
+    ResponseGetUser(util::Response<TrackedUser>),
     ResponseGetUsers(util::Response<Vec<TrackedUser>>),
     ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
-    ResponseGetUser(util::Response<TrackedUser>),
-    ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseGetMap(util::Response<Map>),
 }
 
 pub struct Status {
@@ -49,9 +51,11 @@ pub struct Status {
     self_link: ComponentLink<Self>,
     state: PageState,
     user_msg: UserMessage<Self>,
+    user_type: WebUserType,
     users: HashMap<i32, TrackedUser>,
 
     // ugh.
+    fetch_commands: Option<FetchTask>,
     fetch_beacons: Option<FetchTask>,
     fetch_beacons_status: Option<FetchTask>,
     fetch_users: Option<FetchTask>,
@@ -77,6 +81,8 @@ pub struct StatusProps {
     pub change_page: Callback<root::Page>,
     #[props(required)]
     pub state: PageState,
+    #[props(required)]
+    pub user_type: WebUserType,
 }
 
 impl Component for Status {
@@ -97,9 +103,11 @@ impl Component for Status {
             self_link: link,
             state: props.state,
             user_msg: UserMessage::new(),
+            user_type: props.user_type,
             users: HashMap::new(),
 
             fetch_beacons: None,
+            fetch_commands: None,
             fetch_beacons_status: None,
             fetch_map: None,
             fetch_maps: None,
@@ -155,6 +163,16 @@ impl Component for Status {
                     &beacons_status_url(),
                     self.self_link,
                     Msg::ResponseGetBeaconsStatus
+                );
+            },
+            Msg::RequestCommandBeacon(command) => {
+                self.user_msg.reset();
+                self.fetch_commands = post_request!(
+                    self.fetch_service,
+                    &beacon_command_url(),
+                    command,
+                    self.self_link,
+                    Msg::ResponseCommandBeacon
                 );
             },
             Msg::RequestGetUsers => {
@@ -260,6 +278,14 @@ impl Component for Status {
                     self.user_msg.error_messages.push("failed to get beacon status".to_owned());
                 }
             },
+            Msg::ResponseCommandBeacon(response) => {
+                let (meta, Json(_body)) = response.into_parts();
+                if meta.status.is_success() {
+                    self.user_msg.success_message = Some("Successfully sent command".to_string());
+                } else {
+                    self.user_msg.error_messages.push("failed to send command".to_owned());
+                }
+            },
             Msg::ResponseGetUser(response) => {
                 let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -361,6 +387,28 @@ impl Status {
                 }
             };
 
+            let command_buttons = match self.user_type {
+                WebUserType::Admin => html! {
+                    <>
+                        <DisplayButton<BeaconRequest>
+                            display="Ping".to_owned(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Ping(Some(beacon.mac_address)),
+                            style="btn-secondary",
+                        />
+                        <DisplayButton<BeaconRequest>
+                            display="Reboot".to_owned(),
+                            on_click=|value| Msg::RequestCommandBeacon(value),
+                            border=false,
+                            value=BeaconRequest::Reboot(Some(beacon.mac_address)),
+                            style="btn-secondary",
+                        />
+                    </>
+                },
+                _ => html! {},
+            };
+
             html! {
                 <tr>
                     <td>{ &beacon.name }</td>
@@ -372,18 +420,20 @@ impl Status {
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some("Details".to_string()),
+                            display=Some("Details".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
                             value={beacon.id}
                         />
                         <DisplayButton<Option<i32>>
-                            display="Map".to_string(),
+                            display="Map".to_owned(),
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
-                            value={beacon.map_id}
+                            value={beacon.map_id},
+                            style="btn-primary",
                         />
+                        { command_buttons }
                     </td>
                 </tr>
             }
@@ -449,7 +499,8 @@ impl Status {
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
-                            value={user.map_id}
+                            value={user.map_id},
+                            style="btn-secondary",
                         />
                     </td>
                 </tr>

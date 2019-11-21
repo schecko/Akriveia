@@ -348,6 +348,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                     border=set_border,
                                     value={user.addr.to_string()},
                                     display={"TOF"},
+                                    style="btn-secondary"
                                 />
                             },
                             _ => html! {}

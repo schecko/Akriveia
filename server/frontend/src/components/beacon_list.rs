@@ -61,7 +61,6 @@ impl Component for BeaconList {
                 );
             },
             Msg::RequestCommandBeacon(command) => {
-                Log!("wtf {:?}", command);
                 self.fetch_task = post_request!(
                     self.fetch_service,
                     &beacon_command_url(),
@@ -140,28 +139,30 @@ impl Renderable<BeaconList> for BeaconList {
                     <td>{ beacon.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some("Edit".to_string()),
+                            display=Some("Edit".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
                             value={beacon.id}
                         />
                         <ValueButton<i32>
-                            display=Some("Delete".to_string()),
+                            display=Some("Delete".to_owned()),
                             on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
                             value=beacon.id
                         />
                         <DisplayButton<BeaconRequest>
-                            display="Ping".to_string(),
+                            display="Ping".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
+                            style="btn-secondary",
                         />
                         <DisplayButton<BeaconRequest>
-                            display="Reboot".to_string(),
+                            display="Reboot".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
+                            style="btn-secondary",
                         />
                     </td>
                 </tr>

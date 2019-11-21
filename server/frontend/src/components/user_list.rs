@@ -4,8 +4,8 @@ use super::root;
 use super::value_button::ValueButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::{Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties };
 use super::user_message::UserMessage;
+use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
 
 pub enum Msg {
     ChangeRootPage(root::Page),
