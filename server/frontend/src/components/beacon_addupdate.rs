@@ -322,9 +322,17 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <div 
+                    class="alert alert-danger" 
+                    role="alert"
+                >
+                    {"ERROR: "}
+                    {msg}
+                </div>
             }
         });
+
+        let display_errors = html! { for errors };
 
         let note = self.data.beacon.note.clone().unwrap_or(String::new());
 
@@ -332,13 +340,12 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             <>
                 <h2>{ title_name }</h2>
                 {
-                    match &self.data.success_message {
+                    match&self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "".to_string() },
+                        None => { "". to_string() },
                     }
                 }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { display_errors}
                 <div/>
                 <table>
                     <tr>

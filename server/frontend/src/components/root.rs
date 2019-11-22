@@ -301,7 +301,7 @@ impl RootComponent {
                         Page::MapView {..} => {"nav-link navBarText active"},
                         _ => {"nav-link navBarText"},
                     }
-                    onclick=|_| Msg::ChangePage(Page::MapView(None)),                   
+                    onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
                         match self.current_page {
                             Page::MapView { .. } => true,

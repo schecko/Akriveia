@@ -245,9 +245,17 @@ impl Renderable<Login> for Login {
     fn view(&self) -> Html<Self> {
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <div 
+                    class="alert alert-danger" 
+                    role="alert"
+                >
+                    {"ERROR: "}
+                    {msg}
+                </div>
             }
         });
+
+        let display_errors = html! { for errors };
 
         html! {
             <>
@@ -257,8 +265,7 @@ impl Renderable<Login> for Login {
                         None => { "".to_owned() },
                     }
                 }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { display_errors }
                 <div/>
                 {
                     match self.auto_action {
