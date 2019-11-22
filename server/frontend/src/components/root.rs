@@ -566,7 +566,7 @@ impl RootComponent {
                         <li class="my-auto">
                             {view_map}
                         </li>
-                        <li class="my-auto">
+                        <li class="dropdown my-auto">
                             { show_status }
                         </li>
                         <li class="dropdown my-auto">
