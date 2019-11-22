@@ -1,4 +1,4 @@
-use actix_web::{ error, HttpResponse, http::StatusCode, };
+use actix_web::{ error, error::PayloadError, HttpResponse, http::StatusCode, };
 use serde_derive::{ Deserialize, Serialize, };
 use std::fmt;
 use common::*;
@@ -8,8 +8,10 @@ use tokio_postgres::error::Error as TError;
 pub enum AkErrorType {
     Internal,
     NotFound,
+    BadRequest,
     Unauthorized,
     Validation,
+    FileUpload,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -19,28 +21,35 @@ pub struct AkError {
 }
 
 impl AkError {
-    fn internal(reason: &str) -> AkError {
+    pub fn internal(reason: &str) -> AkError {
         AkError {
             reason: reason.to_string(),
             t: AkErrorType::Internal,
         }
     }
 
-    fn not_found(reason: &str) -> AkError {
+    pub fn bad_request(reason: &str) -> AkError {
+        AkError {
+            reason: reason.to_string(),
+            t: AkErrorType::BadRequest,
+        }
+    }
+
+    pub fn not_found(reason: &str) -> AkError {
         AkError {
             reason: reason.to_string(),
             t: AkErrorType::NotFound,
         }
     }
 
-    fn unauthorized(reason: &str) -> AkError {
+    pub fn unauthorized(reason: &str) -> AkError {
         AkError {
             reason: reason.to_string(),
             t: AkErrorType::Unauthorized,
         }
     }
 
-    fn validation(reason: &str) -> AkError {
+    pub fn validation(reason: &str) -> AkError {
         AkError {
             reason: reason.to_string(),
             t: AkErrorType::Validation,
@@ -77,7 +86,6 @@ impl From<TError> for AkError {
     fn from(other: TError) -> Self {
         match other.into_source() {
             Some(err) => {
-                dbg!(err);
                 AkError {
                     t: AkErrorType::Validation,
                     reason: err.to_string(),
@@ -89,6 +97,19 @@ impl From<TError> for AkError {
                     reason: "Unknown database error.".to_owned(),
                 }
             }
+        }
+    }
+}
+
+impl From<PayloadError> for AkError {
+    fn from(other: PayloadError) -> Self {
+        match other {
+            _ => {
+                AkError {
+                    t: AkErrorType::FileUpload,
+                    reason: "File upload failure".to_owned(),
+                }
+            },
         }
     }
 }

@@ -5,6 +5,7 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 use actix_web::web::{ BytesMut, };
+use crate::ak_error::AkError;
 
 pub fn row_to_map(row: &Row) -> Map {
     let mut entry = Map::new();
@@ -26,35 +27,38 @@ pub fn row_to_map(row: &Row) -> Map {
     entry
 }
 
-pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Map>), Error=tokio_postgres::Error> {
+pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Map>), Error=AkError> {
     // TODO paging
     client
         .prepare("
             SELECT m_id, m_bounds, m_scale, m_name, m_note FROM runtime.maps
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_map(&row)).collect())
                 })
         })
 }
 
-pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
+pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=AkError> {
     client
         .prepare("
             SELECT m_id, m_bounds, m_scale, m_name, m_note FROM runtime.maps
             WHERE m_id = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -65,7 +69,7 @@ pub fn select_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
         })
 }
 
-pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Vec<u8>>), Error=tokio_postgres::Error> {
+pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<Vec<u8>>), Error=AkError> {
     client
         .prepare_typed("
             SELECT m_id, m_blueprint FROM runtime.maps
@@ -73,12 +77,13 @@ pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl
         ", &[
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -99,7 +104,7 @@ pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl
         })
 }
 
-pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
+pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=AkError> {
     client
         .prepare_typed("
             INSERT INTO runtime.maps (
@@ -116,6 +121,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
             Type::VARCHAR,
             Type::FLOAT8,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let bounds = vec![map.bounds[0], map.bounds[1]];
             client
@@ -126,8 +132,8 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                     &map.scale,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -138,7 +144,7 @@ pub fn insert_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
         })
 }
 
-pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=tokio_postgres::Error> {
+pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<Item=(tokio_postgres::Client, Option<Map>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.maps
@@ -158,6 +164,7 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
             Type::FLOAT8,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let bounds = vec![map.bounds[0], map.bounds[1]];
             client
@@ -169,8 +176,8 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
                     &map.id,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -181,7 +188,7 @@ pub fn update_map(mut client: tokio_postgres::Client, map: Map) -> impl Future<I
         })
 }
 
-pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: BytesMut) -> impl Future<Item=(tokio_postgres::Client), Error=tokio_postgres::Error> {
+pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: BytesMut) -> impl Future<Item=(tokio_postgres::Client), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.maps
@@ -193,6 +200,7 @@ pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: B
             Type::BYTEA,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[
@@ -200,8 +208,8 @@ pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: B
                     &mid,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(_row, _next)| {
                     client
@@ -209,7 +217,7 @@ pub fn update_map_blueprint(mut client: tokio_postgres::Client, mid: i32, img: B
         })
 }
 
-pub fn delete_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+pub fn delete_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=AkError> {
     client
         .prepare_typed("
             DELETE FROM runtime.maps
@@ -219,12 +227,13 @@ pub fn delete_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<It
         ", &[
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(_row, _next)| {
                     client

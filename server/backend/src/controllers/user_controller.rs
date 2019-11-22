@@ -1,5 +1,5 @@
 
-use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
+use actix_web::{ web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AKData;
 use crate::data_processor::OutUserData;
@@ -8,6 +8,7 @@ use crate::models::user;
 use futures::{ future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use actix_identity::Identity;
+use crate::ak_error::AkError;
 
 #[derive(Deserialize)]
 pub struct GetParams {
@@ -15,7 +16,7 @@ pub struct GetParams {
     include_contacts: Option<bool>,
 }
 
-pub fn users_status(_uid: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn users_status(_uid: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
     s.data_processor
         .send(OutUserData{})
@@ -25,12 +26,12 @@ pub fn users_status(_uid: Identity, state: AKData, _req: HttpRequest) -> impl Fu
                     ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
-                    ok(HttpResponse::BadRequest().finish())
+                    err(AkError::bad_request(""))
                 }
         }})
 }
 
-pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=AkError> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     let prefetch = params.prefetch.unwrap_or(false);
     match id {
@@ -44,15 +45,11 @@ pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Que
                     };
 
                     ok(fut).flatten()
-                        .map_err(|postgres_err| {
-                            // TODO can this be better?
-                            error::ErrorBadRequest(postgres_err)
-                        })
                 })
-                .and_then(|(_client, opt_user, opt_e_user)| {
+                .map(|(_client, opt_user, opt_e_user)| {
                     match opt_user {
                         Some(u) => {
-                                HttpResponse::Ok().json((Some(u), opt_e_user))
+                            HttpResponse::Ok().json((Some(u), opt_e_user))
                         },
                         None => HttpResponse::NotFound().finish(),
                     }
@@ -65,15 +62,11 @@ pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Que
     }
 }
 
-pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=AkError> {
     let include_contacts = params.include_contacts.unwrap_or(true);
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             user::select_users(client, include_contacts)
-                .map_err(|postgres_err| {
-                    // TODO can this be better?
-                    error::ErrorBadRequest(postgres_err)
-                })
         })
         .and_then(|(_client, users)| {
             HttpResponse::Ok().json(users)
@@ -81,7 +74,7 @@ pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Q
 }
 
 // new user
-pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=AkError> {
     let (user, opt_e_user) = payload.into_inner();
 
     db_utils::connect_id(&uid, &state)
@@ -108,10 +101,6 @@ pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::
                         },
                     }
                 })
-                .map_err(|postgres_err| {
-                    println!("{}", postgres_err);
-                    error::ErrorBadRequest(postgres_err)
-                })
         })
         .and_then(|(_client, user, opt_e_user)| {
             match user {
@@ -121,7 +110,7 @@ pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::
         })
 }
 
-pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<(TrackedUser, Option<TrackedUser>)>) -> impl Future<Item=HttpResponse, Error=AkError> {
     let (user, opt_e_user) = payload.into_inner();
 
     db_utils::connect_id(&uid, &state)
@@ -146,9 +135,6 @@ pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::J
                         }
                     }
                 })
-                .map_err(|postgres_err| {
-                    error::ErrorBadRequest(postgres_err)
-                })
         })
         .and_then(|(_client, opt_user, opt_e_user)| {
             match opt_user {
@@ -158,17 +144,13 @@ pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::J
         })
 }
 
-pub fn delete_user(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn delete_user(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
     match id {
         Ok(id) => {
             Either::A(db_utils::connect_id(&uid, &state)
                 .and_then(move |client| {
                     user::delete_user(client, id)
-                        .map_err(|postgres_err| {
-                            // TODO can this be better?
-                            error::ErrorBadRequest(postgres_err)
-                        })
                 })
                 .and_then(|_client| {
                     HttpResponse::Ok().finish()

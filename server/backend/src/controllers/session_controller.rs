@@ -5,8 +5,9 @@ use common::*;
 use crate::AKData;
 use crate::db_utils;
 use futures::future::{ Either, ok, Future, };
+use crate::ak_error::AkError;
 
-pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     if payload.name == "responder" {
         let mut info = LoginInfo::new();
         info.name = payload.name.clone();
@@ -24,17 +25,17 @@ pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: H
                 ok(HttpResponse::Ok().finish())
             })
             .map_err(|_postgres_err| {
-                error::ErrorUnauthorized("Invalid Login Credentials.")
+                AkError::unauthorized("invalid login credentials")
             })
         )
     }
 }
 
-pub fn check(id: Identity, _state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn check(id: Identity, _state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     if let Some(_name) = id.identity() {
         ok(HttpResponse::Ok().finish())
     } else {
-        ok(HttpResponse::Unauthorized().finish())
+        err(AkError::unauthorized(""))
     }
 }
 
