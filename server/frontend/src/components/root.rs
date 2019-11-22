@@ -1,21 +1,22 @@
 
+
 use common::*;
 use crate::util::{ self, WebUserType, };
-use yew::format::Json;
-use yew::services::fetch::{ FetchService, FetchTask, };
-use yew::prelude::*;
-use super::map_view::MapViewComponent;
-use super::emergency_buttons::EmergencyButtons;
-use super::diagnostics::Diagnostics;
-use super::beacon_list::BeaconList;
 use super::beacon_addupdate::BeaconAddUpdate;
-use super::user_list::UserList;
-use super::user_addupdate::UserAddUpdate;
-use super::map_list::MapList;
-use super::map_addupdate::MapAddUpdate;
-use super::status::{ self, Status, };
+use super::beacon_list::BeaconList;
+use super::diagnostics::Diagnostics;
+use super::emergency_buttons::EmergencyButtons;
 use super::login::{ self, Login, };
+use super::map_addupdate::MapAddUpdate;
+use super::map_list::MapList;
+use super::map_view::MapViewComponent;
+use super::status::{ self, Status, };
 use super::system_settings::SystemSettings;
+use super::user_addupdate::UserAddUpdate;
+use super::user_list::UserList;
+use yew::format::Json;
+use yew::prelude::*;
+use yew::services::fetch::{ FetchService, FetchTask, };
 
 
 #[derive(PartialEq)]
@@ -24,9 +25,9 @@ pub enum Page {
     BeaconList,
     Diagnostics,
     Login(login::AutoAction),
-    MapView(Option<i32>),
-    MapList,
     MapAddUpdate(Option<i32>),
+    MapList,
+    MapView(Option<i32>),
     Status(status::PageState),
     SystemSettings,
     UserAddUpdate(Option<i32>),
@@ -165,6 +166,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <Status
                                 change_page=|page| Msg::ChangePage(page),
                                 state=state,
+                                user_type=self.user_type,
                             />
                         </div>
                     </div>
@@ -220,6 +222,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <BeaconAddUpdate
                                 id=id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
@@ -245,6 +248,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <UserAddUpdate
                                 id=id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
@@ -270,6 +274,7 @@ impl Renderable<RootComponent> for RootComponent {
                             <MapAddUpdate
                                 opt_id=opt_id,
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
                         </div>
                     </div>
@@ -367,8 +372,8 @@ impl RootComponent {
                             Page::UserAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
                         } 
-                        id="navbarDropdown",
-                        role="button"
+                        role="button",
+                        data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::UserList)
                     >
                             { "User" }
@@ -408,8 +413,9 @@ impl RootComponent {
                             Page::BeaconAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
                         } 
-                        role="button"
-                        onclick=|_| Msg::ChangePage(Page::BeaconList)
+                        role="button",
+                        data-toggle="dropdown",
+                        onclick=|_| Msg::ChangePage(Page::BeaconList),
                     >
                         { "Beacons" }
                     </a>
@@ -448,15 +454,9 @@ impl RootComponent {
                             Page::MapAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
                         } 
-                        role="button"
+                        role="button",
+                        data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::MapList),
-                        active={
-                            match self.current_page {
-                                Page::MapList => true,
-                                Page::MapAddUpdate {..} => true,
-                                _ => false,
-                            }
-                        },
                     >
                             { "Maps" }
                     </a>
