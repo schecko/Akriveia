@@ -113,7 +113,7 @@ impl Renderable<UserList> for UserList {
             html! {
                 <tr>
                     <td>{ &user.name }</td>
-                    <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
+                    <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &user.mac_address.map_or(String::new(), |m| m.to_string()) }</td>
                     <td>{ user.employee_id.clone().unwrap_or(String::new()) }</td>
                     <td>{ &user.last_active}</td>
@@ -139,7 +139,7 @@ impl Renderable<UserList> for UserList {
 
         html! {
             <>
-                <h2>{ "List of Users" }</h2>
+                <h2>{ "User List" }</h2>
                 <table class="table table-striped">
                     <thead class="thead-light">                 
                         <tr>

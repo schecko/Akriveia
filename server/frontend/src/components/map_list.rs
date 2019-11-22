@@ -141,7 +141,7 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
-                <h2>{ "List of Maps"}</h2>
+                <h2>{ "Map List"}</h2>
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <tr>

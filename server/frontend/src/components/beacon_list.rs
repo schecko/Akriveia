@@ -191,7 +191,7 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                <h2>{ "List of Beacons" }</h2>
+                <p>{ "Beacon List" }</p>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
@@ -202,6 +202,7 @@ impl Renderable<BeaconList> for BeaconList {
                 { for errors }
                 <table class="table table-striped">
                     <thead class="thead-light">
+                        <h2>{ "Beacon List" }</h2>
                         <tr>
                             <th>{ "Mac" }</th>
                             <th>{ "Coordinates" }</th>

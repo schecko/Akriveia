@@ -453,6 +453,7 @@ impl Status {
                 <div class="container-fluid">
                     <table class="table table-striped">
                         <thead class="thead-light">
+                            <h2>{ "Beacon Status" }</h2>
                             <tr>
                                 <th>{ "Name" }</th>
                                 <th>{ "State" }</th>
@@ -521,6 +522,7 @@ impl Status {
                 <div class="container-fluid">
                     <table class="table table-striped">
                         <thead class="thead-light">
+                            <h2>{ "User Status" }</h2>
                             <tr>
                                 <th>{ "Name" }</th>
                                 <th>{ "Coordinates" }</th>
