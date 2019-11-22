@@ -1,6 +1,7 @@
 use failure::Fallible;
 use yew::services::fetch::{ StatusCode, Response as FetchResponse, };
 use yew::format::Json;
+use common::*;
 
 pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
 
@@ -149,19 +150,27 @@ macro_rules! delete_request {
     };
 }
 
-pub struct AkError {
-}
-
 pub trait JsonResponseHandler {
     fn handle_response<T, S, F>(&mut self, response: Response<T>, success: S, failure: F)
         where
         S: Fn(&mut Self, T),
-        F: Fn(&mut Self, AkError),
+        F: Fn(&mut Self, WebError),
     {
         let (meta, Json(body)) = response.into_parts();
         match body {
-            Ok(value) => success(self, value),
-            Err(err) => failure(self, AkError{}),
+            Ok(value) => {
+                //println!("value is: {}", value);
+                success(self, value)
+            },
+            /*Ok(Ok(value)) => {
+                success(self, value)
+            },
+            Ok(Err(err)) => {
+                failure(self, err)
+            },*/
+            Err(err) => {
+                Log!("network error {}", err);
+            },
         }
     }
 }

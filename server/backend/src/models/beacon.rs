@@ -243,6 +243,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                 ])
                 .into_future()
                 .map_err(|(err, _next)| {
+                    println!("err is {}", err);
                     AkError::from(err)
                 })
                 .map(|(row, _next)| {

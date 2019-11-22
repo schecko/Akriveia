@@ -288,7 +288,7 @@ impl Component for BeaconAddUpdate {
                         Log!("yeeeboi");
                     },
                     |s, error_string| {
-                        Log!("yeee");
+                        //Log!("yeee {}", error_string);
                     }
                 );
             },
