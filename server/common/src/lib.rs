@@ -412,8 +412,20 @@ pub enum SystemCommand {
     RebuildDB,
 }
 
+// MUST MATCH AkError
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WebError {
     pub reason: String,
+    pub t: AkErrorType,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum AkErrorType {
+    Internal,
+    NotFound,
+    BadRequest,
+    Unauthorized,
+    Validation,
+    FileUpload,
 }
 

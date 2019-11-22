@@ -1,5 +1,5 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
 use yew::Callback;
@@ -102,6 +102,8 @@ pub struct BeaconAddUpdate {
     user_type: WebUserType,
     change_page: Callback<root::Page>,
 }
+
+impl JsonResponseHandler for BeaconAddUpdate {}
 
 #[derive(Properties)]
 pub struct BeaconAddUpdateProps {
@@ -264,7 +266,7 @@ impl Component for BeaconAddUpdate {
                 }
             },
             Msg::ResponseAddBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
+                /*let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok(result) => {
@@ -279,7 +281,16 @@ impl Component for BeaconAddUpdate {
                     }
                 } else {
                     self.user_msg.error_messages.push("failed to add beacon".to_string());
-                }
+                }*/
+                self.handle_response(
+                    response,
+                    |s, body| {
+                        Log!("yeeeboi");
+                    },
+                    |s, error_string| {
+                        Log!("yeee");
+                    }
+                );
             },
         }
         true

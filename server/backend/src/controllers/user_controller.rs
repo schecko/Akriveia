@@ -5,7 +5,7 @@ use crate::AKData;
 use crate::data_processor::OutUserData;
 use crate::db_utils;
 use crate::models::user;
-use futures::{ future::ok, Future, future::Either, };
+use futures::{ future::err, future::ok, Future, future::Either, };
 use serde_derive::{ Deserialize, };
 use actix_identity::Identity;
 use crate::ak_error::AkError;
@@ -44,7 +44,7 @@ pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Que
                         Either::B(user::select_user(client, id))
                     };
 
-                    ok(fut).flatten()
+                    ok::<_, AkError>(fut).flatten()
                 })
                 .map(|(_client, opt_user, opt_e_user)| {
                     match opt_user {
@@ -68,7 +68,7 @@ pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Q
         .and_then(move |client| {
             user::select_users(client, include_contacts)
         })
-        .and_then(|(_client, users)| {
+        .map(|(_client, users)| {
             HttpResponse::Ok().json(users)
         })
 }
@@ -102,7 +102,7 @@ pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::
                     }
                 })
         })
-        .and_then(|(_client, user, opt_e_user)| {
+        .map(|(_client, user, opt_e_user)| {
             match user {
                 Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
                 None => HttpResponse::NotFound().finish(),
@@ -136,7 +136,7 @@ pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::J
                     }
                 })
         })
-        .and_then(|(_client, opt_user, opt_e_user)| {
+        .map(|(_client, opt_user, opt_e_user)| {
             match opt_user {
                 Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
                 None => HttpResponse::NotFound().finish(),
@@ -152,7 +152,7 @@ pub fn delete_user(uid: Identity, state: AKData, req: HttpRequest) -> impl Futur
                 .and_then(move |client| {
                     user::delete_user(client, id)
                 })
-                .and_then(|_client| {
+                .map(|_client| {
                     HttpResponse::Ok().finish()
                 })
             )

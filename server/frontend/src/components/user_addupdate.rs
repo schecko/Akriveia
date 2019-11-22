@@ -1,5 +1,5 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
 use yew::Callback;
@@ -75,6 +75,8 @@ pub struct UserAddUpdate {
     user_msg: UserMessage<Self>,
     user_type: WebUserType,
 }
+
+impl JsonResponseHandler for UserAddUpdate {}
 
 #[derive(Properties)]
 pub struct UserAddUpdateProps {
@@ -221,7 +223,7 @@ impl Component for UserAddUpdate {
                 );
             },
             Msg::ResponseGetUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
+                /*let (meta, Json(body)) = response.into_parts();
                 if meta.status.is_success() {
                     match body {
                         Ok((opt_user, opt_e_user)) => {
@@ -235,7 +237,16 @@ impl Component for UserAddUpdate {
                     }
                 } else {
                     self.user_msg.error_messages.push("failed to find user".to_string());
-                }
+                }*/
+                self.handle_response(
+                    response,
+                    |s, body| {
+                        Log!("yeee");
+                    },
+                    |s, error_string| {
+                        Log!("yeee");
+                    }
+                );
             },
             Msg::ResponseAddUser(response) => {
                 let (meta, Json(body)) = response.into_parts();

@@ -4,7 +4,7 @@ use actix_identity::Identity;
 use common::*;
 use crate::AKData;
 use crate::db_utils;
-use futures::future::{ Either, ok, Future, };
+use futures::future::{ err, Either, ok, Future, };
 use crate::ak_error::AkError;
 
 pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
@@ -18,11 +18,11 @@ pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: H
         Either::A(ok(HttpResponse::Ok().finish()))
     } else {
         Either::B(db_utils::connect_login(&payload.0)
-            .and_then(move |_client| {
+            .map(move |_client| {
                 id.remember(payload.name.clone());
                 let mut s = state.lock().unwrap();
                 s.pools.insert(payload.name.clone(), payload.0);
-                ok(HttpResponse::Ok().finish())
+                HttpResponse::Ok().finish()
             })
             .map_err(|_postgres_err| {
                 AkError::unauthorized("invalid login credentials")

@@ -22,6 +22,7 @@ use common::*;
 use std::net::{ IpAddr, };
 use chrono::{ DateTime, Duration as cDuration, };
 use actix::fut as afut;
+use crate::ak_error::AkError;
 
 
 // Problem: Requests to beacons do not create a request object, and so
@@ -154,20 +155,18 @@ impl BeaconManager {
             manager.ping_health(context, PING_INTERVAL);
 
             let fut = db_utils::default_connect()
+                .map_err(AkError::from)
                 .and_then(|client| {
                     beacon::select_beacons(client)
                 })
                 .into_actor(&manager)
-                .and_then(|(_client, beacons), actor, _context| {
+                .map(|(_client, beacons), actor, context| {
                     beacons.into_iter().for_each(|b| {
                         actor.beacons.insert(b.mac_address.clone(), BeaconStatus {
                             realtime: RealtimeBeacon::from(b),
                             retries: None,
                         });
                     });
-                    afut::result(Ok(()))
-                })
-                .map(|_, _actor, context| {
                     context.notify(BMCommand::Ping(None));
                 })
                 .map_err(|_err, _actor, _context| { });
@@ -258,6 +257,7 @@ impl BeaconManager {
             actor.beacons.iter().for_each(|(_mac, beacon)| {
                 let realtime = beacon.realtime.clone();
                 let fut = db_utils::default_connect()
+                    .map_err(AkError::from)
                     .and_then(|client| {
                         beacon::update_beacon_from_realtime(client, realtime)
                     })

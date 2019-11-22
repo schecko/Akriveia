@@ -12,6 +12,7 @@ use std::collections::{ BTreeMap, VecDeque };
 use std::io;
 use common::*;
 use chrono::{ Utc, };
+use crate::ak_error::AkError;
 
 const LOCATION_HISTORY_SIZE: usize = 5;
 
@@ -159,6 +160,7 @@ impl Handler<InLocationData> for DataProcessor {
                 let tag_mac = tag_data.tag_mac;
 
                 afut::Either::B(db_utils::default_connect()
+                    .map_err(AkError::from)
                     .and_then(move |client| {
                         user::select_user_by_short(client, tag_mac)
                     })
@@ -200,6 +202,7 @@ impl Handler<InLocationData> for DataProcessor {
                     .collect();
 
                 let fut = db_utils::default_connect()
+                    .map_err(AkError::from)
                     .and_then(|client| {
                         beacon::select_beacons_by_mac(client, beacon_macs)
                     })

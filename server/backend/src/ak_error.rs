@@ -4,16 +4,7 @@ use std::fmt;
 use common::*;
 use tokio_postgres::error::Error as TError;
 
-#[derive(Copy, Clone, Serialize, Deserialize)]
-pub enum AkErrorType {
-    Internal,
-    NotFound,
-    BadRequest,
-    Unauthorized,
-    Validation,
-    FileUpload,
-}
-
+// MUST MATCH AkError
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AkError {
     pub reason: String,
@@ -60,8 +51,8 @@ impl AkError {
 impl fmt::Display for AkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO which one is better?
-        //write!(f, "{}", serde_json::to_string(&Err::<(), _>(self)).unwrap())
-        write!(f, "{}", self.reason)
+        write!(f, "{}", serde_json::to_string(&Err::<(), _>(self)).unwrap())
+        //write!(f, "{}", self.reason)
     }
 }
 
@@ -74,6 +65,8 @@ impl fmt::Debug for AkError {
 impl error::ResponseError for AkError {
     fn error_response(&self) -> HttpResponse {
         match self.t {
+            AkErrorType::BadRequest => HttpResponse::BadRequest().finish(),
+            AkErrorType::FileUpload => HttpResponse::BadRequest().finish(),
             AkErrorType::Internal => HttpResponse::InternalServerError().finish(),
             AkErrorType::NotFound => HttpResponse::NotFound().finish(),
             AkErrorType::Unauthorized => HttpResponse::Unauthorized().finish(),
