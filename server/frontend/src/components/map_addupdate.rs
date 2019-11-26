@@ -531,11 +531,11 @@ impl MapAddUpdate {
             };
 
             html! {
-                <div class="wrap-contact100">
-                    <div class="wrap-input100">
+                <tr>
+                    <td>
                         { &beacon.name }
-                    </div>
-                    <div class="wrap-input100">
+                    </td>
+                    <td>
                         <input
                             type="text",
                             value=&bdata.raw_x,
@@ -546,8 +546,8 @@ impl MapAddUpdate {
                             value=&bdata.raw_y,
                             oninput=|e| Msg::ManualBeaconPlacement(index, Coord::Y, e.value),
                         />
-                    </div>
-                    <div class="wrap-input100">
+                    </td>
+                    <td>
                         <button
                             onclick=|_| Msg::RequestPutBeacon(beacon_id),
                         >
@@ -559,9 +559,10 @@ impl MapAddUpdate {
                         >
                             { "Toggle Placement" }
                         </button>
-                    </div>
-                </div>
+                    </td>
+                </tr>
             }
+
         });
 
         match self.data.opt_id {
@@ -652,83 +653,74 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     }
                 }
                 { display_errors}
-                <div class="wrap-contact100">
-                    <div class="wrap-input100">
-                        <span class="label-input100">{ "Name: " }</span>
-                        <input
-                            class="input100",
-                            type="text",
-                            value=&self.data.map.name,
-                            placeholder="Name",
-                            oninput=|e| Msg::InputName(e.value),
-                        />
-                        <span class="focus-input100"></span>
-                    </div>
-                    
-                    <div class="wrap-input100">
-                        <span class="label-input100">{ "Bounds: " }</span>
-                        <input
-                            class="input100",
-                            type="text",
-                            value=&self.data.raw_bounds[0],
-                            placeholder="x-coordinate",
-                            oninput=|e| Msg::InputBound(0, e.value),
-                        />
-                        <span class="focus-input100"></span>
-                        <span class="label-input100"></span>
-                        <input
-                            class="input100",
-                            type="text",
-                            value=&self.data.raw_bounds[1],
-                            placeholder="y-coordinate",
-                            oninput=|e| Msg::InputBound(1, e.value),
-                        />
-                        <span class="focus-input100"></span>
-                    </div>
-                    
-                    <div class="wrap-input100">
-                        <span class="label-input100">{ "Scale: " }</span>
-                        <input
-                            class="input100",
-                            type="text",
-                            value=&self.data.raw_scale,
-                            placeholder="Scale"
-                            oninput=|e| Msg::InputScale(e.value),
-                        />
-                        <span class="focus-input100"></span>
-                    </div>
-                    
-                    <div class="wrap-input100">
-                        <span class="label-input100">{ "Note: " }</span>
-                        <textarea
-                            class="input100",
-                            rows=5,
-                            value=note,
-                            placeholder="Information on the floor",
-                            oninput=|e| Msg::InputNote(e.value),
-                        />
-                        <span class="focus-input100"></span>
-                    </div>
-                    
-                    <div class="wrap-input100">
-                        <span class="label-input100">{ "Blueprint: " }</span>
-                        <input
-                            class="input100",
-                            type="file",
-                            onchange=|value| {
-                                if let ChangeData::Files(file_names) = value {
-                                    match file_names.iter().next() {
-                                        Some(file_name) => Msg::InputFile(file_name),
-                                        None => Msg::Ignore,
+                <div/>
+                <table>
+                    <tr>
+                        <td>{ "Name: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.map.name,
+                                oninput=|e| Msg::InputName(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Bounds: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_bounds[0],
+                                oninput=|e| Msg::InputBound(0, e.value),
+                            />
+                        </td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_bounds[1],
+                                oninput=|e| Msg::InputBound(1, e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Scale: " }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value=&self.data.raw_scale,
+                                oninput=|e| Msg::InputScale(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Note: " }</td>
+                        <td>
+                            <textarea
+                                rows=5,
+                                value=note,
+                                oninput=|e| Msg::InputNote(e.value),
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{ "Blueprint: " }</td>
+                        <td>
+                            <input
+                                type="file",
+                                onchange=|value| {
+                                    if let ChangeData::Files(file_names) = value {
+                                        match file_names.iter().next() {
+                                            Some(file_name) => Msg::InputFile(file_name),
+                                            None => Msg::Ignore,
+                                        }
+                                    } else {
+                                        Msg::Ignore
                                     }
-                                } else {
-                                    Msg::Ignore
-                                }
-                            },
-                        />
-                        <span class="focus-input100"></span>
-                    </div>
-                </div>
+                                },
+                            />
+                        </td>
+                    </tr>
+                </table>
                 {
                     match self.user_type {
                         WebUserType::Admin => html! {
