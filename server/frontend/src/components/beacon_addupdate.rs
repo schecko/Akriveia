@@ -350,7 +350,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             <>
                 <h2>{ title_name }</h2>
                 {
-                    match&self.data.success_message {
+                    match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
                         None => { "". to_string() },
                     }
