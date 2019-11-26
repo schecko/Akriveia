@@ -141,7 +141,7 @@ impl Renderable<UserList> for UserList {
             <>
                 <h2>{ "User List" }</h2>
                 <table class="table table-striped">
-                    <thead class="thead-light">                 
+                    <thead class="thead-light">
                         <tr>
                             <th>{ "Name"}</th>
                             <th>{ "Coordinates" }</th>

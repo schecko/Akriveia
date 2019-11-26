@@ -332,8 +332,8 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <div 
-                    class="alert alert-danger" 
+                <div
+                    class="alert alert-danger"
                     role="alert"
                 >
                     {"ERROR: "}

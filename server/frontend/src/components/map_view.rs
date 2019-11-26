@@ -344,8 +344,8 @@ impl Renderable<MapViewComponent> for MapViewComponent {
 
         let mut errors = self.error_messages.iter().cloned().map(|msg| {
             html! {
-                <div 
-                    class="alert alert-danger" 
+                <div
+                    class="alert alert-danger"
                     role="alert"
                 >
                     {"ERROR: "}

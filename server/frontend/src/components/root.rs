@@ -371,7 +371,7 @@ impl RootComponent {
                             Page::UserList => {"nav-link dropdown navBarText active"},
                             Page::UserAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
-                        } 
+                        }
                         role="button",
                         data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::UserList)
@@ -412,7 +412,7 @@ impl RootComponent {
                             Page::BeaconList => {"nav-link dropdown navBarText active"},
                             Page::BeaconAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
-                        } 
+                        }
                         role="button",
                         data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::BeaconList),
@@ -453,7 +453,7 @@ impl RootComponent {
                             Page::MapList => {"nav-link dropdown navBarText active"},
                             Page::MapAddUpdate{..} => {"nav-link dropdown navBarText active"},
                             _ => {"nav-link dropdown navBarText"},
-                        } 
+                        }
                         role="button",
                         data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::MapList),
@@ -461,9 +461,9 @@ impl RootComponent {
                             { "Maps" }
                     </a>
                     <div class="dropdown-content">
-                        <a 
+                        <a
                             class = "dropdown-item navBarText",
-                            onclick=|_| Msg::ChangePage(Page::MapList), 
+                            onclick=|_| Msg::ChangePage(Page::MapList),
                             disabled={self.current_page == Page::MapList},
                         >
                                 { "Map List" }

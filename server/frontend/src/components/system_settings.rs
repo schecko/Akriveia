@@ -94,8 +94,8 @@ impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <div 
-                    class="alert alert-danger" 
+                <div
+                    class="alert alert-danger"
                     role="alert"
                 >
                     {"ERROR: "}
