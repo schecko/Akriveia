@@ -442,7 +442,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateUser,
                                         >
-                                            { submit_name }
+                                            { title_name }
                                         </button>
                                         { add_another_button }
                                     </>

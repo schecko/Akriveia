@@ -546,7 +546,7 @@ impl Renderable<Status> for Status {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
