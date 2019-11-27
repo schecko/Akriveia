@@ -108,6 +108,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
+                <h2>{ "System Settings"}</h2>
                 <div/>
                 <table>
                     <tr>

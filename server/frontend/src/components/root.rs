@@ -285,7 +285,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "User" } </h1>
                             <SystemSettings
                                 user_type=self.user_type,
                             />
