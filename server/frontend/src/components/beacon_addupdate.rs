@@ -336,8 +336,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             }
         });
 
-        let display_errors = html! { for errors };
-
         let note = self.data.beacon.note.clone().unwrap_or(String::new());
 
         html! {
@@ -349,7 +347,8 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                         None => { "". to_string() },
                     }
                 }
-                { display_errors}
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div/>
                 <table>
                     <tr>
