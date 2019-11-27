@@ -3,7 +3,6 @@ use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
 use yew::Callback;
-use yew::format::Json;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 
@@ -20,10 +19,10 @@ pub enum Msg {
     RequestGetAvailMaps,
     RequestGetBeacon(i32),
 
-    ResponseAddBeacon(util::Response<Beacon>),
-    ResponseGetAvailMaps(util::Response<Vec<Map>>),
-    ResponseGetBeacon(util::Response<Option<(Beacon, Option<Map>)>>),
-    ResponseUpdateBeacon(util::Response<Beacon>),
+    ResponseAddBeacon(util::JsonResponse<Beacon>),
+    ResponseGetAvailMaps(util::JsonResponse<Vec<Map>>),
+    ResponseGetBeacon(util::JsonResponse<Beacon>),
+    ResponseUpdateBeacon(util::JsonResponse<Beacon>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -211,85 +210,61 @@ impl Component for BeaconAddUpdate {
                 }
             },
             Msg::ResponseGetAvailMaps(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            // TODO add validation on the backend, and send decent messages to the
-                            // frontend when the map_id is not set.
-                            if self.data.beacon.map_id == None && result.len() > 0 {
-                                self.data.beacon.map_id = Some(result[0].id);
-                            }
-
-                            self.data.avail_floors = result;
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain available floors list".to_string());
-                }
-            },
-            Msg::ResponseUpdateBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.user_msg.success_message = Some("successfully updated beacon".to_string());
-                            self.data.beacon = result;
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to update beacon, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to update beacon".to_string());
-                }
-            },
-            Msg::ResponseGetBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.data.beacon = result.unwrap_or((Beacon::new(), None)).0;
-                            self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
-                            self.data.raw_coord0 = self.data.beacon.coordinates[0].to_string();
-                            self.data.raw_coord1 = self.data.beacon.coordinates[1].to_string();
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to find beacon, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to find beacon".to_string());
-                }
-            },
-            Msg::ResponseAddBeacon(response) => {
-                /*let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.user_msg.success_message = Some("successfully added beacon".to_string());
-                            self.data.beacon = result;
-                            self.data.id = Some(self.data.beacon.id);
-                            self.data.raw_mac = self.data.beacon.mac_address.to_hex_string();
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to add beacon, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to add beacon".to_string());
-                }*/
                 self.handle_response(
                     response,
-                    |s, body| {
-                        Log!("yeeeboi");
+                    |s, maps| {
+                        // TODO add validation on the backend, and send decent messages to the
+                        //
+                        // frontend when the map_id is not set.
+                        if s.data.beacon.map_id == None && maps.len() > 0 {
+                            s.data.beacon.map_id = Some(maps[0].id);
+                        }
+
+                        s.data.avail_floors = maps;
                     },
-                    |s, error_string| {
-                        //Log!("yeee {}", error_string);
-                    }
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
+                    },
+                );
+            },
+            Msg::ResponseUpdateBeacon(response) => {
+                self.handle_response(
+                    response,
+                    |s, beacon| {
+                        s.user_msg.success_message = Some("successfully updated beacon".to_string());
+                        s.data.beacon = beacon;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to update beacon, reason: {}", e));
+                    },
+                );
+            },
+            Msg::ResponseGetBeacon(response) => {
+                self.handle_response(
+                    response,
+                    |s, beacon| {
+                        s.data.beacon = beacon;
+                        s.data.raw_mac = s.data.beacon.mac_address.to_hex_string();
+                        s.data.raw_coord0 = s.data.beacon.coordinates[0].to_string();
+                        s.data.raw_coord1 = s.data.beacon.coordinates[1].to_string();
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to find beacon, reason: {}", e));
+                    },
+                );
+            },
+            Msg::ResponseAddBeacon(response) => {
+                self.handle_response(
+                    response,
+                    |s, beacon| {
+                        s.user_msg.success_message = Some("successfully added beacon".to_string());
+                        s.data.beacon = beacon;
+                        s.data.id = Some(s.data.beacon.id);
+                        s.data.raw_mac = s.data.beacon.mac_address.to_hex_string();
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to add beacon, reason: {}", e));
+                    },
                 );
             },
         }

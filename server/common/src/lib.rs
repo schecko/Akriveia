@@ -419,6 +419,12 @@ pub struct WebError {
     pub t: AkErrorType,
 }
 
+impl fmt::Display for WebError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.reason)
+    }
+}
+
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum AkErrorType {
     Internal,

@@ -1,5 +1,5 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::*;
 use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use super::root;
@@ -28,8 +28,8 @@ pub enum Msg {
     RequestLoginAnon,
     RequestLogout,
 
-    ResponseLogin(util::Response<()>),
-    ResponseLogout(util::Response<()>),
+    ResponseLogin(JsonResponse<()>),
+    ResponseLogout(JsonResponse<()>),
 }
 
 // keep all of the transient data together, since its not easy to create
@@ -56,6 +56,8 @@ pub struct Login {
     auto_action: AutoAction,
     user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for Login {}
 
 #[derive(Properties)]
 pub struct LoginProps {
@@ -149,7 +151,7 @@ impl Component for Login {
                         self.user_msg.error_messages.push("Failed to login, username or password is incorrect.".to_string());
                     },
                     _ => {
-                        self.user_msg.error_messages.push("Failed to loginerror.".to_string());
+                        self.user_msg.error_messages.push("Failed to login, internal error".to_string());
                     }
                 }
                 self.auto_action = AutoAction::Nothing;

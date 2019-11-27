@@ -1,5 +1,5 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::*;
 use std::collections::HashMap;
 use std::time::Duration;
 use super::root;
@@ -31,14 +31,14 @@ pub enum Msg {
     RequestGetUsers,
     RequestGetUsersStatus,
 
-    ResponseCommandBeacon(util::Response<()>),
-    ResponseGetBeacons(util::Response<Vec<Beacon>>),
-    ResponseGetBeaconsStatus(util::Response<Vec<RealtimeBeacon>>),
-    ResponseGetMap(util::Response<Map>),
-    ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseGetUser(util::Response<TrackedUser>),
-    ResponseGetUsers(util::Response<Vec<TrackedUser>>),
-    ResponseGetUsersStatus(util::Response<Vec<RealtimeUserData>>),
+    ResponseCommandBeacon(JsonResponse<()>),
+    ResponseGetBeacons(JsonResponse<Vec<Beacon>>),
+    ResponseGetBeaconsStatus(JsonResponse<Vec<RealtimeBeacon>>),
+    ResponseGetMap(JsonResponse<Map>),
+    ResponseGetMaps(JsonResponse<Vec<Map>>),
+    ResponseGetUser(JsonResponse<TrackedUser>),
+    ResponseGetUsers(JsonResponse<Vec<TrackedUser>>),
+    ResponseGetUsersStatus(JsonResponse<Vec<RealtimeUserData>>),
 }
 
 pub struct Status {
@@ -64,6 +64,8 @@ pub struct Status {
     fetch_maps: Option<FetchTask>,
     fetch_map: Option<FetchTask>,
 }
+
+impl JsonResponseHandler for Status {}
 
 impl Status {
     fn restart_service(&mut self) {
@@ -203,80 +205,72 @@ impl Component for Status {
                 );
             },
             Msg::ResponseGetMaps(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(maps) => {
-                            for map in maps {
-                                self.maps.insert(map.id, map);
-                            }
+                self.handle_response(
+                    response,
+                    |s, maps| {
+                        for map in maps {
+                            s.maps.insert(map.id, map);
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain map list".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain maps list, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(map) => {
-                            self.maps.insert(map.id, map);
-                        }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get map".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, map| {
+                        s.maps.insert(map.id, map);
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get map, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetBeacons(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(beacons) => {
-                            for b in beacons {
-                                if let Some(mid) = b.map_id {
-                                    if !self.maps.contains_key(&mid) {
-                                        let mid = mid.clone();
-                                        self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
-                                    }
+                self.handle_response(
+                    response,
+                    |s, beacons| {
+                        for b in beacons {
+                            if let Some(mid) = b.map_id {
+                                if !s.maps.contains_key(&mid) {
+                                    let mid = mid.clone();
+                                    s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
                                 }
-                                self.beacons.insert(b.id, b);
                             }
+                            s.beacons.insert(b.id, b);
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain beacon list".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain beacon list, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetBeaconsStatus(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(realtime_beacons) => {
-                            for rb in realtime_beacons {
-                                match self.beacons.get_mut(&rb.id) {
-                                    Some(b) => {
-                                        b.merge(rb);
-                                    },
-                                    None => {
-                                        // just drop the realtime data for now until
-                                        // the user object is retrieved, more realtime data
-                                        // will come eventually and the UI user likely wont
-                                        // notice.
-                                        self.self_link
-                                            .send_back(move |_: ()| Msg::RequestGetUser(rb.id));
-                                    }
+                self.handle_response(
+                    response,
+                    |s, realtime_beacons| {
+                        for rb in realtime_beacons {
+                            match s.beacons.get_mut(&rb.id) {
+                                Some(b) => {
+                                    b.merge(rb);
+                                },
+                                None => {
+                                    // just drop the realtime data for now until
+                                    // the user object is retrieved, more realtime data
+                                    // will come eventually and the UI user likely wont
+                                    // notice.
+                                    s.self_link
+                                        .send_back(move |_: ()| Msg::RequestGetUser(rb.id));
                                 }
                             }
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get beacon status".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get beacons status, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseCommandBeacon(response) => {
                 let (meta, Json(_body)) = response.into_parts();
@@ -287,71 +281,65 @@ impl Component for Status {
                 }
             },
             Msg::ResponseGetUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(user) => {
-                            if let Some(mid) = user.map_id {
-                                if !self.maps.contains_key(&mid) {
-                                    let mid = mid.clone();
-                                    self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
-                                }
+                self.handle_response(
+                    response,
+                    |s, user| {
+                        if let Some(mid) = user.map_id {
+                            if !s.maps.contains_key(&mid) {
+                                let mid = mid.clone();
+                                s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
                             }
-                            self.users.insert(user.id, user);
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get user".to_owned());
-                }
+                        s.users.insert(user.id, user);
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get user, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetUsers(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(users) => {
-                            for user in users {
-                                if let Some(mid) = user.map_id {
-                                    if !self.maps.contains_key(&mid) {
-                                        let mid = mid.clone();
-                                        self.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
-                                    }
+                self.handle_response(
+                    response,
+                    |s, users| {
+                        for user in users {
+                            if let Some(mid) = user.map_id {
+                                if !s.maps.contains_key(&mid) {
+                                    let mid = mid.clone();
+                                    s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
                                 }
-                                self.users.insert(user.id, user);
                             }
+                            s.users.insert(user.id, user);
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get user list".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get user list, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetUsersStatus(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(realtime_users) => {
-                            for ru in realtime_users {
-                                match self.users.get_mut(&ru.id) {
-                                    Some(u) => {
-                                        u.merge(ru);
-                                    },
-                                    None => {
-                                        // just drop the realtime data for now until
-                                        // the user object is retrieved, more realtime data
-                                        // will come eventually and the UI user likely wont
-                                        // notice.
-                                        self.self_link
-                                            .send_back(move |_: ()| Msg::RequestGetUser(ru.id));
-                                    }
+                self.handle_response(
+                    response,
+                    |s, users| {
+                        for ru in users {
+                            match s.users.get_mut(&ru.id) {
+                                Some(u) => {
+                                    u.merge(ru);
+                                },
+                                None => {
+                                    // just drop the realtime data for now until
+                                    // the user object is retrieved, more realtime data
+                                    // will come eventually and the UI user likely wont
+                                    // notice.
+                                    s.self_link
+                                        .send_back(move |_: ()| Msg::RequestGetUser(ru.id));
                                 }
                             }
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get user status".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get user status, reason: {}", e));
+                    },
+                );
             },
         }
         true

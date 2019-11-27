@@ -1,10 +1,9 @@
 use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
-use crate::util::{ self, WebUserType, };
+use crate::util::*;
 use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::{ ValueButton, DisplayButton, };
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
@@ -23,10 +22,10 @@ pub enum Msg {
     RequestGetMaps,
     RequestRealtimeUser,
 
-    ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
-    ResponseGetMap(util::Response<Option<Map>>),
-    ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseRealtimeUser(util::Response<Vec<RealtimeUserData>>),
+    ResponseGetBeaconsForMap(JsonResponse<Vec<Beacon>>),
+    ResponseGetMap(JsonResponse<Map>),
+    ResponseGetMaps(JsonResponse<Vec<Map>>),
+    ResponseRealtimeUser(JsonResponse<Vec<RealtimeUserData>>),
 }
 
 pub struct MapViewComponent {
@@ -51,6 +50,8 @@ pub struct MapViewComponent {
     user_msg: UserMessage<Self>,
     user_type: WebUserType,
 }
+
+impl JsonResponseHandler for MapViewComponent {}
 
 impl MapViewComponent {
     fn start_service(&mut self) {
@@ -212,80 +213,59 @@ impl Component for MapViewComponent {
                 );
             },
             Msg::ResponseRealtimeUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.realtime_users = result;
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to request realtime user data, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to request realtime user data, reason: {}".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, users| {
+                        s.realtime_users = users;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to request realtime user data, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetBeaconsForMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.beacons = result;
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to obtain list of beacons for this map, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain list of beacons for this map".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, beacons| {
+                        s.beacons = beacons;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain list of beacons for this map, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            if let Some(map) = &result {
-                                let img = ImageElement::new();
-                                img.set_src(&map_blueprint_url(&map.id.to_string()));
-                                self.map_img = Some(img);
-                            }
-                            self.current_map = result.clone();
-                            result.and_then(|new_map_data| {
-                                self.maps.iter_mut().find(|m| m.id == new_map_data.id).and_then(|map| {
-                                    *map = new_map_data;
-                                    Some(())
-                                });
-                                Some(())
-                            });
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to get map, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get map".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, map| {
+                        let img = ImageElement::new();
+                        img.set_src(&map_blueprint_url(&map.id.to_string()));
+                        s.map_img = Some(img);
+                        s.current_map = Some(map.clone());
+                        s.maps.iter_mut().find(|m| m.id == map.id).and_then(|m| {
+                            *m = map;
+                            Some(())
+                        });
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get map, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetMaps(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(mut result) => {
-                            result.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-                            self.maps = result;
-                            if self.maps.len() > 0 {
-                                self.self_link.send_self(Msg::ChooseMap(self.maps[0].id));
-                            }
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to get maps, reason: {}", e));
+                self.handle_response(
+                    response,
+                    |s, mut maps| {
+                        maps.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+                        s.maps = maps;
+                        if s.maps.len() > 0 {
+                            s.self_link.send_self(Msg::ChooseMap(s.maps[0].id));
                         }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to get map".to_string());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to get maps, reason: {}", e));
+                    },
+                );
             },
             Msg::Ignore => {
             },

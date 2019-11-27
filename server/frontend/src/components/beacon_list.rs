@@ -1,8 +1,7 @@
 use common::*;
-use crate::util;
+use crate::util::*;
 use super::root;
 use super::value_button::{ ValueButton, DisplayButton, };
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
 use super::user_message::UserMessage;
@@ -14,9 +13,9 @@ pub enum Msg {
     RequestGetBeacons,
     RequestCommandBeacon(BeaconRequest),
 
-    ResponseGetBeacons(util::Response<Vec<(Beacon, Map)>>),
-    ResponseDeleteBeacon(util::Response<Vec<()>>),
-    ResponseCommandBeacon(util::Response<()>),
+    ResponseGetBeacons(JsonResponse<Vec<(Beacon, Map)>>),
+    ResponseDeleteBeacon(JsonResponse<()>),
+    ResponseCommandBeacon(JsonResponse<()>),
 }
 pub struct BeaconList {
     change_page: Callback<root::Page>,
@@ -26,6 +25,8 @@ pub struct BeaconList {
     self_link: ComponentLink<Self>,
     user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for BeaconList {}
 
 #[derive(Properties)]
 pub struct BeaconListProps {
@@ -78,39 +79,38 @@ impl Component for BeaconList {
                 );
             },
             Msg::ResponseGetBeacons(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(mut beacons_and_maps) => {
-                            beacons_and_maps.sort_unstable_by(|(beacon_a, _), (beacon_b, _)| beacon_a.name.cmp(&beacon_b.name));
-                            self.list = beacons_and_maps;
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to obtain beacon list");
-                }
+                self.handle_response(
+                    response,
+                    |s, mut beacons_and_maps| {
+                        beacons_and_maps.sort_unstable_by(|(beacon_a, _), (beacon_b, _)| beacon_a.name.cmp(&beacon_b.name));
+                        s.list = beacons_and_maps;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain beacon list, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseCommandBeacon(response) => {
-                let (meta, Json(_body)) = response.into_parts();
-                if meta.status.is_success() {
-                    self.user_msg.success_message = Some("Successfully sent command".to_owned());
-                } else {
-                    self.user_msg.error_messages.push("failed to command beacon".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, _| {
+                        s.user_msg.success_message = Some("Successfully sent command".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to command beacon, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseDeleteBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(_list) => {
-                            self.user_msg.success_message = Some("Successfully deleted beacon".to_owned());
-                        }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to delete beacon".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, _| {
+                        s.user_msg.success_message = Some("Successfully deleted beacon".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to delete beacon, reason: {}", e));
+                    },
+                );
                 // now that the beacon is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetBeacons);
             },

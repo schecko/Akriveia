@@ -3,7 +3,6 @@ use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
 use yew::Callback;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
 
@@ -26,9 +25,9 @@ pub enum Msg {
     RequestAddUpdateUser,
     RequestGetUser(i32),
 
-    ResponseAddUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
-    ResponseGetUser(util::Response<(Option<TrackedUser>, Option<TrackedUser>)>),
-    ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
+    ResponseAddUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
+    ResponseGetUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
+    ResponseUpdateUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
 }
 
 struct Data {
@@ -223,67 +222,46 @@ impl Component for UserAddUpdate {
                 );
             },
             Msg::ResponseGetUser(response) => {
-                /*let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.data.user = opt_user.unwrap_or(TrackedUser::new());
-                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
-                            self.data.emergency_user = opt_e_user;
-                        }
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to find user, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to find user".to_string());
-                }*/
                 self.handle_response(
                     response,
-                    |s, body| {
-                        Log!("yeee");
+                    |s, (user, opt_e_user)| {
+                        s.data.user = user;
+                        s.data.raw_mac = s.data.user.mac_address.map_or(String::new(), |m| m.to_string());
+                        s.data.emergency_user = opt_e_user;
                     },
-                    |s, error_string| {
-                        Log!("yeee");
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to find user, reason: {}", e));
                     }
                 );
             },
             Msg::ResponseAddUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.user_msg.success_message = Some("successfully added user".to_string());
-                            self.data.user = opt_user;
-                            self.data.emergency_user = opt_e_user;
+                self.handle_response(
+                    response,
+                    |s, (user, opt_e_user)| {
+                        s.user_msg.success_message = Some("successfully added user".to_string());
+                        s.data.user = user;
+                        s.data.emergency_user = opt_e_user;
 
-                            self.data.id = Some(self.data.user.id);
-                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to add user, reason: {}", e));
-                        }
+                        s.data.id = Some(s.data.user.id);
+                        s.data.raw_mac = s.data.user.mac_address.map_or(String::new(), |m| m.to_string());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to add user, reason: {}", e));
                     }
-                } else {
-                    self.user_msg.error_messages.push("failed to add user".to_string());
-                }
+                );
             },
             Msg::ResponseUpdateUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.user_msg.success_message = Some("successfully updated user".to_string());
-                            self.data.user = opt_user;
-                            self.data.emergency_user = opt_e_user;
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to update user, reason: {}", e));
-                        }
+                self.handle_response(
+                    response,
+                    |s, (user, opt_e_user)| {
+                        s.user_msg.success_message = Some("successfully updated user".to_string());
+                        s.data.user = user;
+                        s.data.emergency_user = opt_e_user;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to update user, reason: {}", e));
                     }
-                } else {
-                    self.user_msg.error_messages.push("failed to update user".to_string());
-                }
+                );
             },
         }
         true

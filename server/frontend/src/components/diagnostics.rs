@@ -1,9 +1,8 @@
 use common::*;
-use crate::util;
+use crate::util::*;
 use std::collections::{ VecDeque, BTreeSet };
 use std::time::Duration;
 use super::value_button::ValueButton;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
 use yew::prelude::*;
@@ -18,7 +17,7 @@ pub enum Msg {
 
     RequestDiagnostics,
 
-    ResponseDiagnostics(util::Response<common::DiagnosticData>),
+    ResponseDiagnostics(JsonResponse<common::DiagnosticData>),
 }
 
 pub struct Diagnostics {
@@ -33,6 +32,8 @@ pub struct Diagnostics {
     self_link: ComponentLink<Diagnostics>,
     user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for Diagnostics {}
 
 #[derive(Properties)]
 pub struct DiagnosticsProps {
@@ -98,24 +99,22 @@ impl Component for Diagnostics {
                 );
             },
             Msg::ResponseDiagnostics(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::DiagnosticData { tag_data }) => {
-                            for point in tag_data.into_iter() {
-                                if !self.active_beacons.contains(&point.beacon_mac) {
-                                    self.active_beacons.insert(point.beacon_mac.clone());
-                                    self.selected_beacons.insert(point.beacon_mac.clone());
-                                }
-                                self.diagnostic_data.push_front(point);
+                self.handle_response(
+                    response,
+                    |s, diagnostics_data| {
+                        for point in diagnostics_data.tag_data.into_iter() {
+                            if !s.active_beacons.contains(&point.beacon_mac) {
+                                s.active_beacons.insert(point.beacon_mac.clone());
+                                s.selected_beacons.insert(point.beacon_mac.clone());
                             }
-                            self.diagnostic_data.truncate(MAX_BUFFER_SIZE);
+                            s.diagnostic_data.push_front(point);
                         }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to request diagnostics".to_owned());
-                }
+                        s.diagnostic_data.truncate(MAX_BUFFER_SIZE);
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain diagnostics, reason: {}", e));
+                    },
+                );
             },
         }
         true

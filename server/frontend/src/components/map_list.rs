@@ -1,8 +1,7 @@
 use common::*;
-use crate::util;
+use crate::util::*;
 use super::root;
 use super::value_button::ValueButton;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
 use super::user_message::UserMessage;
@@ -13,8 +12,8 @@ pub enum Msg {
     RequestDeleteMap(i32),
     RequestGetMaps,
 
-    ResponseGetMaps(util::Response<Vec<Map>>),
-    ResponseDeleteMap(util::Response<Vec<()>>),
+    ResponseGetMaps(JsonResponse<Vec<Map>>),
+    ResponseDeleteMap(JsonResponse<Vec<()>>),
 }
 
 pub struct MapList {
@@ -25,6 +24,8 @@ pub struct MapList {
     self_link: ComponentLink<Self>,
     user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for MapList {}
 
 #[derive(Properties)]
 pub struct MapListProps {
@@ -68,31 +69,27 @@ impl Component for MapList {
                 );
             },
             Msg::ResponseGetMaps(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(mut maps) => {
-                            maps.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-                            self.list = maps;
-                        }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain map list".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, mut maps| {
+                        maps.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+                        s.list = maps;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain map list, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseDeleteMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(_list) => {
-                            self.user_msg.success_message = Some("successfully deleted user".to_owned());
-                        },
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to delete user".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, _| {
+                        s.user_msg.success_message = Some("successfully deleted user".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to delete user, reason: {}", e));
+                    },
+                );
                 // now that the map is deleted, get the updated list
                 self.self_link.send_self(Msg::RequestGetMaps);
             },

@@ -1,8 +1,7 @@
 use common::*;
-use crate::util;
+use crate::util::*;
 use super::root;
 use super::value_button::ValueButton;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use super::user_message::UserMessage;
 use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
@@ -13,8 +12,8 @@ pub enum Msg {
     RequestDeleteUser(i32),
     RequestGetUsers,
 
-    ResponseGetUsers(util::Response<Vec<TrackedUser>>),
-    ResponseDeleteUser(util::Response<Vec<()>>),
+    ResponseGetUsers(JsonResponse<Vec<TrackedUser>>),
+    ResponseDeleteUser(JsonResponse<Vec<()>>),
 }
 
 pub struct UserList {
@@ -25,6 +24,8 @@ pub struct UserList {
     self_link: ComponentLink<Self>,
     user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for UserList {}
 
 #[derive(Properties)]
 pub struct UserListProps {
@@ -70,31 +71,27 @@ impl Component for UserList {
                 );
             },
             Msg::ResponseGetUsers(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(mut users) => {
-                            users.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-                            self.list = users;
-                        }
-                        _ => { }
+                self.handle_response(
+                    response,
+                    |s, mut users| {
+                        users.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+                        s.list = users;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain user list, reason: {}", e));
                     }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain user list".to_owned());
-                }
+                );
             },
             Msg::ResponseDeleteUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(_list) => {
-                            self.user_msg.success_message = Some("successfully deleted user".to_owned());
-                        }
-                        _ => { }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to delete user".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, users| {
+                        s.user_msg.success_message = Some("successfully deleted user".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to delete user, reason: {}", e));
+                    },
+                );
                 self.self_link.send_self(Msg::RequestGetUsers);
             },
             Msg::ChangeRootPage(page) => {

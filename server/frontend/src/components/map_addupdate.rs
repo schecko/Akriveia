@@ -1,13 +1,12 @@
 use common::*;
 use crate::canvas::{ Canvas, screen_space };
-use crate::util::{ self, WebUserType, };
+use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use std::time::Duration;
 use stdweb::traits::*;
 use stdweb::web::event::{ ClickEvent, };
 use stdweb::web::{ Node, html_element::ImageElement, };
 use super::root;
 use yew::IMouseEvent;
-use yew::format::Json;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
@@ -40,12 +39,12 @@ pub enum Msg {
     RequestGetBeaconsForMap(i32),
     RequestPutBeacon(i32),
 
-    ResponseAddMap(util::Response<Map>),
-    ResponseGetBeaconsForMap(util::Response<Vec<Beacon>>),
-    ResponseGetMap(util::Response<Option<Map>>),
-    ResponseUpdateMap(util::Response<Map>),
-    ResponsePutBeacon(util::Response<Option<Beacon>>),
-    ResponseUpdateBlueprint(util::Response<()>),
+    ResponseAddMap(util::JsonResponse<Map>),
+    ResponseGetBeaconsForMap(util::JsonResponse<Vec<Beacon>>),
+    ResponseGetMap(util::JsonResponse<Map>),
+    ResponseUpdateMap(util::JsonResponse<Map>),
+    ResponsePutBeacon(util::JsonResponse<Beacon>),
+    ResponseUpdateBlueprint(util::BinResponse<()>),
 }
 
 struct BeaconData {
@@ -166,6 +165,8 @@ pub struct MapAddUpdate {
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
 }
+
+impl JsonResponseHandler for MapAddUpdate {}
 
 #[derive(Properties)]
 pub struct MapAddUpdateProps {
@@ -368,99 +369,76 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::ResponsePutBeacon(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(opt_beacon) => {
-                            match opt_beacon {
-                                Some(result) => {
-                                    match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == result.id) {
-                                        Some(index) => {
-                                            self.user_msg.success_message = Some("successfully updated attached beacon".to_string());
-                                            self.data.attached_beacons[index].1.raw_x = result.coordinates.x.to_string();
-                                            self.data.attached_beacons[index].1.raw_y = result.coordinates.y.to_string();
-                                            self.data.attached_beacons[index].0 = result;
-                                        },
-                                        _ => {
-                                            self.user_msg.error_messages.push("failed to update attached beacon, reason: beacon is no longer attached to this map".to_owned());
-                                        },
-                                    }
-                                },
-                                None => {
-                                    self.user_msg.error_messages.push("failed to update attached beacon, reason: beacon does not exist".to_owned());
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to update attached beacon, reason: {}", e));
+                self.handle_response(
+                    response,
+                    |s, beacon| {
+                        match s.data.attached_beacons.iter().position(|(b, _bdata)| beacon.id == b.id) {
+                            Some(index) => {
+                                s.user_msg.success_message = Some("successfully updated attached beacon".to_string());
+                                s.data.attached_beacons[index].1.raw_x = beacon.coordinates.x.to_string();
+                                s.data.attached_beacons[index].1.raw_y = beacon.coordinates.y.to_string();
+                                s.data.attached_beacons[index].0 = beacon;
+                            },
+                            _ => {
+                                s.user_msg.error_messages.push("failed to update attached beacon, reason: beacon is no longer attached to this map".to_owned());
+                            },
                         }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to updated attached beacon".to_string());
-                }
+                    },
+                    |s, error| {
+                        s.user_msg.error_messages.push(format!("failed to update attached beacon, reason: {}", error.reason));
+                    },
+                );
             },
             Msg::ResponseGetBeaconsForMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.data.attached_beacons = result.into_iter().map(|beacon| {
-                                let raw_x = beacon.coordinates.x.to_string();
-                                let raw_y = beacon.coordinates.x.to_string();
-                                (beacon, BeaconData { raw_x, raw_y })
-                            }).collect();
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to obtain available floors list".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, beacons| {
+                        s.data.attached_beacons = beacons.into_iter().map(|beacon| {
+                            let raw_x = beacon.coordinates.x.to_string();
+                            let raw_y = beacon.coordinates.x.to_string();
+                            (beacon, BeaconData { raw_x, raw_y })
+                        }).collect();
+                    },
+                    |s, error| {
+                        s.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", error.reason));
+                    },
+                );
             },
             Msg::ResponseUpdateMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.user_msg.success_message = Some("successfully updated map".to_owned());
-                            self.data.map = result;
+                self.handle_response(
+                    response,
+                    |s, map| {
+                        s.user_msg.success_message = Some("successfully updated map".to_owned());
+                        s.data.map = map;
 
-                            if let Some(file) = &self.data.blueprint {
-                                self.binary_fetch_task = put_image!(
-                                    self.fetch_service,
-                                    &map_blueprint_url(&self.data.map.id.to_string()),
-                                    file.content.clone(),
-                                    self.self_link,
-                                    Msg::ResponseUpdateBlueprint
-                                );
-                            }
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to update map, reason: {}", e));
+                        if let Some(file) = &s.data.blueprint {
+                            s.binary_fetch_task = put_image!(
+                                s.fetch_service,
+                                &map_blueprint_url(&s.data.map.id.to_string()),
+                                file.content.clone(),
+                                s.self_link,
+                                Msg::ResponseUpdateBlueprint
+                            );
                         }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to update map".to_owned());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to update map, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseGetMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.data.map = result.unwrap_or(Map::new());
-                            self.data.raw_bounds[0] = self.data.map.bounds[0].to_string();
-                            self.data.raw_bounds[1] = self.data.map.bounds[1].to_string();
-                            self.data.raw_scale = self.data.map.scale.to_string();
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to find map, reason: {}", e));
-                        }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to find map".to_owned());
-                }
+                self.handle_response(
+                    response,
+                    |s, map| {
+                            s.data.map = map;
+                            s.data.raw_bounds[0] = s.data.map.bounds[0].to_string();
+                            s.data.raw_bounds[1] = s.data.map.bounds[1].to_string();
+                            s.data.raw_scale = s.data.map.scale.to_string();
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to find map, reason: {}", e));
+                    },
+                );
             },
             Msg::ResponseUpdateBlueprint(response) => {
                 let (meta, _body) = response.into_parts();
@@ -476,31 +454,27 @@ impl Component for MapAddUpdate {
                 }
             },
             Msg::ResponseAddMap(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(result) => {
-                            self.user_msg.success_message = Some("successfully added map".to_owned());
-                            self.data.map = result;
-                            self.data.opt_id = Some(self.data.map.id);
+                self.handle_response(
+                    response,
+                    |s, map| {
+                        s.user_msg.success_message = Some("successfully added map".to_owned());
+                        s.data.map = map;
+                        s.data.opt_id = Some(s.data.map.id);
 
-                            if let Some(file) = &self.data.blueprint {
-                                self.binary_fetch_task = put_image!(
-                                    self.fetch_service,
-                                    &map_blueprint_url(&self.data.map.id.to_string()),
-                                    file.content.clone(),
-                                    self.self_link,
-                                    Msg::ResponseUpdateBlueprint
-                                );
-                            }
-                        },
-                        Err(e) => {
-                            self.user_msg.error_messages.push(format!("failed to add map, reason: {}", e));
+                        if let Some(file) = &s.data.blueprint {
+                            s.binary_fetch_task = put_image!(
+                                s.fetch_service,
+                                &map_blueprint_url(&s.data.map.id.to_string()),
+                                file.content.clone(),
+                                s.self_link,
+                                Msg::ResponseUpdateBlueprint
+                            );
                         }
-                    }
-                } else {
-                    self.user_msg.error_messages.push("failed to add map".to_string());
-                }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to add map, reason: {}", e));
+                    },
+                );
             },
         }
 

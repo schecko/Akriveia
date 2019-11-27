@@ -1,5 +1,5 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::*;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
@@ -8,7 +8,7 @@ use super::user_message::UserMessage;
 
 pub enum Msg {
     RequestRestart(SystemCommand),
-    ResponseRestart(util::Response<()>),
+    ResponseRestart(JsonResponse<()>),
 }
 
 pub struct SystemSettings {
