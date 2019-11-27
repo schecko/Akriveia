@@ -344,7 +344,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "". to_string() },
+                        None => { "".to_string() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }

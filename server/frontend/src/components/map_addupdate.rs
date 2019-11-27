@@ -562,7 +562,6 @@ impl MapAddUpdate {
                     </td>
                 </tr>
             }
-
         });
 
         match self.data.opt_id {
@@ -644,7 +643,6 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         None => { String::new() },
                     }
                 }
-               }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
                 <div/>
