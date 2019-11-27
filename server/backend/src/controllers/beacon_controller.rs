@@ -24,7 +24,7 @@ pub fn beacons_status(_uid: Identity, state: AKData) -> impl Future<Item=HttpRes
                     ok(HttpResponse::Ok().json(&Ok(data)))
                 },
                 _ => {
-                    err(AkError::internal(""))
+                    err(AkError::internal())
                 }
         }})
 }
@@ -153,10 +153,10 @@ pub fn put_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web:
         .and_then(move |client| {
             beacon::update_beacon(client, payload.0)
         })
-        .map(|(_client, beacon)| {
+        .and_then(|(_client, beacon)| {
             match beacon {
-                Some(b) => HttpResponse::Ok().json(b),
-                None => HttpResponse::NotFound().finish(),
+                Some(b) => ok(HttpResponse::Ok().json(Ok(b))),
+                None => err(AkError::not_found()),
             }
         })
 }

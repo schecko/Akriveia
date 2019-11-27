@@ -26,7 +26,7 @@ pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<Syste
                     ok(HttpResponse::Ok().json(Ok(())))
                 },
                 _ => {
-                    err(AkError::internal(""))
+                    err(AkError::internal())
                 }
         }})
 }
@@ -46,7 +46,7 @@ pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpRes
                     ok(HttpResponse::Ok().json(Ok(data)))
                 },
                 _ => {
-                    err(AkError::internal(""))
+                    err(AkError::internal())
                 }
         }})
 }
