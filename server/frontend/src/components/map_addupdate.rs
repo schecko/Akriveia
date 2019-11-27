@@ -557,7 +557,7 @@ impl MapAddUpdate {
                             { "Save" }
                         </button>
                         <button
-                            class={ if this_beacon_selected { "btn btn-sm btn-success mx-1 selected" } 
+                            class={ if this_beacon_selected { "btn btn-sm btn-success mx-1 selected" }
                             else { "btn btn-sm mx-1 btn-primary" } },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
                         >
@@ -623,7 +623,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
         let add_another_map = match &self.data.opt_id {
             Some(_) => {
                 html! {
-                    <button 
+                    <button
                         type="button",
                         class="btn btn-lg btn-warning align",
                         onclick=|_| Msg::AddAnotherMap,
@@ -743,7 +743,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                     <>
                                         <button
                                             type="button",
-                                            class="btn btn-lg btn-success align", 
+                                            class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateMap,
                                             >
                                             { submit_name }
@@ -756,7 +756,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 },
                             }
                         }
-                        <button 
+                        <button
                             type="button",
                             class="btn btn-lg btn-danger align",
                             onclick=|_| Msg::ChangeRootPage(root::Page::MapList),

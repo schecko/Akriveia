@@ -429,7 +429,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                     <>
                                         <button
                                             type="button",
-                                            class="btn btn-lg btn-success align", 
+                                            class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateBeacon,
                                         >
                                             { submit_name }
