@@ -288,7 +288,6 @@ impl Component for MapViewComponent {
             Msg::Ignore => {
             },
         }
-
         self.render();
         true
     }
@@ -361,7 +360,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <tr>
                     <td>{user.addr}</td>
                     <td>{&user.name}</td>
-                    <td>{user.last_active}</td>
+                    <td>{format!("{:>8}", &user.last_active)}</td>
                 </tr>
             }
         });
@@ -385,26 +384,21 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     </p>
                     { for render_distance_buttons }
                 </div>
-                <table>
-                    <tr>
-                        <td>
-                        { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
-                        </td>
-                        <td>
-                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                        </td>
-                        <td>
-                            <table>
-                                <tr>
-                                    <td>{"Address"}</td>
-                                    <td>{"Name"}</td>
-                                    <td>{"Last Seen"}</td>
-                                </tr>
-                                { for realtime_users }
-                            </table>
-                        </td>
-                    </tr>
-                </table>
+                <div>
+                    { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
+                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    <div class="tinyBoxForm align-top">
+                        <h4>{"User Status"}</h4>
+                        <table class="table table-small">
+                            <tr>
+                                <th>{"Address"}</th>
+                                <th>{"Name"}</th>
+                                <th>{"Last Seen"}</th>
+                            </tr>
+                            { for realtime_users }
+                        </table>
+                    </div>
+                </div>
             </div>
         }
     }
