@@ -199,7 +199,15 @@ impl Renderable<BeaconList> for BeaconList {
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
-                <h2>{ "Beacon List" }</h2>
+                <div class="d-flex justify-content-between">
+                    <h2>{ "Beacon List"}</h2>
+                    <button
+                        class="btn btn-success logoutPlacement my-1",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                    >
+                        {"Add New Beacon"}
+                    </button>
+                </div>
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <tr>
