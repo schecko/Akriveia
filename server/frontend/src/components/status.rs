@@ -449,27 +449,24 @@ impl Status {
 
         html! {
             <>
-                // TODO find the reason why table is not container-fluid
-                <div class="container-fluid">
-                    <table class="table table-striped">
-                        <thead class="thead-light">
-                            <h2>{ "Beacon Status" }</h2>
-                            <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "State" }</th>
-                                <th>{ "Last Active" }</th>
-                                <th>{ "Coordinates" }</th>
-                                <th>{ "Floor" }</th>
-                                <th>{ "Mac" }</th>
-                                <th>{ "Note" }</th>
-                                <th>{ "Actions" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for rows }
-                        </tbody>
-                    </table>
-                </div>
+                <h2>{ "Beacon Status" }</h2>
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>{ "Name" }</th>
+                            <th>{ "State" }</th>
+                            <th>{ "Last Active" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Mac" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }
@@ -519,24 +516,22 @@ impl Status {
 
         html! {
             <>
-                <div class="container-fluid">
-                    <table class="table table-striped">
-                        <thead class="thead-light">
-                            <h2>{ "User Status" }</h2>
-                            <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "Coordinates" }</th>
-                                <th>{ "Floor" }</th>
-                                <th>{ "Last Seen" }</th>
-                                <th>{ "Note" }</th>
-                                <th>{ "Actions" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for rows }
-                        </tbody>
-                    </table>
-                </div>
+                <h2>{ "User Status" }</h2>
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>{ "Name" }</th>
+                            <th>{ "Coordinates" }</th>
+                            <th>{ "Floor" }</th>
+                            <th>{ "Last Seen" }</th>
+                            <th>{ "Note" }</th>
+                            <th>{ "Actions" }</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { for rows }
+                    </tbody>
+                </table>
             </>
         }
     }

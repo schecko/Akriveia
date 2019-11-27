@@ -39,6 +39,36 @@ table th {
 	font-size: 16px;
 }
 
+table td.spacing {
+  padding:10px 0;
+}
+
+.noBoxedForm {
+  background-color:#fff;
+  max-width: 700px;
+  padding: 20px;
+  padding-left:0px;
+  position:relative;
+}
+
+.boxedForm {
+  -webkit-border-radius: 10px 10px 10px 10px;
+  border-radius: 10px 10px 10px 10px;
+  background-color:#fff;
+  margin-top:20px;
+  display: inline-block;
+  min-width: 600px;
+  min-height:500px;
+  padding: 20px;
+  -webkit-box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+  box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+}
+button.selected {
+  font-weight:bold;
+  text-transform: uppercase;
+  background-color:#8a8a8a !important;
+}
+
 
 /* TABS */
 h2.inactive {
@@ -53,6 +83,17 @@ h2.active {
 a.active, a:disabled {
   background-color: #f99d32;
   border: 2px solid white;
+}
+
+/* align left for forms */
+.formAlign {
+  margin-left:5px;
+  text-align:top;
+}
+
+button.align {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 button.e-buttons:disabled, button.e-button:active{
@@ -116,6 +157,13 @@ nav div ul li a.navBarText:hover {
   margin-left: auto;
 }
 
+.formLabel {
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  background-color: #fff;
+  padding: 10px;
+}
+
 .navbarColour {
   background-color:#be0011;
   box-shadow: 0 3px 10px -2px rgba(0,0,0,.1);
@@ -124,6 +172,12 @@ nav div ul li a.navBarText:hover {
 
 .e-buttons {
   margin: 5px 10px 5px 5px;
+}
+
+.formButtons {
+  margin-left:20px;
+  margin-top:50px !important;
+  margin-bottom: 20px !important;
 }
 
 div div.container-fluid {
@@ -135,7 +189,7 @@ input[type=button], input[type=submit], input[type=reset]  {
   background-color: #BE0010;
   border: none;
   color: white;
-  padding: 15px 80px;
+  padding: 15px 75px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
@@ -165,6 +219,19 @@ input[type=button]:active, input[type=submit]:active, input[type=reset]:active  
   transform: scale(0.95);
 }
 
+input.coordinates[type=text] {
+  width:39%;
+}
+
+input.loginText[type=text] {
+  width:70%;
+  font-size: 20px;
+}
+
+input.userText[type=text]{
+  width:98%;
+}
+
 input[type=text] {
   background-color: #f6f6f6;
   border: none;
@@ -173,9 +240,9 @@ input[type=text] {
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  font-size: 20px;
+  font-size: 18px;
   margin: 5px;
-  width: 70%;
+  width: 80%;
   border: 2px solid #f6f6f6;
   -webkit-transition: all 0.5s ease-in-out;
   -moz-transition: all 0.5s ease-in-out;
@@ -261,91 +328,3 @@ input[type=password]:placeholder {
 .dropdown:hover .dropdown-content{
   display:block;
 }
-
-/* TESTING CSS CLASSES */
-.focus-input100 span:hover {
-  position: absolute;
-  display: block;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-
-}
-.focus-input100::before span:hover{
-  content: "";
-  display: block;
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-
-  -webkit-transition: all 0.4s;
-  -o-transition: all 0.4s;
-  -moz-transition: all 0.4s;
-  transition: all 0.4s;
-
-  background: #df254e;
-  background: -webkit-linear-gradient(45deg, #d5007d, #e53935);
-  background: -o-linear-gradient(45deg, #d5007d, #e53935);
-  background: -moz-linear-gradient(45deg, #d5007d, #e53935);
-  background: linear-gradient(45deg, #d5007d, #e53935);
-}
-
-.wrap-input100 {
-  width: 100%;
-  position: relative;
-  border-bottom: 2px solid #dbdbdb;
-  margin-bottom: 45px;
-}
-
-.label-input100 {
-  font-family: Poppins-SemiBold;
-  font-size: 18px;
-  color: #999999;
-  line-height: 1.2;
-  padding-left: 2px;
-}
-
-.wrap-contact100 {
-  width: 640px;
-  min-height: 100vh;
-  background: #fff;
-  border-radius: 2px;
-  padding: 82px 55px 33px 55px;
-  position: relative;
-}
-
-.contact100-form {
-  width: 100%;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -moz-box;
-  display: -ms-flexbox;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  padding-bottom: 68px;
-}
-
-.input100 {
-  display: block;
-  width: 100%;
-  background: transparent;
-  font-family: Poppins-Regular;
-  font-size: 22px;
-  color: #555555;
-  line-height: 1.2;
-  padding: 0 2px;
-}
-
-/*
-.input100:focus + .focus-input100::before {
-  width: 100%;
-}
-
-.has-val.input100 + .focus-input100::before {
-  width: 100%;
-}*/

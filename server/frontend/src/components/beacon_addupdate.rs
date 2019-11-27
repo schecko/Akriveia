@@ -310,7 +310,13 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
-                    <button onclick=|_| Msg::AddAnotherBeacon,>{ "Add Another" }</button>
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-warning",
+                        onclick=|_| Msg::AddAnotherBeacon,
+                    >
+                        { "Add Another" }
+                    </button>
                 }
             },
             None => {
@@ -348,7 +354,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         html! {
             <>
-                <h2>{ title_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
@@ -356,76 +361,94 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                     }
                 }
                 { display_errors}
-                <div/>
-                <table>
-                    <tr>
-                        <td>{ "Mac Address: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_mac,
-                                oninput=|e| Msg::InputMacAddress(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Floor Name: " }</td>
-                        <td>
-                            <select>
-                                { for floor_options }
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Name: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.beacon.name,
-                                oninput=|e| Msg::InputName(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Coordinates: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_coord0,
-                                oninput=|e| Msg::InputCoordinate(0, e.value),
-                            />
-                        </td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_coord1,
-                                oninput=|e| Msg::InputCoordinate(1, e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Note: " }</td>
-                        <td>
-                            <textarea
-                                rows=5,
-                                value=note,
-                                oninput=|e| Msg::InputNote(e.value),
-                            />
-                        </td>
-                    </tr>
-                </table>
-                {
-                    match self.user_type {
-                        WebUserType::Admin => html! {
-                            <>
-                                <button onclick=|_| Msg::RequestAddUpdateBeacon,>{ submit_name }</button>
-                                { add_another_button }
-                            </>
-                        },
-                        WebUserType::Responder => html! { },
-                    }
-                }
-                <button onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),>{ "Cancel" }</button>
+                <div class="boxedForm">
+                    <h2>{ title_name }</h2>
+                    <table>
+                        <tr>
+                            <td class="formLabel">{ "Mac Address: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    value=&self.data.raw_mac,
+                                    oninput=|e| Msg::InputMacAddress(e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Floor Name: " }</td>
+                            <td>
+                                <select class="formAlign">
+                                    { for floor_options }
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Name: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    value=&self.data.beacon.name,
+                                    oninput=|e| Msg::InputName(e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Coordinates: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    class="coordinates",
+                                    value=&self.data.raw_coord0,
+                                    oninput=|e| Msg::InputCoordinate(0, e.value),
+                                />
+                                <input
+                                    type="text",
+                                    class="coordinates"
+                                    value=&self.data.raw_coord1,
+                                    oninput=|e| Msg::InputCoordinate(1, e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Note: " }</td>
+                            <td>
+                                <textarea
+                                    class="formAlign",
+                                    rows=5,
+                                    cols=36,
+                                    value=note,
+                                    oninput=|e| Msg::InputNote(e.value),
+                                />
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="formButtons">
+                        {
+                            match self.user_type {
+                                WebUserType::Admin => html! {
+                                    <>
+                                        <button
+                                            type="button",
+                                            class="btn btn-lg btn-success align", 
+                                            onclick=|_| Msg::RequestAddUpdateBeacon,
+                                        >
+                                            { submit_name }
+                                        </button>
+                                        { add_another_button }
+                                    </>
+                                },
+                                WebUserType::Responder => html! { },
+                            }
+                        }
+                        <button
+                            type="button",
+                            class="btn btn-lg btn-danger align",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),
+                        >
+                            { "Cancel" }
+                        </button>
+                    </div>
+                </div>
             </>
         }
     }
