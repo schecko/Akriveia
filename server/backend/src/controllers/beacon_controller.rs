@@ -20,11 +20,11 @@ pub fn beacons_status(_uid: Identity, state: AKData) -> impl Future<Item=HttpRes
         .send(OutBeaconData{})
         .then(|res| {
             match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
+                Ok(data) => {
+                    ok(HttpResponse::Ok().json(&Ok(data)))
                 },
                 _ => {
-                    ok(HttpResponse::BadRequest().finish())
+                    err(AkError::internal(""))
                 }
         }})
 }
@@ -41,11 +41,11 @@ pub fn beacon_command(_uid: Identity, state: AKData, payload: web::Json<common::
         .send(command)
         .then(|res| {
             match res {
-                Ok(Ok(_data)) => {
+                Ok(_data) => {
                     ok(HttpResponse::Ok().finish())
                 },
                 _ => {
-                    ok(HttpResponse::BadRequest().finish())
+                    err(AkError::internal())
                 }
         }})
 }
@@ -65,22 +65,22 @@ pub fn get_beacon(uid: Identity, state: AKData, req: HttpRequest, params: web::Q
 
                     ok::<_, AkError>(fut).flatten()
                 })
-                .map(|(_client, beacon_and_map)| {
+                .and_then(|(_client, beacon_and_map)| {
                     match beacon_and_map {
                         Some((beacon, opt_map)) => {
                             match opt_map {
-                                Some(map) => HttpResponse::Ok().json(Some((beacon, Some(map)))),
-                                None => HttpResponse::Ok().json(Some(beacon)),
+                                Some(map) => ok(HttpResponse::Ok().json(Ok((beacon, Some(map))))),
+                                None => ok(HttpResponse::Ok().json(Ok(beacon))),
                             }
 
                         },
-                        None => HttpResponse::NotFound().finish(),
+                        None => err(AkError::not_found()),
                     }
                 })
             )
         },
         _ => {
-            Either::B(ok(HttpResponse::NotFound().finish()))
+            Either::B(err(AkError::unauthorized())
         }
     }
 }
@@ -99,7 +99,7 @@ pub fn get_beacons_for_map(uid: Identity, state: AKData, req: HttpRequest) -> im
             )
         },
         _ => {
-            Either::B(ok(HttpResponse::NotFound().finish()))
+            Either::B(err(AkError::unauthorized())
         }
     }
 }
@@ -115,7 +115,7 @@ pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web:
                     beacon::select_beacons_prefetch(client)
                 })
                 .map(|(_client, beacons_and_maps)| {
-                    HttpResponse::Ok().json(beacons_and_maps)
+                    HttpResponse::Ok().json(Ok(beacons_and_maps))
                 })
         )
     } else {
@@ -125,7 +125,7 @@ pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web:
                     beacon::select_beacons(client)
                 })
                 .map(|(_client, beacons)| {
-                    HttpResponse::Ok().json(beacons)
+                    HttpResponse::Ok().json(Ok(beacons))
                 })
         )
     }
@@ -137,17 +137,12 @@ pub fn post_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web
 
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
-            println!("connect post beacon");
             beacon::insert_beacon(client, payload.0)
-                .map_err(|_bleh| {
-                    AkError::internal("wtf")
-                })
         })
-        .map(|(_client, beacon)| {
-            println!("returning post beacon");
+        .and_then(|(_client, beacon)| {
             match beacon {
-                Some(b) => HttpResponse::Ok().json(b),
-                None => HttpResponse::NotFound().finish(),
+                Some(b) => ok(HttpResponse::Ok().json(Ok(b))),
+                None => err(AkError::not_found()),
             }
         })
 }

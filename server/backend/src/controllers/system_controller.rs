@@ -1,15 +1,16 @@
 use actix::System;
 use actix_identity::Identity;
-use actix_web::{ Error, error, web, HttpRequest, HttpResponse, };
+use actix_web::{ web, HttpRequest, HttpResponse, };
 use common::*;
 use crate::AKData;
 use crate::WatcherCommand;
 use crate::beacon_manager::{ BMCommand, GetDiagnosticData, };
-use futures::{ future::ok, Future, };
+use futures::{ future::err, future::ok, Future, };
 use actix::Arbiter;
 use std::time::Duration;
+use crate::ak_error::AkError;
 
-pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<SystemCommandResponse>) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
     let command = if payload.emergency {
         BMCommand::StartEmergency(None)
@@ -21,46 +22,36 @@ pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<Syste
         .send(command)
         .then(|res| {
             match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
+                Ok(data) => {
+                    ok(HttpResponse::Ok().json(Ok(())))
                 },
                 _ => {
-                    ok(HttpResponse::BadRequest().finish())
+                    err(AkError::internal(""))
                 }
         }})
 }
 
-pub fn get_emergency(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn get_emergency(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
-    s.beacon_manager
-        .send(BMCommand::GetEmergency)
-        .then(|res| {
-            match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
-                },
-                _ => {
-                    ok(HttpResponse::BadRequest().finish())
-                }
-        }})
+    ok(HttpResponse::Ok().json(Ok(s.beacon_manager.is_emergency())))
 }
 
-pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=Error> {
+pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
     s.beacon_manager
         .send(GetDiagnosticData)
         .then(|res| {
             match res {
-                Ok(Ok(data)) => {
-                    ok(HttpResponse::Ok().json(data))
+                Ok(data) => {
+                    ok(HttpResponse::Ok().json(Ok(data)))
                 },
                 _ => {
-                    ok(HttpResponse::BadRequest().finish())
+                    err(AkError::internal(""))
                 }
         }})
 }
 
-pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> Result<HttpResponse, Error> {
+pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> Result<HttpResponse, AkError> {
     if let Some(name) = id.identity() {
         if name == "admin" {
             let s = state.lock().unwrap();
@@ -90,9 +81,9 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
 
             Ok(HttpResponse::Ok().finish())
         } else {
-            Err(error::ErrorUnauthorized("invalid credentials"))
+            Err(AkError::unauthorized("invalid credentials"))
         }
     } else {
-        Err(error::ErrorUnauthorized("invalid credentials"))
+        Err(AkError::unauthorized("invalid credentials"))
     }
 }

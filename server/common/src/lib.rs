@@ -82,11 +82,6 @@ pub fn session_check_url() -> String {
     return String::from("/session/check");
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct HelloFrontEnd {
-    pub data: u32,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemCommandResponse {
     pub emergency: bool,

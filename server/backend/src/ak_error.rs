@@ -14,7 +14,7 @@ pub struct AkError {
 impl AkError {
     pub fn internal(reason: &str) -> AkError {
         AkError {
-            reason: reason.to_string(),
+            reason: "Internal Server Error".to_owned(),
             t: AkErrorType::Internal,
         }
     }
@@ -26,9 +26,9 @@ impl AkError {
         }
     }
 
-    pub fn not_found(reason: &str) -> AkError {
+    pub fn not_found() -> AkError {
         AkError {
-            reason: reason.to_string(),
+            reason: "Not Found".to_owned(),
             t: AkErrorType::NotFound,
         }
     }
