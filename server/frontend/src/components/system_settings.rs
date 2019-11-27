@@ -94,17 +94,9 @@ impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {"ERROR: "}
-                    {msg}
-                </div>
+                <p class="alert alert-danger">{msg}</p>
             }
         });
-
-        let display_errors = html! { for errors };
 
         html! {
             <>
@@ -114,8 +106,8 @@ impl Renderable<SystemSettings> for SystemSettings {
                         None => { String::new() },
                     }
                 }
-                <p class="alert alert-danger">{"This is an error"}</p>
-                { display_errors }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div/>
                 <table>
                     <tr>
@@ -137,10 +129,11 @@ impl Renderable<SystemSettings> for SystemSettings {
                         </td>
                     </tr>
                     <tr>
-                        <td class="formLabel">{ "Change IP" }</td>
+                        <td class="formLabel">{ "Set Host IP" }</td>
                         <td>
                             <input
                                 type="text",
+                                class="userText",
                                 placeholder="IP address",
                             />
                         </td>
