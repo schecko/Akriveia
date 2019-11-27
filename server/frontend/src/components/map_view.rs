@@ -352,7 +352,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <tr>
                     <td>{user.addr}</td>
                     <td>{&user.name}</td>
-                    <td>{format!("{:>8}", &user.last_active)}</td>
+                    <td>{&user.last_active}</td>
                 </tr>
             }
         });
