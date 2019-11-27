@@ -263,14 +263,14 @@ impl Handler<InLocationData> for DataProcessor {
     }
 }
 
-pub struct OutUserData { }
+pub struct OutUserData;
 
 impl Message for OutUserData {
-    type Result = Result<Vec<RealtimeUserData>, io::Error>;
+    type Result = Result<Vec<RealtimeUserData>, AkError>;
 }
 
 impl Handler<OutUserData> for DataProcessor {
-    type Result = Result<Vec<RealtimeUserData>, io::Error>;
+    type Result = Result<Vec<RealtimeUserData>, AkError>;
 
     fn handle (&mut self, _msg: OutUserData, _: &mut Context<Self>) -> Self::Result {
         Ok(self.users.iter().map(|(_addr, hist)| hist.user.clone()).collect())

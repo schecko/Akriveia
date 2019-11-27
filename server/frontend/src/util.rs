@@ -166,7 +166,11 @@ pub trait JsonResponseHandler {
                 failure(self, err)
             },
             Err(err) => {
-                Log!("network error {}", err);
+                let user_err = WebError {
+                    t: AkErrorType::ConnectionError,
+                    reason: err.to_string(),
+                };
+                failure(self, user_err)
             },
         }
     }

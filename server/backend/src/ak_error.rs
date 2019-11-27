@@ -12,7 +12,7 @@ pub struct AkError {
 }
 
 impl AkError {
-    pub fn internal(reason: &str) -> AkError {
+    pub fn internal() -> AkError {
         AkError {
             reason: "Internal Server Error".to_owned(),
             t: AkErrorType::Internal,
@@ -33,9 +33,9 @@ impl AkError {
         }
     }
 
-    pub fn unauthorized(reason: &str) -> AkError {
+    pub fn unauthorized() -> AkError {
         AkError {
-            reason: reason.to_string(),
+            reason: "Unauthorized".to_owned(),
             t: AkErrorType::Unauthorized,
         }
     }
@@ -50,9 +50,7 @@ impl AkError {
 
 impl fmt::Display for AkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO which one is better?
         write!(f, "{}", serde_json::to_string(&Err::<(), _>(self)).unwrap())
-        //write!(f, "{}", self.reason)
     }
 }
 
@@ -71,6 +69,7 @@ impl error::ResponseError for AkError {
             AkErrorType::NotFound => HttpResponse::NotFound().finish(),
             AkErrorType::Unauthorized => HttpResponse::Unauthorized().finish(),
             AkErrorType::Validation => HttpResponse::BadRequest().finish(),
+            AkErrorType::ConnectionError => HttpResponse::InternalServerError().finish(),
         }
     }
 }

@@ -428,5 +428,6 @@ pub enum AkErrorType {
     Unauthorized,
     Validation,
     FileUpload,
+    ConnectionError,
 }
 

@@ -25,7 +25,7 @@ pub fn login(id: Identity, state: AKData, payload: web::Json<LoginInfo>, _req: H
                 HttpResponse::Ok().finish()
             })
             .map_err(|_postgres_err| {
-                AkError::unauthorized("Invalid login credentials.")
+                AkError::unauthorized()
             })
         )
     }
@@ -35,7 +35,7 @@ pub fn check(id: Identity, _state: AKData, _req: HttpRequest) -> impl Future<Ite
     if let Some(_name) = id.identity() {
         ok(HttpResponse::Ok().finish())
     } else {
-        err(AkError::unauthorized("Not a valid user."))
+        err(AkError::unauthorized())
     }
 }
 

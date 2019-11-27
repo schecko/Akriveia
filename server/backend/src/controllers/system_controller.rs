@@ -23,7 +23,7 @@ pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<Syste
         .then(|res| {
             match res {
                 Ok(data) => {
-                    ok(HttpResponse::Ok().json(Ok(())))
+                    ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
                     err(AkError::internal())
@@ -33,7 +33,17 @@ pub fn post_emergency(state: AKData, _req: HttpRequest, payload: web::Json<Syste
 
 pub fn get_emergency(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
-    ok(HttpResponse::Ok().json(Ok(s.beacon_manager.is_emergency())))
+    s.beacon_manager
+        .send(BMCommand::GetEmergency)
+        .then(|res| {
+            match res {
+                Ok(data) => {
+                    ok(HttpResponse::Ok().json(data))
+                },
+                _ => {
+                    err(AkError::internal())
+                }
+        }})
 }
 
 pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
@@ -43,7 +53,7 @@ pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpRes
         .then(|res| {
             match res {
                 Ok(data) => {
-                    ok(HttpResponse::Ok().json(Ok(data)))
+                    ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
                     err(AkError::internal())
@@ -81,9 +91,9 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
 
             Ok(HttpResponse::Ok().finish())
         } else {
-            Err(AkError::unauthorized("invalid credentials"))
+            Err(AkError::unauthorized())
         }
     } else {
-        Err(AkError::unauthorized("invalid credentials"))
+        Err(AkError::unauthorized())
     }
 }

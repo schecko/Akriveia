@@ -15,7 +15,6 @@ use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::network_interface;
 use crate::models::beacon;
-use std::io;
 use std::time::Duration;
 use std::collections::{ BTreeSet, BTreeMap, };
 use common::*;
@@ -124,7 +123,7 @@ pub enum BMCommand {
 }
 
 impl Message for BMCommand {
-    type Result = ();
+    type Result = Result<bool, AkError>;
 }
 
 #[derive(Clone, Copy)]
@@ -322,7 +321,7 @@ impl BeaconManager {
 }
 
 impl Handler<BMCommand> for BeaconManager {
-    type Result = ();
+    type Result = Result<bool, AkError>;
 
     fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
@@ -425,6 +424,7 @@ impl Handler<BMCommand> for BeaconManager {
                 actor.check_health(context);
             }));
         }
+        Ok(self.is_emergency())
     }
 }
 
@@ -498,10 +498,10 @@ impl Handler<BMResponse> for BeaconManager {
 
 pub struct GetDiagnosticData;
 impl Message for GetDiagnosticData {
-    type Result = Result<common::DiagnosticData, io::Error>;
+    type Result = Result<common::DiagnosticData, AkError>;
 }
 impl Handler<GetDiagnosticData> for BeaconManager {
-    type Result = Result<common::DiagnosticData, io::Error>;
+    type Result = Result<common::DiagnosticData, AkError>;
 
     fn handle(&mut self, _msg: GetDiagnosticData, _context: &mut Context<Self>) -> Self::Result {
         let res = self.diagnostic_data.clone();
@@ -510,16 +510,16 @@ impl Handler<GetDiagnosticData> for BeaconManager {
     }
 }
 
-pub struct OutBeaconData { }
+pub struct OutBeaconData;
 
 impl Message for OutBeaconData {
-    type Result = Vec<RealtimeBeacon>;
+    type Result = Result<Vec<RealtimeBeacon>, AkError>;
 }
 
 impl Handler<OutBeaconData> for BeaconManager {
-    type Result = Vec<RealtimeBeacon>;
+    type Result = Result<Vec<RealtimeBeacon>, AkError>;
 
     fn handle (&mut self, _msg: OutBeaconData, _: &mut Context<Self>) -> Self::Result {
-        self.beacons.iter().map(|(_mac, beacon)| beacon.realtime.clone()).collect()
+        Ok(self.beacons.iter().map(|(_mac, beacon)| beacon.realtime.clone()).collect())
     }
 }

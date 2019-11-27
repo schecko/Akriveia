@@ -52,7 +52,7 @@ pub enum Msg {
     RequestGetEmergency,
 
     // responses
-    ResponsePostEmergency(JsonResponse<()>),
+    ResponsePostEmergency(JsonResponse<bool>),
     ResponseGetEmergency(JsonResponse<bool>),
 }
 
@@ -105,12 +105,12 @@ impl Component for RootComponent {
                 self.handle_response(
                     response,
                     |s, resp| {
+                        s.emergency = resp;
                     },
                     |s, e| {
                         Log!("response - failed to post start emergency, {}", e);
                     },
                 );
-                self.link.send_self(Msg::RequestGetEmergency);
             },
             Msg::ResponseGetEmergency(response) => {
                 self.handle_response(

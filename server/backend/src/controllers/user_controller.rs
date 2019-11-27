@@ -19,14 +19,14 @@ pub struct GetParams {
 pub fn users_status(_uid: Identity, state: AKData, _req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
     let s = state.lock().unwrap();
     s.data_processor
-        .send(OutUserData{})
+        .send(OutUserData)
         .then(|res| {
             match res {
-                Ok(Ok(data)) => {
+                Ok(data) => {
                     ok(HttpResponse::Ok().json(data))
                 },
                 _ => {
-                    err(AkError::bad_request(""))
+                    err(AkError::internal())
                 }
         }})
 }
@@ -46,18 +46,18 @@ pub fn get_user(uid: Identity, state: AKData, req: HttpRequest, params: web::Que
 
                     ok::<_, AkError>(fut).flatten()
                 })
-                .map(|(_client, opt_user, opt_e_user)| {
+                .and_then(|(_client, opt_user, opt_e_user)| {
                     match opt_user {
                         Some(u) => {
-                            HttpResponse::Ok().json((Some(u), opt_e_user))
+                            ok(HttpResponse::Ok().json(Ok::<_, AkError>((u, opt_e_user))))
                         },
-                        None => HttpResponse::NotFound().finish(),
+                        None => err(AkError::not_found()),
                     }
                 })
             )
         },
         _ => {
-            Either::B(ok(HttpResponse::NotFound().finish()))
+            Either::B(err(AkError::not_found()))
         },
     }
 }
@@ -69,7 +69,7 @@ pub fn get_users(uid: Identity, state: AKData, _req: HttpRequest, params: web::Q
             user::select_users(client, include_contacts)
         })
         .map(|(_client, users)| {
-            HttpResponse::Ok().json(users)
+            HttpResponse::Ok().json(Ok::<_, AkError>(users))
         })
 }
 
@@ -102,10 +102,10 @@ pub fn post_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::
                     }
                 })
         })
-        .map(|(_client, user, opt_e_user)| {
+        .and_then(|(_client, user, opt_e_user)| {
             match user {
-                Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
-                None => HttpResponse::NotFound().finish(),
+                Some(u) => ok(HttpResponse::Ok().json(Ok::<_, AkError>((u, opt_e_user)))),
+                None => err(AkError::not_found()),
             }
         })
 }
@@ -136,10 +136,10 @@ pub fn put_user(uid: Identity, state: AKData, _req: HttpRequest, payload: web::J
                     }
                 })
         })
-        .map(|(_client, opt_user, opt_e_user)| {
+        .and_then(|(_client, opt_user, opt_e_user)| {
             match opt_user {
-                Some(u) => HttpResponse::Ok().json((u, opt_e_user)),
-                None => HttpResponse::NotFound().finish(),
+                Some(u) => ok(HttpResponse::Ok().json(Ok::<_, AkError>((u, opt_e_user)))),
+                None => err(AkError::not_found()),
             }
         })
 }
@@ -153,12 +153,12 @@ pub fn delete_user(uid: Identity, state: AKData, req: HttpRequest) -> impl Futur
                     user::delete_user(client, id)
                 })
                 .map(|_client| {
-                    HttpResponse::Ok().finish()
+                    HttpResponse::Ok().json(Ok::<_, AkError>(()))
                 })
             )
         },
         _ => {
-            Either::B(ok(HttpResponse::NotFound().finish()))
+            Either::B(err(AkError::not_found()))
         }
     }
 }

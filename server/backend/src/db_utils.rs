@@ -35,10 +35,10 @@ pub fn connect_id(id: &Identity, state: &AKData) -> impl Future<Item=tokio_postg
                 })
             )
         } else {
-            Either::B(err(AkError::internal("Incorrect connection pool state for valid user")))
+            Either::B(err(AkError::internal()))
         }
     } else {
-        Either::B(err(AkError::unauthorized("Invalid credentials")))
+        Either::B(err(AkError::unauthorized()))
     };
 
     conn_fut
