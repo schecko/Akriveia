@@ -375,7 +375,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                             </td>
                         </tr>
                         <tr>
-                            <td class="formLabel">{ "Floor Name: " }</td>
+                            <td class="formLabel">{ "Assign to Map: " }</td>
                             <td>
                                 <select class="formAlign">
                                     { for floor_options }
