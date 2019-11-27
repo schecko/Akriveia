@@ -252,14 +252,14 @@ impl Renderable<Login> for Login {
 
         html! {
             <>
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
                         None => { "".to_owned() },
                     }
                 }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div/>
                 {
                     match self.auto_action {
