@@ -345,13 +345,9 @@ impl UserAddUpdate {
 // The front-end layout in HTML
 impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
-            Some(_id) => "Update User",
-            None => "Add New User",
-        };
         let title_name = match self.data.id {
             Some(_id) => "Update User",
-            None => "Add New User",
+            None => "Add User",
         };
 
         let add_another_button = match &self.data.id {
@@ -373,17 +369,9 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
 
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {"ERROR: "}
-                    {msg}
-                </div>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
-
-        let display_errors = html! { for errors };
 
         html! {
             <>
@@ -393,7 +381,8 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         None => { String::new() },
                     }
                 }
-                { display_errors }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div class="boxedForm">
                     <h2>{ title_name }</h2>
                     <table>
