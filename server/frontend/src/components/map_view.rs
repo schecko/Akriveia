@@ -350,7 +350,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
         let mut realtime_users = self.realtime_users.iter().map(|user| {
             html! {
                 <tr>
-                    <td>{user.addr}</td>
+                    <td>{&user.addr}</td>
                     <td>{&user.name}</td>
                     <td>{&user.last_active}</td>
                 </tr>
