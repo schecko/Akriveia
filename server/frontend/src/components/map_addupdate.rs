@@ -566,7 +566,6 @@ impl MapAddUpdate {
                     </td>
                 </tr>
             }
-
         });
 
         match self.data.opt_id {

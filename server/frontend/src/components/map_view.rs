@@ -361,7 +361,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             <div>
                 { for errors }
                 <div>
-                    <h3>{ "Select Map to View " }</h3>
+                    <h3>{ "View Map" }</h3>
                     { for maps }
                 </div>
                 <div>
