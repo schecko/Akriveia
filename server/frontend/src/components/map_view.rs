@@ -342,33 +342,16 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             }
         });
 
-        let mut errors = self.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {"ERROR: "}
-                    {msg}
-                </div>
-            }
-        });
-
-        let display_errors = html! { for errors };
-
-        let mut realtime_users = self.realtime_users.iter().map(|user| {
-            html! {
-                <tr>
-                    <td>{user.addr}</td>
-                    <td>{&user.name}</td>
-                    <td>{user.last_active}</td>
-                </tr>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
         html! {
             <div>
-                { display_errors }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div>
                     <h3>{ "Select Map to View " }</h3>
                     { for maps }

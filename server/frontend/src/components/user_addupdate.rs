@@ -359,19 +359,11 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().map(|msg| {
+        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {"ERROR: "}
-                    {msg}
-                </div>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
-
-        let display_errors = html! { for errors };
 
         html! {
             <>
@@ -382,7 +374,8 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         None => { String::new() },
                     }
                 }
-                { display_errors }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div/>
                 <table>
                     <tr>
