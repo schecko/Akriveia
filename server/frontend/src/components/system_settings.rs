@@ -114,6 +114,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                         None => { String::new() },
                     }
                 }
+                <p class="alert alert-danger">{"This is an error"}</p>
                 { display_errors }
                 <div/>
                 <table>
@@ -140,13 +141,12 @@ impl Renderable<SystemSettings> for SystemSettings {
                         <td>
                             <input
                                 type="text",
-                                value="IP Address",
                                 placeholder="IP address",
                             />
                         </td>
                         <td>
                             <button
-                                class="btn btn-success",
+                                class="btn btn-lg btn-success",
                             >
                                 {"Save"}
                             </button>
