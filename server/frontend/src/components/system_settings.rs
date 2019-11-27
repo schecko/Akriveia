@@ -120,18 +120,35 @@ impl Renderable<SystemSettings> for SystemSettings {
                     <tr>
                         <td>
                             <button
+                                class="btn btn-lg btn-primary",
                                 onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
                             >
                                 { "Restart Server" }
                             </button>
                         </td>
-                    </tr>
-                    <tr>
                         <td>
                             <button
+                                class="btn btn-lg btn-primary",
                                 onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
                             >
                                 { "Reset Database" }
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="formLabel">{ "Change IP" }</td>
+                        <td>
+                            <input
+                                type="text",
+                                value="IP Address",
+                                placeholder="IP address",
+                            />
+                        </td>
+                        <td>
+                            <button
+                                class="btn btn-success",
+                            >
+                                {"Save"}
                             </button>
                         </td>
                     </tr>
