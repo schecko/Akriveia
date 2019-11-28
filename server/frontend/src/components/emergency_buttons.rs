@@ -56,19 +56,25 @@ impl Component for EmergencyButtons {
 
 impl Renderable<EmergencyButtons> for EmergencyButtons {
     fn view(&self) -> Html<Self> {
+
         html! {
             <>
                 <button type="button" class="btn btn-lg btn-success e-buttons"
                     onclick=|_| Msg::RequestEmergency,
                     disabled={self.is_emergency},
                 >
-                    { "Start Tracking" }
+                    <i
+                        class={ if self.is_emergency {"fa fa-refresh fa-spin"} else {"fa fa-hourglass-start"} },
+                        aria-hidden="true">
+                    </i>
+                    { " Start Tracking" }
                 </button>
                 <button type="button" class="btn btn-lg btn-danger e-buttons"
                     onclick=|_| Msg::RequestEndEmergency,
                     disabled={!self.is_emergency},
                 >
-                    { "End Tracking" }
+                    <i class="fa fa-hourglass-end" aria-hidden="true"></i>
+                    { " End Tracking" }
                 </button>
             </>
         }

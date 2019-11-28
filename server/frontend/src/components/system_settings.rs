@@ -110,26 +110,30 @@ impl Renderable<SystemSettings> for SystemSettings {
                 { for errors }
                 <div/>
                 <h2>{ "System Settings" }</h2>
+                
                 <div class="d-flex">
                     <button
                         class="btn btn-lg btn-primary mr-3 my-auto",
                         onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
                     >
-                        { "Restart Server" }
+                        <i class="fa fa-spinner fa-pulse fa-fw" aria-hidden="true"></i>
+                        { " Restart Server" }
                     </button>
+                    
                     <button
                         class="btn btn-lg btn-primary ml-3 my-auto",
                         onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
                     >
-                        { "Reset Database" }
+                        <i class="fa fa-recycle fa-spin fa-fw" aria-hidden="true"></i>
+                        { " Reset Database" }
                     </button>
                 </div>
 
                 <div class="d-flex justify-content-start">
                     <button
                         class="btn btn-lg btn-secondary my-auto",
-                    >
-                        {"Set IP Address"}
+                    ><i class="fa fa-laptop" aria-hidden="true"></i>
+                        {" Set IP Address"}
                     </button>
                     <input
                         type="text",

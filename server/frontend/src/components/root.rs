@@ -360,8 +360,6 @@ impl RootComponent {
             </>
         };
 
-
-
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
@@ -416,13 +414,14 @@ impl RootComponent {
                         data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::BeaconList),
                     >
-                        { "Beacons" }
+                            { "Beacons" }
                     </a>
                     <div class="dropdown-content">
                             <a
                                 class="dropdown-item navBarText",
                                 onclick=|_| Msg::ChangePage(Page::BeaconList),
-                                disabled={self.current_page == Page::BeaconList},>
+                                disabled={self.current_page == Page::BeaconList},
+                            >
                                 { "Beacon List" }
                             </a>
                             <a
@@ -498,7 +497,7 @@ impl RootComponent {
                         role="button"
                         onclick=|_| Msg::ChangePage(Page::SystemSettings),
                     >
-                        { "System" }
+                        { " System" }
                     </a>
                     <div class="dropdown-content">
                         <a
@@ -549,7 +548,8 @@ impl RootComponent {
                             }
                         },
                     >
-                        { "Login" }
+                        <i class="fa fa-address-book-o" aria-hidden="true"></i>
+                        { " Login" }
                     </button>
                     <a class="loginTypeHeader">{ "FIRST RESPONDER" }</a>
                 </>
