@@ -92,7 +92,7 @@ impl Component for SystemSettings {
 // The front-end layout in HTML
 impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
-        let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
                 <p class="alert alert-danger" role="alert">{msg}</p>
             }
