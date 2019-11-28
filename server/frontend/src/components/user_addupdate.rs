@@ -292,40 +292,46 @@ impl UserAddUpdate {
         html! {
             <>
                 <tr>
-                    <td>{ "Employee ID: " }</td>
+                    <td class="formLabel">{ "Employee ID: " }</td>
                     <td>
                         <input
-                            type="text"
+                            type="text",
+                            class="userText",
                             value=user.employee_id.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputEmployeeID(e.value, type_user),
                         />
                     </td>
                 </tr>
                 <tr>
-                    <td>{ "Work Phone: " }</td>
+                    <td class="formLabel">{ "Work Phone: " }</td>
                     <td>
                         <input
                             type="text",
+                            class="userText",
                             value=user.work_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputWorkPhone(e.value, type_user)
                         />
                     </td>
                 </tr>
                 <tr>
-                    <td>{ "Mobile Phone: " }</td>
+                    <td class="formLabel">{ "Mobile Phone: " }</td>
                     <td>
                         <input
                             type="text",
+                            class="userText",
                             value=user.mobile_phone.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputMobilePhone(e.value, type_user)
                         />
                     </td>
                 </tr>
                 <tr>
-                    <td>{ "Note: " }</td>
+                    <td class="formLabel">{ "Note: " }</td>
                     <td>
                         <textarea
+                            class="formAlign",
                             rows=5,
+                            cols=36,
+                            placeholder="Add Important Information",
                             value = user.note.as_ref().unwrap_or(&String::new()),
                             oninput=|e| Msg::InputNote(e.value, type_user),
                         />
@@ -347,7 +353,13 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
-                    <button onclick=|_| Msg::AddAnotherUser,>{ "Add Another" }</button>
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-warning align",
+                        onclick=|_| Msg::AddAnotherUser,
+                    >
+                        { "Add Another" }
+                    </button>
                 }
             },
             None => {
@@ -357,13 +369,17 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
 
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <p class="alert alert-danger" role="alert">{msg}</p>
+                <div
+                    class="alert alert-danger"
+                    role="alert"
+                >
+                    {msg}
+                </div>
             }
         });
 
         html! {
             <>
-                <h2>{ title_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
@@ -372,63 +388,82 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
-                <div/>
-                <table>
-                    <tr>
-                        <td>{ "Name: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.user.name,
-                                oninput=|e| Msg::InputName(e.value, UserType::Normal),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Mac Address: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_mac,
-                                oninput=|e| Msg::InputMacAddress(e.value),
-                            />
-                        </td>
-                    </tr>
-                    { self.render_input_form(&self.data.user, UserType::Normal) }
-                    <tr> { "Emergency Contact Information"} </tr>
-                    <tr>
-                        <td>{ "Name: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=self.data.emergency_user.as_ref().map_or(&String::new(), |u| &u.name),
-                                oninput=|e| Msg::InputName(e.value, UserType::Contact)
-                            />
-                        </td>
-                    </tr>
-                    {
-                        match &self.data.emergency_user {
-                            Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
-                            None => {
-                                html!{
-                                    <></>
-                                }
-                            },
+                <div class="boxedForm">
+                    <h2>{ title_name }</h2>
+                    <table>
+                        <tr>
+                            <td class="formLabel">{ "Name: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    class="userText",
+                                    value=&self.data.user.name,
+                                    oninput=|e| Msg::InputName(e.value, UserType::Normal),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Mac Address: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    class="userText",
+                                    value=&self.data.raw_mac,
+                                    oninput=|e| Msg::InputMacAddress(e.value),
+                                />
+                            </td>
+                        </tr>
+                        { self.render_input_form(&self.data.user, UserType::Normal) }
+                        <h3>{ "Emergency Contact"}</h3>
+                        <tr>
+                            <td class="formLabel">{ "Name: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    class="userText",
+                                    value=self.data.emergency_user.as_ref().map_or(&String::new(), |u| &u.name),
+                                    oninput=|e| Msg::InputName(e.value, UserType::Contact)
+                                />
+                            </td>
+                        </tr>
+                        {
+                            match &self.data.emergency_user {
+                                Some(emergency_contact) => self.render_input_form(&emergency_contact, UserType::Contact),
+                                None => {
+                                    html!{
+                                        <></>
+                                    }
+                                },
+                            }
                         }
-                    }
-                </table>
-                {
-                    match self.user_type {
-                        WebUserType::Admin => html! {
-                            <>
-                                <button onclick=|_| Msg::RequestAddUpdateUser,>{ title_name }</button>
-                                { add_another_button }
-                            </>
-                        },
-                        WebUserType::Responder => html! { },
-                    }
-                }
-                <button onclick=|_| Msg::ChangeRootPage(root::Page::UserList),>{ "Cancel" }</button>
+                    </table>
+                    <div class="formButtons">
+                        {
+                            match self.user_type {
+                                WebUserType::Admin => html! {
+                                    <>
+                                        <button
+                                            type="button",
+                                            class="btn btn-lg btn-success align",
+                                            onclick=|_| Msg::RequestAddUpdateUser,
+                                        >
+                                            { title_name }
+                                        </button>
+                                        { add_another_button }
+                                    </>
+                                },
+                                WebUserType::Responder => html! { },
+                            }
+                        }
+                        <button
+                            type="button",
+                            class="btn btn-lg btn-danger align",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::UserList),
+                        >
+                            { "Cancel" }
+                        </button>
+                    </div>
+                </div>
             </>
         }
     }

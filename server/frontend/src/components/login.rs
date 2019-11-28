@@ -207,7 +207,7 @@ impl Login {
                                 type="text",
                                 id="login",
                                 name="login",
-                                class="fadeIn second",
+                                class="loginText",
                                 placeholder="Username",
                                 value=&self.data.login.name,
                                 oninput=|e| Msg::InputName(e.value),
@@ -216,20 +216,17 @@ impl Login {
                                 type="password",
                                 id="password",
                                 name="login",
-                                class="fadeIn third",
                                 placeholder="Password",
                                 value=&self.data.login.pw,
                                 oninput=|e| Msg::InputPassword(e.value),
                             />
                             <input
                                 type="submit",
-                                class="fadeIn fourth",
                                 value="Login",
                                 onclick=|_| Msg::RequestLogin,
                             />
                             <input
                                 type="submit",
-                                class="fadeIn fourth",
                                 value="Cancel",
                                 onclick=|_| Msg::RequestLoginAnon,
                             />
@@ -248,7 +245,6 @@ impl Renderable<Login> for Login {
                 <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
-
 
         html! {
             <>

@@ -2,7 +2,7 @@
 .wrapper {
   display: flex;
   align-items: center;
-  flex-direction: column; 
+  flex-direction: column;
   justify-content: center;
   width: 100%;
   min-height: 100%;
@@ -35,8 +35,39 @@
 
 
 /* TABLES FORMATTING */
+
 table th {
 	font-size: 16px;
+}
+
+table td.spacing {
+  padding:10px 0;
+}
+
+.noBoxedForm {
+  background-color:#fff;
+  min-width: 700px;
+  padding: 20px;
+  padding-left:0px;
+  position:relative;
+}
+
+.boxedForm {
+  -webkit-border-radius: 10px 10px 10px 10px;
+  border-radius: 10px 10px 10px 10px;
+  background-color:#fff;
+  margin-top:20px;
+  display: inline-block;
+  min-width: 600px;
+  min-height:500px;
+  padding: 20px;
+  -webkit-box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+  box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+}
+button.selected {
+  font-weight:bold;
+  text-transform: uppercase;
+  background-color:#8a8a8a !important;
 }
 
 
@@ -53,6 +84,17 @@ h2.active {
 a.active, a:disabled {
   background-color: #f99d32;
   border: 2px solid white;
+}
+
+/* align left for forms */
+.formAlign {
+  margin-left:5px;
+  text-align:top;
+}
+
+button.align {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 button.e-buttons:disabled, button.e-button:active{
@@ -115,6 +157,13 @@ nav div ul li a.navBarText:hover {
   margin-left: auto;
 }
 
+.formLabel {
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  background-color: #fff;
+  padding: 10px;
+}
+
 .navbarColour {
   background-color:#be0011;
   box-shadow: 0 3px 10px -2px rgba(0,0,0,.1);
@@ -123,6 +172,12 @@ nav div ul li a.navBarText:hover {
 
 .e-buttons {
   margin: 5px 10px 5px 5px;
+}
+
+.formButtons {
+  margin-left:20px;
+  margin-top:50px !important;
+  margin-bottom: 20px !important;
 }
 
 div div.container-fluid {
@@ -134,7 +189,7 @@ input[type=button], input[type=submit], input[type=reset]  {
   background-color: #BE0010;
   border: none;
   color: white;
-  padding: 15px 80px;
+  padding: 15px 75px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
@@ -164,6 +219,19 @@ input[type=button]:active, input[type=submit]:active, input[type=reset]:active  
   transform: scale(0.95);
 }
 
+input.coordinates[type=text] {
+  width:39%;
+}
+
+input.loginText[type=text] {
+  width:70%;
+  font-size: 20px;
+}
+
+input.userText[type=text]{
+  width:98%;
+}
+
 input[type=text] {
   background-color: #f6f6f6;
   border: none;
@@ -172,9 +240,9 @@ input[type=text] {
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  font-size: 20px;
+  font-size: 18px;
   margin: 5px;
-  width: 70%;
+  width: 80%;
   border: 2px solid #f6f6f6;
   -webkit-transition: all 0.5s ease-in-out;
   -moz-transition: all 0.5s ease-in-out;
@@ -207,8 +275,8 @@ input[type=password] {
   width: 70%;
   border: 2px solid #f6f6f6;
   -webkit-transition: all 0.5s ease-in-out;
-  -moz-transition: all 0.5s .navBarText ease-in-out;
-  -ms-transition: all 0.5s ease-in-out;// Large devices (desktops, less than 1200px)
+  -moz-transition: all 0.5s ease-in-out;
+  -ms-transition: all 0.5s ease-in-out;
   -o-transition: all 0.5s ease-in-out;
   transition: all 0.5s ease-in-out;
   -webkit-border-radius: 5px 5px 5px 5px;
@@ -229,7 +297,7 @@ input[type=password]:placeholder {
 /* OTHERS */
 *:focus {
     outline: none;
-} 
+}
 
 #icon {
   width:60%;

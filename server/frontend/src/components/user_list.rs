@@ -139,7 +139,15 @@ impl Renderable<UserList> for UserList {
 
         html! {
             <>
-                <h2>{ "User List" }</h2>
+                <div class="d-flex justify-content-between">
+                    <h2>{ "User List"}</h2>
+                    <button
+                        class="btn btn-success logoutPlacement my-1",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
+                    >
+                        {"Add User"}
+                    </button>
+                </div>
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <tr>
