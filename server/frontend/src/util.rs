@@ -1,8 +1,10 @@
 use failure::Fallible;
 use yew::services::fetch::{ Response as FetchResponse, };
 use yew::format::Json;
+use common::*;
 
-pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
+pub type JsonResponse<T> = FetchResponse<Json<Fallible<Result<T, WebError>>>>;
+pub type BinResponse<T> = FetchResponse<Json<Fallible<T>>>;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WebUserType {
@@ -147,4 +149,29 @@ macro_rules! delete_request {
             Err(_) => None,
         };
     };
+}
+
+pub trait JsonResponseHandler {
+    fn handle_response<T, S, F>(&mut self, response: JsonResponse<T>, success: S, failure: F)
+        where
+        S: Fn(&mut Self, T),
+        F: Fn(&mut Self, WebError),
+    {
+        let (_meta, Json(body)) = response.into_parts();
+        match body {
+            Ok(Ok(value)) => {
+                success(self, value)
+            },
+            Ok(Err(err)) => {
+                failure(self, err)
+            },
+            Err(err) => {
+                let user_err = WebError {
+                    t: AkErrorType::ConnectionError,
+                    reason: err.to_string(),
+                };
+                failure(self, user_err)
+            },
+        }
+    }
 }
