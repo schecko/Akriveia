@@ -610,13 +610,9 @@ impl MapAddUpdate {
 
 impl Renderable<MapAddUpdate> for MapAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.opt_id {
-            Some(_id) => "Update Map",
-            None => "Add New Map",
-        };
         let title_name = match self.data.opt_id {
             Some(_id) => "Update Map",
-            None => "Add New Map",
+            None => "Add Map",
         };
 
         let add_another_map = match &self.data.opt_id {
@@ -668,7 +664,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                             </td>
                         </tr>
                         <tr>
-                            <td class="formLabel">{ "Bounds(m): " }</td>
+                            <td class="formLabel">{ "Dimensions(m): " }</td>
                             <td>
                                 <input
                                     class="coordinates",
@@ -700,7 +696,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 <textarea
                                     class="formAlign",
                                     rows=5,
-                                    cols=36,
+                                    cols=38,
                                     value=note,
                                     placeholder="Add Important Information",
                                     oninput=|e| Msg::InputNote(e.value),
@@ -737,8 +733,8 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                             type="button",
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateMap,
-                                            >
-                                            { submit_name }
+                                        >
+                                            { title_name }
                                         </button>
                                         { add_another_map }
                                     </>
@@ -752,7 +748,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                             type="button",
                             class="btn btn-lg btn-danger align",
                             onclick=|_| Msg::ChangeRootPage(root::Page::MapList),
-                            >
+                        >
                                 { "Cancel" }
                         </button>
                     </div>

@@ -369,7 +369,12 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
 
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <p class="alert alert-danger" role="alert">{msg}</p>
+                <div
+                    class="alert alert-danger"
+                    role="alert"
+                >
+                    {msg}
+                </div>
             }
         });
 

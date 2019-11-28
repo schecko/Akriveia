@@ -147,7 +147,7 @@ impl Renderable<MapList> for MapList {
                         class="btn btn-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
                     >
-                        {"Add New Map"}
+                        {"Add Map"}
                     </button>
                 </div>
                 <table class="table table-striped">

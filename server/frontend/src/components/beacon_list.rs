@@ -205,7 +205,7 @@ impl Renderable<BeaconList> for BeaconList {
                         class="btn btn-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
                     >
-                        {"Add New Beacon"}
+                        {"Add Beacon"}
                     </button>
                 </div>
                 <table class="table table-striped">

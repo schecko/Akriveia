@@ -295,13 +295,9 @@ impl Component for BeaconAddUpdate {
 
 impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
-            Some(_id) => "Update Beacon",
-            None => "Add New Beacon",
-        };
         let title_name = match self.data.id {
             Some(_id) => "Update Beacon",
-            None => "Add New Beacon",
+            None => "Add Beacon",
         };
         let chosen_floor_id = match self.data.beacon.map_id {
             Some(id) => id,
@@ -425,7 +421,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateBeacon,
                                         >
-                                            { submit_name }
+                                            { title_name }
                                         </button>
                                         { add_another_button }
                                     </>

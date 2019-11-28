@@ -2,7 +2,7 @@
 .wrapper {
   display: flex;
   align-items: center;
-  flex-direction: column; 
+  flex-direction: column;
   justify-content: center;
   width: 100%;
   min-height: 100%;
@@ -317,7 +317,7 @@ input[type=password]:placeholder {
 /* OTHERS */
 *:focus {
     outline: none;
-} 
+}
 
 #icon {
   width:60%;
