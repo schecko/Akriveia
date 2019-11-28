@@ -345,10 +345,6 @@ impl UserAddUpdate {
 // The front-end layout in HTML
 impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
-            Some(_id) => "Update User",
-            None => "Add User",
-        };
         let title_name = match self.data.id {
             Some(_id) => "Update User",
             None => "Add User",
@@ -382,8 +378,6 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             }
         });
 
-        let display_errors = html! { for errors };
-
         html! {
             <>
                 {
@@ -392,7 +386,8 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         None => { String::new() },
                     }
                 }
-                { display_errors }
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div class="boxedForm">
                     <h2>{ title_name }</h2>
                     <table>
@@ -452,7 +447,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateUser,
                                         >
-                                            { submit_name }
+                                            { title_name }
                                         </button>
                                         { add_another_button }
                                     </>
@@ -469,6 +464,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         </button>
                     </div>
                 </div>
+                <button onclick=|_| Msg::ChangeRootPage(root::Page::UserList),>{ "Cancel" }</button>
             </>
         }
     }

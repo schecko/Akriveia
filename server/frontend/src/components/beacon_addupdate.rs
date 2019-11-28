@@ -295,10 +295,6 @@ impl Component for BeaconAddUpdate {
 
 impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
-            Some(_id) => "Update Beacon",
-            None => "Add Beacon",
-        };
         let title_name = match self.data.id {
             Some(_id) => "Update Beacon",
             None => "Add Beacon",
@@ -349,7 +345,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
-                        None => { "". to_string() },
+                        None => { "".to_string() },
                     }
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
@@ -425,7 +421,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateBeacon,
                                         >
-                                            { submit_name }
+                                            { title_name }
                                         </button>
                                         { add_another_button }
                                     </>
