@@ -145,7 +145,7 @@ impl Renderable<UserList> for UserList {
                         class="btn btn-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
                     >
-                        {"Add New User"}
+                        {"Add User"}
                     </button>
                 </div>
                 <table class="table table-striped">

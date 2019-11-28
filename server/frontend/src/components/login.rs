@@ -108,7 +108,7 @@ impl Component for Login {
                 let mut info = LoginInfo::new();
                 info.name = String::from("responder");
                 self.fetch_task = post_request!(
-                    self.fetch_service,
+                    self.fetchtch_service,
                     &session_login_url(),
                     info,
                     self.self_link,

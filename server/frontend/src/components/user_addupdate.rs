@@ -347,11 +347,11 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
         let submit_name = match self.data.id {
             Some(_id) => "Update User",
-            None => "Add New User",
+            None => "Add User",
         };
         let title_name = match self.data.id {
             Some(_id) => "Update User",
-            None => "Add New User",
+            None => "Add User",
         };
 
         let add_another_button = match &self.data.id {
@@ -377,7 +377,6 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                     class="alert alert-danger"
                     role="alert"
                 >
-                    {"ERROR: "}
                     {msg}
                 </div>
             }
