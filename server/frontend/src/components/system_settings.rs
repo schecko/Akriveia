@@ -94,7 +94,7 @@ impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
@@ -108,6 +108,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                 }
                 { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
                 { for errors }
+                <h2>{ "System Settings"}</h2>
                 <div/>
                 <table>
                     <tr>

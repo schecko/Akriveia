@@ -141,9 +141,9 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
+                <h2>{ "Map List"}</h2>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Map List" }</h2>
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "Bounds" }</th>

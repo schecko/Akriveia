@@ -610,10 +610,6 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
             Some(_id) => "Update Map",
             None => "Add Map",
         };
-        let title_name = match self.data.opt_id {
-            Some(_id) => "Map Update",
-            None => "Map Add",
-        };
 
         let add_another_map = match &self.data.opt_id {
             Some(_) => {
@@ -628,7 +624,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
@@ -636,7 +632,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
 
         html! {
             <>
-                <p>{ title_name }</p>
+                <h2>{ submit_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },

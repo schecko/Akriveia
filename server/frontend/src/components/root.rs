@@ -1,4 +1,5 @@
 
+
 use common::*;
 use crate::util::{ self, WebUserType, };
 use super::beacon_addupdate::BeaconAddUpdate;
@@ -16,6 +17,7 @@ use super::user_list::UserList;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
+
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -139,7 +141,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Diagnostics" }</h1>
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -157,7 +158,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Status" }</h1>
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -188,7 +188,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "MapView" }</h1>
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -208,7 +207,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Beacon" }</h1>
                             <BeaconList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -221,7 +219,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Beacon" }</h1>
                             <BeaconAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -236,7 +233,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "User" }</h1>
                             <UserList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -249,7 +245,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "User" } </h1>
                             <UserAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -264,7 +259,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Map" }</h1>
                             <MapList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -277,7 +271,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "Map" }</h1>
                             <MapAddUpdate
                                 opt_id=opt_id,
                                 user_type=self.user_type,
@@ -292,7 +285,6 @@ impl Renderable<RootComponent> for RootComponent {
                     <div class="page-content-wrapper">
                         { self.navigation() }
                         <div class="container-fluid">
-                            <h1>{ "User" } </h1>
                             <SystemSettings
                                 user_type=self.user_type,
                             />
@@ -309,7 +301,10 @@ impl RootComponent {
         let view_map = html! {
             <>
                 <a
-                    class="nav-link navBarText",
+                    class = match self.current_page {
+                        Page::MapView {..} => {"nav-link navBarText active"},
+                        _ => {"nav-link navBarText"},
+                    }
                     onclick=|_| Msg::ChangePage(Page::MapView(None)),
                     disabled={
                         match self.current_page {
@@ -326,44 +321,41 @@ impl RootComponent {
         let show_status = html! {
             <>
                 <a
-                    class="nav-link dropdown navBarText"
+                    class = match self.current_page {
+                        Page::Status {..} => {"nav-link navBarText active"},
+                        _ => {"nav-link navBarText"},
+                    }
                     id="navbarDropdown",
-                    role="button"
-                    data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false",
+                    role="button",
                     onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
                 >
                     { "Status" }
                 </a>
-                <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
-                    <li class="dropdown-list beacons-underline">
-                        <a
-                            class="dropdown-item",
-                            onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
-                            disabled={
-                                match self.current_page {
-                                    Page::Status(status::PageState::UserStatus) => true,
-                                    _ => false,
-                                }
-                            },
-                        >
-                            { "User Status" }
-                        </a>
-                    </li>
-                    <li class="dropdown-list beacons-underline">
-                        <a
-                            class="dropdown-item",
-                            onclick=|_| Msg::ChangePage(Page::Status(status::PageState::BeaconStatus)),
-                            disabled={
-                                match self.current_page {
-                                    Page::Status(status::PageState::BeaconStatus) => true,
-                                    _ => false,
-                                }
-                            },
-                        >
-                            { "Beacon Status" }
-                        </a>
-                    </li>
+                <div class="dropdown-content">
+                    <a
+                        class="dropdown-item navBarText",
+                        onclick=|_| Msg::ChangePage(Page::Status(status::PageState::UserStatus)),
+                        disabled={
+                            match self.current_page {
+                                Page::Status(status::PageState::UserStatus) => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "User Status" }
+                    </a>
+                    <a
+                        class="dropdown-item navBarText",
+                        onclick=|_| Msg::ChangePage(Page::Status(status::PageState::BeaconStatus)),
+                        disabled={
+                            match self.current_page {
+                                Page::Status(status::PageState::BeaconStatus) => true,
+                                _ => false,
+                            }
+                        },
+                    >
+                        { "Beacon Status" }
+                    </a>
                 </div>
             </>
         };
@@ -374,39 +366,37 @@ impl RootComponent {
             WebUserType::Admin => html! {
                 <>
                     <a
-                        class="nav-link dropdown navBarText"
-                        id="navbarDropdown",
-                        role="button"
-                        data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false",
+                        class = match self.current_page {
+                            Page::UserList => {"nav-link dropdown navBarText active"},
+                            Page::UserAddUpdate{..} => {"nav-link dropdown navBarText active"},
+                            _ => {"nav-link dropdown navBarText"},
+                        }
+                        role="button",
+                        data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::UserList)
                     >
                             { "User" }
                     </a>
-                    <div class="dropdown-content navBarText" aria-labelledby="navbarDropdown">
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                class="dropdown-item",
-                                onclick=|_| Msg::ChangePage(Page::UserList),
-                                disabled={self.current_page == Page::UserList},>
-                                    { "User List" }
-                            </a>
-                        </li>
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                class="dropdown-item",
-                                onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
-                                disabled={
-                                    match self.current_page {
-                                        // match ignoring the fields
-                                        Page::UserAddUpdate {..} => true,
-                                        _=> false,
-                                    }
-                                },
-                            >
-                                { "Add User" }
-                            </a>
-                        </li>
+                    <div class="dropdown-content">
+                        <a
+                            class="dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::UserList),
+                            disabled={self.current_page == Page::UserList},>
+                                { "User List" }
+                        </a>
+                        <a
+                            class="dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::UserAddUpdate(None)),
+                            disabled={
+                                match self.current_page {
+                                    // match ignoring the fields
+                                    Page::UserAddUpdate {..} => true,
+                                    _=> false,
+                                }
+                            },
+                        >
+                            { "Add User" }
+                        </a>
                     </div>
                 </>
             },
@@ -417,27 +407,26 @@ impl RootComponent {
             WebUserType::Admin => html! {
                 <>
                     <a
-                        class="nav-link dropdown navBarText"
-                        role="button"
-                        data-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                        onclick=|_| Msg::ChangePage(Page::BeaconList)
+                        class = match self.current_page {
+                            Page::BeaconList => {"nav-link dropdown navBarText active"},
+                            Page::BeaconAddUpdate{..} => {"nav-link dropdown navBarText active"},
+                            _ => {"nav-link dropdown navBarText"},
+                        }
+                        role="button",
+                        data-toggle="dropdown",
+                        onclick=|_| Msg::ChangePage(Page::BeaconList),
                     >
                         { "Beacons" }
                     </a>
-                    <div class="dropdown-content navBarText">
-                        <li class="dropdown-list beacons-underline">
+                    <div class="dropdown-content">
                             <a
-                                class="dropdown-item",
+                                class="dropdown-item navBarText",
                                 onclick=|_| Msg::ChangePage(Page::BeaconList),
                                 disabled={self.current_page == Page::BeaconList},>
                                 { "Beacon List" }
                             </a>
-                        </li>
-                        <li class="dropdown-list beacons-underline">
                             <a
-                                class="dropdown-item",
+                                class="dropdown-item navBarText",
                                 onclick=|_| Msg::ChangePage(Page::BeaconAddUpdate(None)),
                                 disabled={
                                     match self.current_page {
@@ -449,7 +438,6 @@ impl RootComponent {
                             >
                                 { "Add Beacon" }
                             </a>
-                        </li>
                     </div>
                 </>
             },
@@ -460,37 +448,38 @@ impl RootComponent {
             WebUserType::Admin => html! {
                 <>
                     <a
-                        class="nav-link dropdown navBarText"
-                        role="button"
-                        data-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
+                        class = match self.current_page {
+                            Page::MapList => {"nav-link dropdown navBarText active"},
+                            Page::MapAddUpdate{..} => {"nav-link dropdown navBarText active"},
+                            _ => {"nav-link dropdown navBarText"},
+                        }
+                        role="button",
+                        data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::MapList),
                     >
                             { "Maps" }
                     </a>
-                    <div class="dropdown-content navBarText">
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                onclick=|_| Msg::ChangePage(Page::MapList),
-                                disabled={self.current_page == Page::MapList},>
-                                    { "Map List" }
-                            </a>
-                        </li>
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
-                                disabled={
-                                    match self.current_page {
-                                        // match ignoring the fields
-                                        Page::MapAddUpdate {..} => true,
-                                        _ => false,
-                                    }
-                                },
-                            >
-                                { "Add Map" }
-                            </a>
-                        </li>
+                    <div class="dropdown-content">
+                        <a
+                            class = "dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::MapList),
+                            disabled={self.current_page == Page::MapList},
+                        >
+                                { "Map List" }
+                        </a>
+                        <a
+                            class = "dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::MapAddUpdate(None)),
+                            disabled={
+                                match self.current_page {
+                                    // match ignoring the fields
+                                    Page::MapAddUpdate {..} => true,
+                                    _ => false,
+                                }
+                            },
+                        >
+                            { "Add Map" }
+                        </a>
                     </div>
                 </>
             },
@@ -501,30 +490,29 @@ impl RootComponent {
             WebUserType::Admin => html! {
                 <>
                     <a
-                        class="nav-link dropdown navBarText"
+                        class = match self.current_page {
+                            Page::SystemSettings => {"nav-link navBarText active"}
+                            Page::Diagnostics {..} => {"nav-link navBarText active"},
+                            _ => {"nav-link navBarText"},
+                        },
                         role="button"
-                        data-toggle="dropdown"
-                        aria-haspopup="true"
-                        aria-expanded="false"
                         onclick=|_| Msg::ChangePage(Page::SystemSettings),
                     >
                         { "System" }
                     </a>
-                    <div class="dropdown-content navBarText">
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                onclick=|_| Msg::ChangePage(Page::SystemSettings),
-                                disabled={self.current_page == Page::SystemSettings},>
-                                    { "System Settings" }
-                            </a>
-                        </li>
-                        <li class="dropdown-list beacons-underline">
-                            <a
-                                onclick=|_| Msg::ChangePage(Page::Diagnostics),
-                                disabled={self.current_page == Page::Diagnostics},>
-                                    { "Diagnostics" }
-                            </a>
-                        </li>
+                    <div class="dropdown-content">
+                        <a
+                            class="dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::SystemSettings),
+                            disabled={self.current_page == Page::SystemSettings},>
+                                { "System Settings" }
+                        </a>
+                        <a
+                            class="dropdown-item navBarText",
+                            onclick=|_| Msg::ChangePage(Page::Diagnostics),
+                            disabled={self.current_page == Page::Diagnostics},>
+                                { "Diagnostics" }
+                        </a>
                     </div>
                 </>
             },
@@ -574,22 +562,22 @@ impl RootComponent {
                 </a>
                 <div class="navbarJustify">
                     <ul class="nav navbarText">
-                        <li class="nav-item mapview-underline my-auto">
-                            { view_map }
+                        <li class="my-auto">
+                            {view_map}
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="dropdown my-auto">
                             { show_status }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="dropdown my-auto">
                             { select_map }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="dropdown my-auto">
                             { select_beacon }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="dropdown my-auto">
                             { select_user }
                         </li>
-                        <li class="nav-item dropdown my-auto">
+                        <li class="dropdown my-auto">
                             { select_system }
                         </li>
                     </ul>

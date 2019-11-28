@@ -245,9 +245,10 @@ impl Renderable<Login> for Login {
     fn view(&self) -> Html<Self> {
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
+
 
         html! {
             <>

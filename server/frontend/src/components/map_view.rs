@@ -344,7 +344,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
 
         let mut errors = self.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
@@ -362,7 +362,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             <div>
                 { for errors }
                 <div>
-                    <p>{ "Maps " }</p>
+                    <h3>{ "View Map" }</h3>
                     { for maps }
                 </div>
                 <div>

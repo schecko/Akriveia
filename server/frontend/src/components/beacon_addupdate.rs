@@ -299,10 +299,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             Some(_id) => "Update Beacon",
             None => "Add Beacon",
         };
-        let title_name = match self.data.id {
-            Some(_id) => "Beacon Update",
-            None => "Beacon Add",
-        };
         let chosen_floor_id = match self.data.beacon.map_id {
             Some(id) => id,
             None => -1,
@@ -332,7 +328,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
@@ -340,7 +336,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
 
         html! {
             <>
-                <p>{ title_name }</p>
+                <h2>{ submit_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },

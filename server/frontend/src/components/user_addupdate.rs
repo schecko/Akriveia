@@ -339,13 +339,9 @@ impl UserAddUpdate {
 // The front-end layout in HTML
 impl Renderable<UserAddUpdate> for UserAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.id {
+        let title_name = match self.data.id {
             Some(_id) => "Update User",
             None => "Add User",
-        };
-        let title_name = match self.data.id {
-            Some(_id) => "User Update",
-            None => "User Add",
         };
 
         let add_another_button = match &self.data.id {
@@ -361,13 +357,13 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
 
         let mut errors = self.data.error_messages.iter().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
 
         html! {
             <>
-                <p>{ title_name }</p>
+                <h2>{ title_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
@@ -425,7 +421,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                     match self.user_type {
                         WebUserType::Admin => html! {
                             <>
-                                <button onclick=|_| Msg::RequestAddUpdateUser,>{ submit_name }</button>
+                                <button onclick=|_| Msg::RequestAddUpdateUser,>{ title_name }</button>
                                 { add_another_button }
                             </>
                         },
