@@ -40,6 +40,12 @@ table th {
 	font-size: 16px;
 }
 
+th.spacing {
+  font-size: 16px;
+  margin: 0px 20px;
+  padding: 10px;
+}
+
 table td.spacing {
   padding:10px 0;
 }
@@ -64,6 +70,20 @@ table td.spacing {
   -webkit-box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
   box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
 }
+
+.tinyBoxForm {
+  -webkit-border-radius: 10px 10px 10px 10px;
+  border-radius: 10px 10px 10px 10px;
+  background-color:#fff;
+  margin:20px;
+  display: inline-block;
+  min-width: 250px;
+  min-height:400px;
+  padding: 20px;
+  -webkit-box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+  box-shadow: 0 10px 20px 0 rgba(0,0,0,0.3);
+}
+
 button.selected {
   font-weight:bold;
   text-transform: uppercase;
@@ -230,6 +250,11 @@ input.loginText[type=text] {
 
 input.userText[type=text]{
   width:98%;
+}
+
+input.fixedLength[type=text]{
+  min-width:200px;
+  width:50%;
 }
 
 input[type=text] {
