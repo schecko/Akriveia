@@ -464,7 +464,6 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                         </button>
                     </div>
                 </div>
-                <button onclick=|_| Msg::ChangeRootPage(root::Page::UserList),>{ "Cancel" }</button>
             </>
         }
     }
