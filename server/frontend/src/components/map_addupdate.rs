@@ -608,11 +608,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
     fn view(&self) -> Html<Self> {
         let submit_name = match self.data.opt_id {
             Some(_id) => "Update Map",
-            None => "Add New Map",
-        };
-        let title_name = match self.data.opt_id {
-            Some(_id) => "Update Map",
-            None => "Add New Map",
+            None => "Add Map",
         };
 
         let add_another_map = match &self.data.opt_id {
@@ -636,7 +632,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
 
         html! {
             <>
-                <h2>{ title_name }</h2>
+                <h2>{ submit_name }</h2>
                 {
                     match &self.data.success_message {
                         Some(msg) => { format!("Success: {}", msg) },
