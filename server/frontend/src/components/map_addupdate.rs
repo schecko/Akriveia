@@ -664,7 +664,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                             </td>
                         </tr>
                         <tr>
-                            <td class="formLabel">{ "Bounds(m): " }</td>
+                            <td class="formLabel">{ "Dimensions(m): " }</td>
                             <td>
                                 <input
                                     class="coordinates",
@@ -696,7 +696,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 <textarea
                                     class="formAlign",
                                     rows=5,
-                                    cols=36,
+                                    cols=38,
                                     value=note,
                                     placeholder="Add Important Information",
                                     oninput=|e| Msg::InputNote(e.value),
