@@ -2,7 +2,7 @@
 .wrapper {
   display: flex;
   align-items: center;
-  flex-direction: column; 
+  flex-direction: column;
   justify-content: center;
   width: 100%;
   min-height: 100%;
@@ -135,7 +135,6 @@ button.e-buttons:hover {
 nav div ul li a.navBarText:hover {
   border-radius:4px;
   border: 2px solid white;
-  /*background-color: #f9ce32;*/
   color:#16181b;
 }
 
@@ -298,7 +297,7 @@ input[type=password]:placeholder {
 /* OTHERS */
 *:focus {
     outline: none;
-} 
+}
 
 #icon {
   width:60%;

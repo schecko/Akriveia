@@ -566,7 +566,6 @@ impl MapAddUpdate {
                     </td>
                 </tr>
             }
-
         });
 
         match self.data.opt_id {
@@ -611,13 +610,9 @@ impl MapAddUpdate {
 
 impl Renderable<MapAddUpdate> for MapAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.opt_id {
-            Some(_id) => "Update Map",
-            None => "Add New Map",
-        };
         let title_name = match self.data.opt_id {
             Some(_id) => "Update Map",
-            None => "Add New Map",
+            None => "Add Map",
         };
 
         let add_another_map = match &self.data.opt_id {
@@ -639,17 +634,9 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
 
         let mut errors = self.data.error_messages.iter().cloned().map(|msg| {
             html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {"ERROR: "}
-                    {msg}
-                </div>
+                <p class="alert alert-danger" role="alert">{msg}</p>
             }
         });
-
-        let display_errors = html! { for errors };
 
         let note = self.data.map.note.clone().unwrap_or(String::new());
 
@@ -661,7 +648,8 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         None => { String::new() },
                     }
                 }
-                { display_errors}
+                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
+                { for errors }
                 <div class="boxedForm">
                     <h2>{ title_name }</h2>
                     <table>
@@ -745,8 +733,8 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                             type="button",
                                             class="btn btn-lg btn-success align",
                                             onclick=|_| Msg::RequestAddUpdateMap,
-                                            >
-                                            { submit_name }
+                                        >
+                                            { title_name }
                                         </button>
                                         { add_another_map }
                                     </>
@@ -760,7 +748,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                             type="button",
                             class="btn btn-lg btn-danger align",
                             onclick=|_| Msg::ChangeRootPage(root::Page::MapList),
-                            >
+                        >
                                 { "Cancel" }
                         </button>
                     </div>
