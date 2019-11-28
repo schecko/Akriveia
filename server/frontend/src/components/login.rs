@@ -246,7 +246,6 @@ impl Renderable<Login> for Login {
             }
         });
 
-
         html! {
             <>
                 {
