@@ -25,7 +25,7 @@ impl <T> UserMessage<T> {
     pub fn view(&self) -> Html<T>
         where T: yew::Component
     {
-        let mut errors = self.error_messages.iter().cloned().map(|msg| {
+        let mut errors = self.error_messages.iter().map(|msg| {
             html! {
                 <div
                     class="alert alert-danger"
@@ -37,16 +37,30 @@ impl <T> UserMessage<T> {
         });
 
         html! {
-            <>
+            <div>
                 {
                     match &self.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { String::new() },
+                        Some(msg) => html! {
+                            <div class="alert alert-success" role="alert">
+                                { format!("Success: {}", msg) }
+                            </div>
+                        },
+                        None => html! { },
                     }
                 }
-                { if self.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
-            </>
+                {
+                    if self.error_messages.len() > 0 {
+                        html! {
+                            <div class="alert alert-danger" role="alert">
+                               <p>{ "Failure: " }</p>
+                                { for errors }
+                            </div>
+                        }
+                   } else {
+                       html! { }
+                   }
+                }
+            </div>
         }
     }
 }
