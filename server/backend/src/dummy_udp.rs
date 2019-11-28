@@ -16,7 +16,6 @@ use std::time::Duration;
 use std::net::IpAddr;
 use futures::future as fut;
 use actix::fut as afut;
-use crate::ak_error::AkError;
 
 const MESSAGE_INTERVAL: Duration = Duration::from_millis(1000);
 const MIN_DISTANCE: f64 = 1.0;
@@ -45,12 +44,10 @@ impl Handler<GenTagData> for DummyUDP {
 
     fn handle(&mut self, _msg: GenTagData, _: &mut Context<Self>) -> Self::Result {
         let b_fut = db_utils::default_connect()
-            .map_err(AkError::from)
             .and_then(|client| {
                 beacon::select_beacons(client)
             });
         let u_fut = db_utils::default_connect()
-            .map_err(AkError::from)
             .and_then(|client| {
                 user::select_user_random(client)
             });
@@ -140,7 +137,6 @@ impl DummyUDP {
         }
 
         let beacons_fut = db_utils::default_connect()
-            .map_err(AkError::from)
             .and_then(move |client| {
                 if let Some(ip) = opt_ip {
                     fut::Either::B(beacon::select_beacon_by_ip(client, ip)
