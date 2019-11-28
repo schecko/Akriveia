@@ -255,6 +255,7 @@ mod tests {
         let map = Map::new();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -276,6 +277,7 @@ mod tests {
         map.name = "map_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -304,6 +306,7 @@ mod tests {
         updated_map.name = "map_1".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -329,6 +332,7 @@ mod tests {
         map.name = "map_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -356,6 +360,7 @@ mod tests {
         let file2 = file.clone();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -390,6 +395,7 @@ mod tests {
         map.name = "map_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })
@@ -414,6 +420,7 @@ mod tests {
         map.name = "map_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_map(client, map)
             })

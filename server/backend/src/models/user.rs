@@ -361,6 +361,7 @@ mod tests {
         let user = TrackedUser::new();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 let expected = user.clone();
                 insert_user(client, user)
@@ -386,6 +387,7 @@ mod tests {
         updated_user.name = "user_1".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -412,6 +414,7 @@ mod tests {
         user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -439,6 +442,7 @@ mod tests {
         user.name = "user_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -464,6 +468,7 @@ mod tests {
         user.mac_address = Some(ShortAddress::from_bytes(&[0, 3]).unwrap());
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -491,6 +496,7 @@ mod tests {
         e_user.name = "user_1".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -522,6 +528,7 @@ mod tests {
         contact.name = "contact_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -556,6 +563,7 @@ mod tests {
         user.name = "user_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -581,6 +589,7 @@ mod tests {
         user.name = "user_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -608,6 +617,7 @@ mod tests {
         contact.name = "contact_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
@@ -643,6 +653,7 @@ mod tests {
         user.name = "user_0".to_string();
 
         let task = db_utils::default_connect()
+            .map_err(AkError::from)
             .and_then(|client| {
                 insert_user(client, user)
             })
