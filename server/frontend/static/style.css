@@ -253,6 +253,11 @@ input.userText[type=text]{
   width:98%;
 }
 
+input.fixedLength[type=text]{
+  min-width:200px;
+  width:50%;
+}
+
 input[type=text] {
   background-color: #f6f6f6;
   border: none;
