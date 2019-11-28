@@ -110,7 +110,6 @@ impl Renderable<SystemSettings> for SystemSettings {
                 { for errors }
                 <div/>
                 <h2>{ "System Settings" }</h2>
-                
                 <div class="d-flex">
                     <button
                         class="btn btn-lg btn-primary mr-3 my-auto",
