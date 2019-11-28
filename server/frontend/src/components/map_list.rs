@@ -141,10 +141,18 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
+                <div class="d-flex justify-content-between">
+                    <h2>{ "Map List"}</h2>
+                    <button
+                        class="btn btn-success logoutPlacement my-1",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
+                    >
+                        {"Add Map"}
+                    </button>
+                </div>
                 { self.user_msg.view() }
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Map List" }</h2>
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "Bounds" }</th>

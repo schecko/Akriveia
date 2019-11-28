@@ -270,7 +270,6 @@ impl Component for MapViewComponent {
             Msg::Ignore => {
             },
         }
-
         self.render();
         true
     }
@@ -317,19 +316,21 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             };
             html! {
                 <tr>
-                    <td>{user.addr}</td>
+                    <td>{&user.addr}</td>
                     <td>{&user.name}</td>
                     <td>{user.last_active}</td>
                     {
                         match self.user_type {
                             WebUserType::Admin => html! {
-                                <DisplayButton<String>
-                                    on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
-                                    border=set_border,
-                                    value={user.addr.to_string()},
-                                    display={"TOF"},
-                                    style="btn-secondary"
-                                />
+                                <td>
+                                    <DisplayButton<String>
+                                        on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
+                                        border=set_border,
+                                        value={user.addr.to_string()},
+                                        display={"TOF"},
+                                        style="btn-secondary"
+                                    />
+                                </td>
                             },
                             _ => html! {}
                         }
@@ -342,37 +343,32 @@ impl Renderable<MapViewComponent> for MapViewComponent {
             <div>
                 { self.user_msg.view() }
                 <div>
-                    <p>{ "Maps " }</p>
+                    <h3>{ "View Map" }</h3>
                     { for maps }
                 </div>
-                <table>
-                    <tr>
-                        <td>
-                        { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
-                        </td>
-                        <td>
-                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                        </td>
-                        <td>
-                            <table>
-                                <tr>
-                                    <td>{ "Address" }</td>
-                                    <td>{ "Name" }</td>
-                                    <td>{ "Last Seen" }</td>
-                                    {
-                                        match self.user_type {
-                                            WebUserType::Admin => html! {
-                                                <td>{ "Debug" }</td>
-                                            },
-                                            _ => html! {},
-                                        }
+                <div>
+                    { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
+                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    <div class="tinyBoxForm align-top">
+                        <h4>{"User Status"}</h4>
+                        <table class="table table-small">
+                            <tr>
+                                <th>{"Address"}</th>
+                                <th>{"Name"}</th>
+                                <th>{"Last Seen"}</th>
+                                {
+                                    match self.user_type {
+                                        WebUserType::Admin => html! {
+                                            <th>{ "Debug" }</th>
+                                        },
+                                        _ => html! {},
                                     }
-                                </tr>
-                                { for realtime_users }
-                            </table>
-                        </td>
-                    </tr>
-                </table>
+                                }
+                            </tr>
+                            { for realtime_users }
+                        </table>
+                    </div>
+                </div>
             </div>
         }
     }

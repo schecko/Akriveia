@@ -83,26 +83,34 @@ impl Renderable<SystemSettings> for SystemSettings {
             <>
                 { self.user_msg.view() }
                 <div/>
-                <table>
-                    <tr>
-                        <td>
-                            <button
-                                onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
-                            >
-                                { "Restart Server" }
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <button
-                                onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
-                            >
-                                { "Reset Database" }
-                            </button>
-                        </td>
-                    </tr>
-                </table>
+                <h2>{ "System Settings" }</h2>
+                <div class="d-flex">
+                    <button
+                        class="btn btn-lg btn-primary mr-3 my-auto",
+                        onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
+                    >
+                        { "Restart Server" }
+                    </button>
+                    <button
+                        class="btn btn-lg btn-primary ml-3 my-auto",
+                        onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
+                    >
+                        { "Reset Database" }
+                    </button>
+                </div>
+
+                <div class="d-flex justify-content-start">
+                    <button
+                        class="btn btn-lg btn-secondary my-auto",
+                    >
+                        {"Set IP Address"}
+                    </button>
+                    <input
+                        type="text",
+                        class="fixedLength",
+                        placeholder="IP address",
+                    />
+                </div>
             </>
         }
     }

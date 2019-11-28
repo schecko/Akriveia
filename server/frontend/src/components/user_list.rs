@@ -115,7 +115,7 @@ impl Renderable<UserList> for UserList {
             html! {
                 <tr>
                     <td>{ &user.name }</td>
-                    <td>{ format!("{},{}", &user.coordinates.x, &user.coordinates.y) }</td>
+                    <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &user.mac_address.map_or(String::new(), |m| m.to_string()) }</td>
                     <td>{ user.employee_id.clone().unwrap_or(String::new()) }</td>
                     <td>{ &user.last_active}</td>
@@ -141,8 +141,16 @@ impl Renderable<UserList> for UserList {
 
         html! {
             <>
-                <h2>{ "User List" }</h2>
                 { self.user_msg.view() }
+                <div class="d-flex justify-content-between">
+                    <h2>{ "User List"}</h2>
+                    <button
+                        class="btn btn-success logoutPlacement my-1",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
+                    >
+                        {"Add User"}
+                    </button>
+                </div>
                 <table class="table table-striped">
                     <thead class="thead-light">
                         <tr>

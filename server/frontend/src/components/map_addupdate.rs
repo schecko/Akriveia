@@ -505,30 +505,34 @@ impl MapAddUpdate {
 
             html! {
                 <tr>
-                    <td>
+                    <td class="formLabel">
                         { &beacon.name }
                     </td>
                     <td>
                         <input
                             type="text",
+                            class="coordinates",
                             value=&bdata.raw_x,
                             oninput=|e| Msg::ManualBeaconPlacement(index, Coord::X, e.value),
                         />
                         <input
                             type="text",
+                            class="coordinates",
                             value=&bdata.raw_y,
                             oninput=|e| Msg::ManualBeaconPlacement(index, Coord::Y, e.value),
                         />
                     </td>
                     <td>
                         <button
+                            class="btn btn-sm btn-warning mx-1",
                             onclick=|_| Msg::RequestPutBeacon(beacon_id),
                         >
                             { "Save" }
                         </button>
                         <button
+                            class={ if this_beacon_selected { "btn btn-sm btn-success mx-1 selected" }
+                            else { "btn btn-sm mx-1 btn-primary" } },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
-                            class={ if this_beacon_selected { "bold_font" } else { "" } },
                         >
                             { "Toggle Placement" }
                         </button>
@@ -542,16 +546,16 @@ impl MapAddUpdate {
                 if self.data.attached_beacons.len() > 0 {
                     html! {
                         <>
-                            <p>{ "Beacon Placement" }</p>
+                            <h3>{ "Beacon Placement" }</h3>
                             <table>
                                 <tr>
-                                    <td>
+                                    <td class="formLabel">
                                         { "Name" }
                                     </td>
-                                    <td>
+                                    <td class="formLabel">
                                         { "Location" }
                                     </td>
-                                    <td>
+                                    <td class="formLabel">
                                         { "Actions" }
                                     </td>
                                 </tr>
@@ -577,19 +581,21 @@ impl MapAddUpdate {
 
 impl Renderable<MapAddUpdate> for MapAddUpdate {
     fn view(&self) -> Html<Self> {
-        let submit_name = match self.data.opt_id {
+        let title_name = match self.data.opt_id {
             Some(_id) => "Update Map",
             None => "Add Map",
-        };
-        let title_name = match self.data.opt_id {
-            Some(_id) => "Map Update",
-            None => "Map Add",
         };
 
         let add_another_map = match &self.data.opt_id {
             Some(_) => {
                 html! {
-                    <button onclick=|_| Msg::AddAnotherMap,>{ "Add Another" }</button>
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-warning align",
+                        onclick=|_| Msg::AddAnotherMap,
+                    >
+                        { "Add Another" }
+                    </button>
                 }
             },
             None => {
@@ -601,91 +607,108 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
 
         html! {
             <>
-                <p>{ title_name }</p>
                 { self.user_msg.view() }
-                <div/>
-                <table>
-                    <tr>
-                        <td>{ "Name: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.map.name,
-                                oninput=|e| Msg::InputName(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Bounds: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_bounds[0],
-                                oninput=|e| Msg::InputBound(0, e.value),
-                            />
-                        </td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_bounds[1],
-                                oninput=|e| Msg::InputBound(1, e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Scale: " }</td>
-                        <td>
-                            <input
-                                type="text",
-                                value=&self.data.raw_scale,
-                                oninput=|e| Msg::InputScale(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Note: " }</td>
-                        <td>
-                            <textarea
-                                rows=5,
-                                value=note,
-                                oninput=|e| Msg::InputNote(e.value),
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>{ "Blueprint: " }</td>
-                        <td>
-                            <input
-                                type="file",
-                                onchange=|value| {
-                                    if let ChangeData::Files(file_names) = value {
-                                        match file_names.iter().next() {
-                                            Some(file_name) => Msg::InputFile(file_name),
-                                            None => Msg::Ignore,
+                <div class="boxedForm">
+                    <h2>{ title_name }</h2>
+                    <table>
+                        <tr>
+                            <td class="formLabel">{"Name: " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    value=&self.data.map.name,
+                                    oninput=|e| Msg::InputName(e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Dimensions(m): " }</td>
+                            <td>
+                                <input
+                                    class="coordinates",
+                                    type="text",
+                                    value=&self.data.raw_bounds[0],
+                                    oninput=|e| Msg::InputBound(0, e.value),
+                                />
+                                <input
+                                    class="coordinates",
+                                    type="text",
+                                    value=&self.data.raw_bounds[1],
+                                    oninput=|e| Msg::InputBound(1, e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Scale(px/m): " }</td>
+                            <td>
+                                <input
+                                    type="text",
+                                    value=&self.data.raw_scale,
+                                    oninput=|e| Msg::InputScale(e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Notes: " }</td>
+                            <td>
+                                <textarea
+                                    class="formAlign",
+                                    rows=5,
+                                    cols=38,
+                                    value=note,
+                                    placeholder="Add Important Information",
+                                    oninput=|e| Msg::InputNote(e.value),
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="formLabel">{ "Blueprint: " }</td>
+                            <td>
+                                <input
+                                    type="file",
+                                    class="formAlign",
+                                    onchange=|value| {
+                                        if let ChangeData::Files(file_names) = value {
+                                            match file_names.iter().next() {
+                                                Some(file_name) => Msg::InputFile(file_name),
+                                                None => Msg::Ignore,
+                                            }
+                                        } else {
+                                            Msg::Ignore
                                         }
-                                    } else {
-                                        Msg::Ignore
-                                    }
+                                    },
+                                />
+                            </td>
+                        </tr>
+                    </table>
+                    { self.render_beacon_placement() }
+                    <div class="formButtons">
+                        {
+                            match self.user_type {
+                                WebUserType::Admin => html! {
+                                    <>
+                                        <button
+                                            type="button",
+                                            class="btn btn-lg btn-success align",
+                                            onclick=|_| Msg::RequestAddUpdateMap,
+                                        >
+                                            { title_name }
+                                        </button>
+                                        { add_another_map }
+                                    </>
                                 },
-                            />
-                        </td>
-                    </tr>
-                </table>
-                {
-                    match self.user_type {
-                        WebUserType::Admin => html! {
-                            <>
-                                <button onclick=|_| Msg::RequestAddUpdateMap,>{ submit_name }</button>
-                                { add_another_map }
-                            </>
-                        },
-                        WebUserType::Responder => html! {
-                            <></>
-                        },
-                    }
-                }
-                { self.render_beacon_placement() }
-                <button onclick=|_| Msg::ChangeRootPage(root::Page::MapList),>{ "Cancel" }</button>
+                                WebUserType::Responder => html! { },
+                            }
+                        }
+                        <button
+                            type="button",
+                            class="btn btn-lg btn-danger align",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::MapList),
+                        >
+                                { "Cancel" }
+                        </button>
+                    </div>
+                </div>
             </>
         }
     }

@@ -428,11 +428,10 @@ impl Status {
         });
 
         html! {
-            // TODO find the reason why table is not container-fluid
-            <div class="container-fluid">
+            <>
+                <h2>{ "Beacon Status" }</h2>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Beacon Status" }</h2>
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "State" }</th>
@@ -448,7 +447,7 @@ impl Status {
                         { for rows }
                     </tbody>
                 </table>
-            </div>
+            </>
         }
     }
 
@@ -496,10 +495,10 @@ impl Status {
         });
 
         html! {
-            <div class="container-fluid">
+            <>
+                <h2>{ "User Status" }</h2>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "User Status" }</h2>
                         <tr>
                             <th>{ "Name" }</th>
                             <th>{ "Coordinates" }</th>
@@ -513,7 +512,7 @@ impl Status {
                         { for rows }
                     </tbody>
                 </table>
-            </div>
+            </>
         }
     }
 }

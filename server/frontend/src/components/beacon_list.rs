@@ -171,11 +171,18 @@ impl Renderable<BeaconList> for BeaconList {
 
         html! {
             <>
-                <p>{ "Beacon List" }</p>
                 { self.user_msg.view() }
+                <div class="d-flex justify-content-between">
+                    <h2>{ "Beacon List"}</h2>
+                    <button
+                        class="btn btn-success logoutPlacement my-1",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                    >
+                        {"Add Beacon"}
+                    </button>
+                </div>
                 <table class="table table-striped">
                     <thead class="thead-light">
-                        <h2>{ "Beacon List" }</h2>
                         <tr>
                             <th>{ "Mac" }</th>
                             <th>{ "Coordinates" }</th>

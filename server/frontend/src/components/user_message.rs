@@ -27,7 +27,12 @@ impl <T> UserMessage<T> {
     {
         let mut errors = self.error_messages.iter().cloned().map(|msg| {
             html! {
-                <p>{msg}</p>
+                <div
+                    class="alert alert-danger"
+                    role="alert"
+                >
+                    {msg}
+                </div>
             }
         });
 

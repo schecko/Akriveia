@@ -171,7 +171,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                     <table class="table table-striped">
                         <thead class="thead-dark">
                             <div>
-                                <h2>{ "Select Beacons:  " }</h2>
+                                <h2>{ "Diagnostics" }</h2>
                                 { for beacon_selections }
                             </div>
                             <tr>
@@ -189,7 +189,10 @@ impl Renderable<Diagnostics> for Diagnostics {
             }
         } else {
             html! {
-                <h4>{ "No diagnostics yet..." }</h4>
+                <>
+                    <h2>{ "Diagnostics" }</h2>
+                    <h4>{ "No diagnostics yet..." }</h4>
+                </>
             }
         }
     }
