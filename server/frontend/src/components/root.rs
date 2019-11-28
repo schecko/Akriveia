@@ -107,7 +107,7 @@ impl Component for RootComponent {
                     |s, resp| {
                         s.emergency = resp;
                     },
-                    |s, e| {
+                    |_s, e| {
                         Log!("response - failed to post start emergency, {}", e);
                     },
                 );
@@ -118,7 +118,7 @@ impl Component for RootComponent {
                     |s, resp| {
                         s.emergency = resp;
                     },
-                    |s, e| {
+                    |_s, e| {
                         Log!("response - failed to request emergency status, {}", e);
                     },
                 );

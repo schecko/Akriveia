@@ -85,7 +85,7 @@ impl Component for UserList {
             Msg::ResponseDeleteUser(response) => {
                 self.handle_response(
                     response,
-                    |s, users| {
+                    |s, _| {
                         s.user_msg.success_message = Some("successfully deleted user".to_owned());
                     },
                     |s, e| {

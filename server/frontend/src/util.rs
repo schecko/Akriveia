@@ -157,7 +157,7 @@ pub trait JsonResponseHandler {
         S: Fn(&mut Self, T),
         F: Fn(&mut Self, WebError),
     {
-        let (meta, Json(body)) = response.into_parts();
+        let (_meta, Json(body)) = response.into_parts();
         match body {
             Ok(Ok(value)) => {
                 success(self, value)

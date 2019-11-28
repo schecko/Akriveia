@@ -1,5 +1,5 @@
 
-use actix_web::{ error, Error, web, HttpRequest, HttpResponse, };
+use actix_web::{ Error, web, HttpRequest, HttpResponse, };
 use actix_identity::Identity;
 use common::*;
 use crate::AKData;

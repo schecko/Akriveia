@@ -1,4 +1,4 @@
-use actix_web::{ error, error::PayloadError, HttpResponse, http::StatusCode, };
+use actix_web::{ error, error::PayloadError, HttpResponse, };
 use serde_derive::{ Deserialize, Serialize, };
 use std::fmt;
 use common::*;

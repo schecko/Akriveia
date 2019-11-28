@@ -20,7 +20,6 @@ use std::collections::{ BTreeSet, BTreeMap, };
 use common::*;
 use std::net::{ IpAddr, };
 use chrono::{ DateTime, Duration as cDuration, };
-use actix::fut as afut;
 use crate::ak_error::AkError;
 
 // Problem: Requests to beacons do not create a request object, and so

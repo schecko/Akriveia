@@ -2,7 +2,6 @@ use tokio_postgres::NoTls;
 use common::LoginInfo;
 use futures::{ future::err, Future, future::Either, };
 use crate::AKData;
-use actix_web::{ error, };
 use actix_identity::Identity;
 use crate::ak_error::AkError;
 
