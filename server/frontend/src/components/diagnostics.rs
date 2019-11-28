@@ -1,5 +1,6 @@
 use common::*;
 use crate::util;
+use crate::util::format_timestamp;
 use std::collections::{ VecDeque, BTreeSet };
 use std::time::Duration;
 use super::value_button::ValueButton;
@@ -152,7 +153,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         <td>{ &row.beacon_mac }</td>
                         <td>{ &row.tag_mac }</td>
                         <td>{ &row.tag_distance }</td>
-                        <td>{ &row.timestamp }</td>
+                        <td>{ format_timestamp(&row.timestamp) }</td>
                     </tr>
                 }
             });
@@ -166,7 +167,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                     </button>
 
                     <table class="table table-striped">
-                        <thead class="thead-dark">                 
+                        <thead class="thead-dark">
                             <div>
                                 <h2>{ "Select Beacons:  " }</h2>
                                 { for beacon_selections }
@@ -174,8 +175,8 @@ impl Renderable<Diagnostics> for Diagnostics {
                             <tr>
                                 <th>{ "Beacon Mac" }</th>
                                 <th>{ "User Mac" }</th>
-                                <th>{ "Distance" }</th>                                
-                                <th>{"Timestamp"}</th>                                
+                                <th>{ "Distance" }</th>
+                                <th>{"Timestamp"}</th>
                             </tr>
                         </thead>
                         <tbody>

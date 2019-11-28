@@ -1,5 +1,6 @@
 use common::*;
 use crate::util::{ self, WebUserType, };
+use crate::util::format_timestamp;
 use std::collections::HashMap;
 use std::time::Duration;
 use super::root;
@@ -421,7 +422,7 @@ impl Status {
                 <tr>
                     <td>{ &beacon.name }</td>
                     <td>{ &beacon.state }</td>
-                    <td>{ &beacon.last_active }</td>
+                    <td>{ format_timestamp(&beacon.last_active) }</td>
                     <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
@@ -492,7 +493,7 @@ impl Status {
                     <td>{ &user.name }</td>
                     <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
-                    <td>{ &user.last_active }</td>
+                    <td>{ format_timestamp(&user.last_active) }</td>
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>

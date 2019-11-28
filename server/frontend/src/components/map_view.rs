@@ -1,6 +1,7 @@
 use common::*;
-use crate::canvas::{ Canvas, /*screen_space*/ };
+use crate::canvas::{ Canvas, };
 use crate::util::{ self, WebUserType, };
+use crate::util::format_timestamp;
 use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
 use super::value_button::ValueButton;
@@ -353,7 +354,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <tr>
                     <td>{&user.addr}</td>
                     <td>{&user.name}</td>
-                    <td>{&user.last_active}</td>
+                    <td>{format_timestamp(&user.last_active) }</td>
                 </tr>
             }
         });

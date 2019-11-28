@@ -1,6 +1,9 @@
 use failure::Fallible;
 use yew::services::fetch::{ Response as FetchResponse, };
 use yew::format::Json;
+use chrono::offset::FixedOffset;
+use stdweb::web::Date;
+pub use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
 
 pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
 
@@ -9,6 +12,14 @@ pub enum WebUserType {
     Admin,
     Responder,
 }
+
+pub fn format_timestamp<'a>(stamp: &DateTime<Utc>) -> DelayedFormat<StrftimeItems<'a>> {
+    let offset_minutes = Date::new().get_timezone_offset();
+    let off = FixedOffset::east(offset_minutes * 60);
+    let zoned_stamp = stamp.with_timezone(&off);
+    zoned_stamp.format("%c")
+}
+
 
 macro_rules! Log {
     ($($arg:tt)*) => (
