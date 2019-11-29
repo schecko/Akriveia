@@ -255,7 +255,7 @@ input.userText[type=text]{
 input.fixedLength[type=text]{
   min-width:200px;
   width:50%;
-}
+}t
 
 input[type=text] {
   background-color: #f6f6f6;
