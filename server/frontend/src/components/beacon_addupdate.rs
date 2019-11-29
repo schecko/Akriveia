@@ -10,7 +10,7 @@ pub enum Msg {
     AddAnotherBeacon,
     ChangeRootPage(root::Page),
     InputCoordinate(usize, String),
-    InputFloorName(i32),
+    InputFloorName(Option<i32>),
     InputMacAddress(String),
     InputName(String),
     InputNote(String),
@@ -149,7 +149,7 @@ impl Component for BeaconAddUpdate {
                 self.data.beacon.name = name;
             },
             Msg::InputFloorName(map_id) => {
-                self.data.beacon.map_id = Some(map_id);
+                self.data.beacon.map_id = map_id;
             },
             Msg::InputNote(note) => {
                 self.data.beacon.note = Some(note);
@@ -213,13 +213,6 @@ impl Component for BeaconAddUpdate {
                 self.handle_response(
                     response,
                     |s, maps| {
-                        // TODO add validation on the backend, and send decent messages to the
-                        //
-                        // frontend when the map_id is not set.
-                        if s.data.beacon.map_id == None && maps.len() > 0 {
-                            s.data.beacon.map_id = Some(maps[0].id);
-                        }
-
                         s.data.avail_floors = maps;
                     },
                     |s, e| {
@@ -305,11 +298,11 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             },
         };
 
-        let mut floor_options = self.data.avail_floors.iter().cloned().map(|floor| {
+        let mut floor_options = self.data.avail_floors.iter().map(|floor| {
             let floor_id = floor.id;
             html! {
                 <option
-                    onclick=|_| Msg::InputFloorName(floor_id),
+                    onclick=|_| Msg::InputFloorName(Some(floor_id)),
                     disabled={ floor_id == chosen_floor_id },
                 >
                     { &floor.name }
@@ -339,6 +332,12 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                             <td class="formLabel">{ "Assign to Map: " }</td>
                             <td>
                                 <select class="formAlign">
+                                    <option
+                                        onclick=|_| Msg::InputFloorName(None),
+                                        disabled={ -1 == chosen_floor_id },
+                                    >
+                                        { "None" }
+                                    </option>
                                     { for floor_options }
                                 </select>
                             </td>

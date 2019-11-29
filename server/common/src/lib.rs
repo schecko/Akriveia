@@ -310,6 +310,7 @@ pub struct RealtimeBeacon {
     pub last_active: DateTime<Utc>,
     pub mac_address: MacAddress8,
     pub state: BeaconState,
+    pub map_id: Option<i32>,
 }
 
 impl From<Beacon> for RealtimeBeacon {
@@ -320,6 +321,7 @@ impl From<Beacon> for RealtimeBeacon {
             mac_address: beacon.mac_address,
             last_active: beacon.last_active,
             state: beacon.state,
+            map_id: beacon.map_id,
         }
     }
 }
@@ -332,6 +334,7 @@ impl RealtimeBeacon {
             last_active: Utc.timestamp(0, 0),
             mac_address: MacAddress8::nil(),
             state: BeaconState::Unknown,
+            map_id: None,
         }
     }
 }

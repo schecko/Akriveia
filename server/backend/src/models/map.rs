@@ -73,7 +73,7 @@ pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl
     client
         .prepare_typed("
             SELECT m_id, m_blueprint FROM runtime.maps
-            WHERE m_id = $1::INTEGER
+            WHERE m_id = $1
         ", &[
             Type::INT4,
         ])

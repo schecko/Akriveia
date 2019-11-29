@@ -103,12 +103,25 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         })
 }
 
-pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
-    client
-        .prepare("
+pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: Option<i32>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
+    let query = if id.is_some() {
+        "
             SELECT * FROM runtime.beacons
-            WHERE b_map_id = $1::INTEGER
-        ")
+            WHERE b_map_id = $1
+        "
+    } else {
+        "
+            SELECT * FROM runtime.beacons
+            WHERE b_map_id IS NULL
+        "
+    };
+
+    client
+        .prepare_typed(
+            query
+        , &[
+            Type::INT4
+        ])
         .map_err(AkError::from)
         .and_then(move |statement| {
             client
@@ -554,7 +567,7 @@ mod tests {
                 insert_beacon(client, beacon)
             })
             .and_then(|(client, opt_beacon)| {
-                select_beacons_for_map(client, opt_beacon.unwrap().map_id.unwrap())
+                select_beacons_for_map(client, opt_beacon.unwrap().map_id)
             })
             .map(|(_client, _beacons)| {
             })
