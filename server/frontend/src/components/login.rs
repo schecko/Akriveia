@@ -4,6 +4,8 @@ use yew::services::fetch::{ FetchService, FetchTask, StatusCode, };
 use yew::prelude::*;
 use super::root;
 use super::user_message::UserMessage;
+use stdweb::web;
+use stdweb::web::IEventTarget;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum AutoAction {
@@ -19,6 +21,7 @@ impl Default for AutoAction {
 }
 
 pub enum Msg {
+    KeyDown(KeyDownEvent),
     ChangeRootPage(root::Page),
 
     InputName(String),
@@ -79,7 +82,7 @@ impl Component for Login {
             AutoAction::Logout => link.send_self(Msg::RequestLogout),
         }
 
-        let result = Login {
+        let mut result = Login {
             auto_action: props.auto_action,
             change_page: props.change_page,
             change_user_type: props.change_user_type,
@@ -89,11 +92,21 @@ impl Component for Login {
             self_link: link,
             user_msg: UserMessage::new(),
         };
+
+        let callback = result.self_link.send_back(Msg::KeyDown);
+        web::window().add_event_listener(move |event: KeyDownEvent| {
+            callback.emit(event);
+        });
         result
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::KeyDown(event) => {
+                if event.code().contains("Enter") {
+                    self.self_link.send_self(Msg::RequestLogin);
+                }
+            }
             Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
             }
