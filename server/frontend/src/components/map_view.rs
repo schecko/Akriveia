@@ -2,7 +2,7 @@ use common::*;
 use crate::canvas::{ Canvas, /*screen_space*/ };
 use crate::util::*;
 use std::time::Duration;
-use stdweb::web::{ Node, html_element::ImageElement, };
+use stdweb::web::{ Node, html_element::ImageElement, Date, };
 use super::value_button::{ ValueButton, DisplayButton, };
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
@@ -16,6 +16,7 @@ pub enum Msg {
     Ignore,
     ViewDistance(ShortAddress),
     ChooseMap(i32),
+    CheckImage,
 
     RequestGetBeaconsForMap(i32),
     RequestGetMap(i32),
@@ -41,6 +42,7 @@ pub struct MapViewComponent {
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
+    interval_service_task_blueprint: Option<IntervalTask>,
     legend_canvas: Canvas,
     map_img: Option<ImageElement>,
     maps: Vec<Map>,
@@ -82,6 +84,16 @@ impl MapViewComponent {
             self.legend_canvas.legend(80, map.bounds.y as u32, self.user_type);
         }
     }
+
+    fn load_img(&mut self) {
+        if let Some(map) = &self.current_map {
+            let img = ImageElement::new();
+            img.set_src(&format!("{}#{}", map_blueprint_url(&map.id.to_string()), Date::now()));
+            let callback = self.self_link.send_back(|_| Msg::CheckImage);
+            self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
+            self.map_img = Some(img);
+        }
+    }
 }
 
 #[derive(Properties)]
@@ -117,6 +129,7 @@ impl Component for MapViewComponent {
             interval_service: IntervalService::new(),
             interval_service_task: None,
             interval_service_task_beacon: None,
+            interval_service_task_blueprint: None,
             legend_canvas: Canvas::new("legend_canvas", click_callback),
             map_img: None,
             maps: Vec::new(),
@@ -136,6 +149,17 @@ impl Component for MapViewComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::CheckImage => {
+                // This is necessary to force a rerender when the image finally loads,
+                // it would be nice to use an onload() callback, but that does not seem to
+                // work.
+                // once the map is loaded, we dont need to check it anymore.
+                if let Some(img) = &self.map_img {
+                    if img.complete() && img.width() > 0 && img.height() > 0 {
+                        self.interval_service_task_blueprint = None;
+                    }
+                }
+            },
             Msg::ViewDistance(selected_tag_mac) => {
                 match &self.show_distance {
                     Some(current_tag) => {
@@ -158,9 +182,6 @@ impl Component for MapViewComponent {
                     _ => {
                         match self.maps.iter().find(|map| map.id == id) {
                             Some(map) => {
-                                let img = ImageElement::new();
-                                img.set_src(&map_blueprint_url(&map.id.to_string()));
-                                self.map_img = Some(img);
                                 Some(map.clone())
                             },
                             None => None,
@@ -168,6 +189,7 @@ impl Component for MapViewComponent {
                     }
                 };
 
+                self.load_img();
                 if let Some(map) = &self.current_map {
                     self.self_link.send_self(Msg::RequestGetMap(map.id));
                 }
@@ -238,14 +260,12 @@ impl Component for MapViewComponent {
                 self.handle_response(
                     response,
                     |s, map| {
-                        let img = ImageElement::new();
-                        img.set_src(&map_blueprint_url(&map.id.to_string()));
-                        s.map_img = Some(img);
                         s.current_map = Some(map.clone());
                         s.maps.iter_mut().find(|m| m.id == map.id).and_then(|m| {
                             *m = map;
                             Some(())
                         });
+                        s.load_img();
                     },
                     |s, e| {
                         s.user_msg.error_messages.push(format!("failed to get map, reason: {}", e));
