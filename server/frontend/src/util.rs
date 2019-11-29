@@ -15,7 +15,7 @@ pub enum WebUserType {
 
 pub fn format_timestamp<'a>(stamp: &DateTime<Utc>) -> DelayedFormat<StrftimeItems<'a>> {
     let offset_minutes = Date::new().get_timezone_offset();
-    let off = FixedOffset::east(offset_minutes * 60);
+    let off = FixedOffset::west(offset_minutes * 60);
     let zoned_stamp = stamp.with_timezone(&off);
     zoned_stamp.format("%c")
 }
