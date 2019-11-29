@@ -148,7 +148,6 @@ impl MapAddUpdate {
     }
 
     fn load_img(&mut self) {
-        Log!("loading image");
         if let Some(img) = &self.map_img {
             // use the date to force reload
             img.set_src(&format!("{}#{}", map_blueprint_url(&self.data.map.id.to_string()), Date::now()));
@@ -237,7 +236,6 @@ impl Component for MapAddUpdate {
                 self.change_page.emit(page);
             }
             Msg::CheckImage => {
-                Log!("checking image");
                 // This is necessary to force a rerender when the image finally loads,
                 // it would be nice to use an onload() callback, but that does not seem to
                 // work.
