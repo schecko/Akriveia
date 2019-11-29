@@ -1,7 +1,7 @@
 
 
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::*;
 use super::beacon_addupdate::BeaconAddUpdate;
 use super::beacon_list::BeaconList;
 use super::diagnostics::Diagnostics;
@@ -14,7 +14,6 @@ use super::status::{ self, Status, };
 use super::system_settings::SystemSettings;
 use super::user_addupdate::UserAddUpdate;
 use super::user_list::UserList;
-use yew::format::Json;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 
@@ -43,6 +42,8 @@ pub struct RootComponent {
     link: ComponentLink<RootComponent>,
 }
 
+impl JsonResponseHandler for RootComponent {}
+
 pub enum Msg {
     // page changes
     ChangePage(Page),
@@ -53,8 +54,8 @@ pub enum Msg {
     RequestGetEmergency,
 
     // responses
-    ResponsePostEmergency(util::Response<common::SystemCommandResponse>),
-    ResponseGetEmergency(util::Response<common::SystemCommandResponse>),
+    ResponsePostEmergency(JsonResponse<bool>),
+    ResponseGetEmergency(JsonResponse<bool>),
 }
 
 impl Component for RootComponent {
@@ -103,30 +104,26 @@ impl Component for RootComponent {
             },
             // responses
             Msg::ResponsePostEmergency(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::SystemCommandResponse { emergency }) => {
-                            self.emergency = emergency;
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to post start emergency");
-                }
+                self.handle_response(
+                    response,
+                    |s, resp| {
+                        s.emergency = resp;
+                    },
+                    |_s, e| {
+                        Log!("response - failed to post start emergency, {}", e);
+                    },
+                );
             },
             Msg::ResponseGetEmergency(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::SystemCommandResponse { emergency }) => {
-                            self.emergency = emergency;
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to request emergency status");
-                }
+                self.handle_response(
+                    response,
+                    |s, resp| {
+                        s.emergency = resp;
+                    },
+                    |_s, e| {
+                        Log!("response - failed to request emergency status, {}", e);
+                    },
+                );
             },
         }
         true

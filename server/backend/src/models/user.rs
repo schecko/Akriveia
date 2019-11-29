@@ -3,6 +3,7 @@ use futures::{ Stream, Future, IntoFuture, };
 use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
+use crate::ak_error::AkError;
 
 fn row_to_user(row: &Row) -> TrackedUser {
     let mut entry = TrackedUser::new();
@@ -32,12 +33,10 @@ fn row_to_user(row: &Row) -> TrackedUser {
     entry
 }
 
-pub fn select_users(mut client: tokio_postgres::Client, include_contacts: bool) -> impl Future<Item=(tokio_postgres::Client, Vec<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_users(mut client: tokio_postgres::Client, include_contacts: bool) -> impl Future<Item=(tokio_postgres::Client, Vec<TrackedUser>), Error=AkError> {
     // TODO paging
     let query = if include_contacts {
-        "
-            SELECT * FROM runtime.users
-        "
+        "SELECT * FROM runtime.users"
     } else {
         "
             SELECT * FROM runtime.users
@@ -47,29 +46,32 @@ pub fn select_users(mut client: tokio_postgres::Client, include_contacts: bool) 
 
     client
         .prepare(query)
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_user(&row)).collect())
                 })
         })
 }
 
-pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=AkError> {
     client
         .prepare("
             SELECT * FROM runtime.users
             WHERE u_id = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -80,18 +82,19 @@ pub fn select_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
         })
 }
 
-pub fn select_user_by_short(mut client: tokio_postgres::Client, id: ShortAddress) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user_by_short(mut client: tokio_postgres::Client, id: ShortAddress) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare("
             SELECT * FROM runtime.users
             WHERE u_mac_address = $1
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id.as_pg()])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -102,18 +105,19 @@ pub fn select_user_by_short(mut client: tokio_postgres::Client, id: ShortAddress
         })
 }
 
-pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare("
             SELECT * FROM runtime.users
             WHERE u_attached_user = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -124,7 +128,7 @@ pub fn select_by_attached_user(mut client: tokio_postgres::Client, id: i32) -> i
         })
 }
 
-pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>, Option<TrackedUser>), Error=AkError> {
     select_user(client, id)
         .and_then(move |(client, opt_user, _)| {
             select_by_attached_user(client, id)
@@ -134,7 +138,7 @@ pub fn select_user_prefetch(client: tokio_postgres::Client, id: i32) -> impl Fut
         })
 }
 
-pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare("
             SELECT *
@@ -143,12 +147,13 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
             ORDER BY random()
             LIMIT 1
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -159,7 +164,7 @@ pub fn select_user_random(mut client: tokio_postgres::Client) -> impl Future<Ite
         })
 }
 
-pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare_typed("
             INSERT INTO runtime.users (
@@ -188,6 +193,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::VARCHAR,
             Type::VARCHAR,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let coordinates = vec![user.coordinates[0], user.coordinates[1]];
             client
@@ -204,9 +210,8 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.mobile_phone,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    println!("error inserting {}", err.0);
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -217,7 +222,7 @@ pub fn insert_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.users
@@ -248,6 +253,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
             Type::VARCHAR,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let coordinates = vec![user.coordinates[0], user.coordinates[1]];
             client
@@ -265,8 +271,8 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
                     &user.id,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -277,7 +283,7 @@ pub fn update_user(mut client: tokio_postgres::Client, user: TrackedUser) -> imp
         })
 }
 
-pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeUserData) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=tokio_postgres::Error> {
+pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeUserData) -> impl Future<Item=(tokio_postgres::Client, Option<TrackedUser>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.users
@@ -294,6 +300,7 @@ pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: R
             Type::INT4,
             Type::INT2,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let coordinates = vec![realtime.coordinates[0], realtime.coordinates[1]];
             client
@@ -304,8 +311,8 @@ pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: R
                     &realtime.addr.as_pg(),
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -316,7 +323,7 @@ pub fn update_user_from_realtime(mut client: tokio_postgres::Client, realtime: R
         })
 }
 
-pub fn delete_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+pub fn delete_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=AkError> {
     client
         .prepare_typed("
             DELETE FROM runtime.users
@@ -326,12 +333,13 @@ pub fn delete_user(mut client: tokio_postgres::Client, id: i32) -> impl Future<I
         ", &[
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(_row, _next)| {
                     client

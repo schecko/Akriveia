@@ -6,6 +6,7 @@ use na;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 use std::net::IpAddr;
+use crate::ak_error::AkError;
 
 pub fn row_to_beacon(row: &Row) -> Beacon {
     let mut b = Beacon::new();
@@ -30,24 +31,26 @@ pub fn row_to_beacon(row: &Row) -> Beacon {
     b
 }
 
-pub fn select_beacons(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+pub fn select_beacons(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
     // TODO paging
     client
         .prepare("
             SELECT * FROM runtime.beacons
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
                 })
         })
 }
 
-pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<(Beacon, Map)>), Error=tokio_postgres::Error> {
+pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<(Beacon, Map)>), Error=AkError> {
     // TODO paging
     client
         .prepare("
@@ -55,11 +58,13 @@ pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Futur
             FROM runtime.maps AS map, runtime.beacons AS beacon
             WHERE map.m_id = beacon.b_map_id
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| -> (tokio_postgres::Client, Vec<(common::Beacon, common::Map)>) {
                     (
                         client,
@@ -75,18 +80,19 @@ pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Futur
         })
 }
 
-pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=tokio_postgres::Error> {
+pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=AkError> {
     client
         .prepare("
             SELECT * FROM runtime.beacons
             WHERE b_id = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -97,24 +103,26 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         })
 }
 
-pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
     client
         .prepare("
             SELECT * FROM runtime.beacons
             WHERE b_map_id = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
                 })
         })
 }
 
-pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAddress8>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=tokio_postgres::Error> {
+pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAddress8>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
     client
         .prepare_typed("
             SELECT * FROM runtime.beacons
@@ -124,6 +132,7 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
             Type::MACADDR8,
             Type::MACADDR8,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[
@@ -133,13 +142,14 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
                 ])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_beacon(&row)).collect())
                 })
         })
 }
 
-pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
     client
         .prepare_typed("
             SELECT * FROM runtime.beacons
@@ -147,14 +157,15 @@ pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> im
         ", &[
             Type::INET,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[
                     &ip,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -165,7 +176,7 @@ pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> im
         })
 }
 
-pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=tokio_postgres::Error> {
+pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<(Beacon, Option<Map>)>), Error=AkError> {
     // TODO paging
     client
         .prepare_typed("
@@ -177,12 +188,13 @@ pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> im
         ", &[
             Type::INT4
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -193,7 +205,7 @@ pub fn select_beacon_prefetch(mut client: tokio_postgres::Client, id: i32) -> im
         })
 }
 
-pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
     client
         .prepare_typed("
             INSERT INTO runtime.beacons (
@@ -216,6 +228,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             Type::VARCHAR,
             Type::VARCHAR,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
@@ -229,8 +242,9 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                     &beacon.note
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    println!("err is {}", err);
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -241,7 +255,7 @@ pub fn insert_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         })
 }
 
-pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.beacons
@@ -264,6 +278,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
             Type::VARCHAR,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let coords = vec![beacon.coordinates[0], beacon.coordinates[1]];
             client
@@ -277,8 +292,8 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
                     &beacon.id,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -289,7 +304,7 @@ pub fn update_beacon(mut client: tokio_postgres::Client, beacon: Beacon) -> impl
         })
 }
 
-pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeBeacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=tokio_postgres::Error> {
+pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime: RealtimeBeacon) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE runtime.beacons
@@ -306,6 +321,7 @@ pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime:
             Type::INT2,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[
@@ -315,8 +331,8 @@ pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime:
                     &realtime.id,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -327,7 +343,7 @@ pub fn update_beacon_from_realtime(mut client: tokio_postgres::Client, realtime:
         })
 }
 
-pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=AkError> {
     client
         .prepare_typed("
             DELETE FROM runtime.beacons
@@ -337,12 +353,13 @@ pub fn delete_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         ", &[
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(_row, _next)| {
                     client

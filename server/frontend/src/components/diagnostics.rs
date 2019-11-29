@@ -1,12 +1,12 @@
 use common::*;
-use crate::util;
+use crate::util::*;
 use std::collections::{ VecDeque, BTreeSet };
 use std::time::Duration;
+use super::user_message::UserMessage;
 use super::value_button::ValueButton;
-use yew::format::Json;
+use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::prelude::*;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -17,7 +17,7 @@ pub enum Msg {
 
     RequestDiagnostics,
 
-    ResponseDiagnostics(util::Response<common::DiagnosticData>),
+    ResponseDiagnostics(JsonResponse<common::DiagnosticData>),
 }
 
 pub struct Diagnostics {
@@ -30,7 +30,10 @@ pub struct Diagnostics {
     interval_service_task: Option<IntervalTask>,
     selected_beacons: BTreeSet<MacAddress8>,
     self_link: ComponentLink<Diagnostics>,
+    user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for Diagnostics {}
 
 #[derive(Properties)]
 pub struct DiagnosticsProps {
@@ -65,6 +68,7 @@ impl Component for Diagnostics {
             interval_service_task: None,
             selected_beacons: BTreeSet::new(),
             self_link: link,
+            user_msg: UserMessage::new(),
         };
 
         if result.emergency {
@@ -86,6 +90,7 @@ impl Component for Diagnostics {
                 }
             },
             Msg::RequestDiagnostics => {
+                self.user_msg.reset();
                 self.fetch_task = get_request!(
                     self.fetch_service,
                     &system_diagnostics_url(),
@@ -94,24 +99,22 @@ impl Component for Diagnostics {
                 );
             },
             Msg::ResponseDiagnostics(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(common::DiagnosticData { tag_data }) => {
-                            for point in tag_data.into_iter() {
-                                if !self.active_beacons.contains(&point.beacon_mac) {
-                                    self.active_beacons.insert(point.beacon_mac.clone());
-                                    self.selected_beacons.insert(point.beacon_mac.clone());
-                                }
-                                self.diagnostic_data.push_front(point);
+                self.handle_response(
+                    response,
+                    |s, diagnostics_data| {
+                        for point in diagnostics_data.tag_data.into_iter() {
+                            if !s.active_beacons.contains(&point.beacon_mac) {
+                                s.active_beacons.insert(point.beacon_mac.clone());
+                                s.selected_beacons.insert(point.beacon_mac.clone());
                             }
-                            self.diagnostic_data.truncate(MAX_BUFFER_SIZE);
+                            s.diagnostic_data.push_front(point);
                         }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to request diagnostics");
-                }
+                        s.diagnostic_data.truncate(MAX_BUFFER_SIZE);
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain diagnostics, reason: {}", e));
+                    },
+                );
             },
         }
         true
@@ -152,7 +155,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         <td>{ &row.beacon_mac }</td>
                         <td>{ &row.tag_mac }</td>
                         <td>{ &row.tag_distance }</td>
-                        <td>{ &row.timestamp }</td>
+                        <td>{ format_timestamp(&row.timestamp) }</td>
                     </tr>
                 }
             });
@@ -162,20 +165,20 @@ impl Renderable<Diagnostics> for Diagnostics {
                     <button type="button" class="btn btn-warning"
                         onclick=|_| Msg::ClearBuffer,
                     >
-                        {"Reset Data"}
+                        { "Reset Data" }
                     </button>
-
+                    { self.user_msg.view() }
                     <table class="table table-striped">
-                        <thead class="thead-dark">                 
+                        <thead class="thead-dark">
                             <div>
-                                <h2>{ "Select Beacons:  " }</h2>
+                                <h2>{ "Diagnostics" }</h2>
                                 { for beacon_selections }
                             </div>
                             <tr>
                                 <th>{ "Beacon Mac" }</th>
                                 <th>{ "User Mac" }</th>
-                                <th>{ "Distance" }</th>                                
-                                <th>{"Timestamp"}</th>                                
+                                <th>{ "Distance" }</th>
+                                <th>{ "Timestamp" }</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -186,7 +189,10 @@ impl Renderable<Diagnostics> for Diagnostics {
             }
         } else {
             html! {
-                <h4>{ "No diagnostics yet..." }</h4>
+                <>
+                    <h2>{ "Diagnostics" }</h2>
+                    <h4>{ "No diagnostics yet..." }</h4>
+                </>
             }
         }
     }

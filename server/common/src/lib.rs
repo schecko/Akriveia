@@ -7,7 +7,7 @@ extern crate ipnet;
 pub mod short_address;
 
 pub use chrono::offset::TimeZone;
-pub use chrono::{ DateTime, Utc, };
+pub use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
 pub use eui48::MacAddress;
 pub use eui64::MacAddress8;
 pub use short_address::ShortAddress;
@@ -80,11 +80,6 @@ pub fn session_logout_url() -> String {
 
 pub fn session_check_url() -> String {
     return String::from("/session/check");
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct HelloFrontEnd {
-    pub data: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -410,5 +405,29 @@ impl LoginInfo {
 pub enum SystemCommand {
     StartNormal,
     RebuildDB,
+}
+
+// MUST MATCH AkError
+#[derive(Clone, Serialize, Deserialize)]
+pub struct WebError {
+    pub reason: String,
+    pub t: AkErrorType,
+}
+
+impl fmt::Display for WebError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.reason)
+    }
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum AkErrorType {
+    Internal,
+    NotFound,
+    BadRequest,
+    Unauthorized,
+    Validation,
+    FileUpload,
+    ConnectionError,
 }
 

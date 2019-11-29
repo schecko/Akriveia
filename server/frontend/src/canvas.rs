@@ -171,7 +171,7 @@ impl Canvas {
         );
 
         img.as_ref().and_then(|image| {
-            if image.complete() && image.width() > 0 {
+            if image.complete() && image.width() > 0 && image.height() > 0 {
                 match self.context.draw_image_s(
                     image.clone(),
                     0.0, 0.0,
