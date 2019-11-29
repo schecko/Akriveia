@@ -395,7 +395,7 @@ impl Component for MapAddUpdate {
                     |s, beacons| {
                         s.data.attached_beacons = beacons.into_iter().map(|beacon| {
                             let raw_x = beacon.coordinates.x.to_string();
-                            let raw_y = beacon.coordinates.x.to_string();
+                            let raw_y = beacon.coordinates.y.to_string();
                             (beacon, BeaconData { raw_x, raw_y })
                         }).collect();
                     },
