@@ -1,8 +1,8 @@
 use common::*;
-use crate::util::{ self, WebUserType, };
+use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
+use super::user_message::UserMessage;
 use yew::Callback;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
 
@@ -25,18 +25,16 @@ pub enum Msg {
     RequestAddUpdateUser,
     RequestGetUser(i32),
 
-    ResponseAddUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
-    ResponseGetUser(util::Response<(Option<TrackedUser>, Option<TrackedUser>)>),
-    ResponseUpdateUser(util::Response<(TrackedUser, Option<TrackedUser>)>),
+    ResponseAddUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
+    ResponseGetUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
+    ResponseUpdateUser(util::JsonResponse<(TrackedUser, Option<TrackedUser>)>),
 }
 
 struct Data {
     pub user: TrackedUser,
     pub emergency_user: Option<TrackedUser>,
-    pub error_messages: Vec<String>,
     pub id: Option<i32>,
     pub raw_mac: String,
-    pub success_message: Option<String>,
 }
 
 impl Data {
@@ -44,21 +42,21 @@ impl Data {
         Data {
             user: TrackedUser::new(),
             emergency_user: None,
-            error_messages: Vec::new(),
             id: None,
             raw_mac: ShortAddress::nil().to_string(),
-            success_message: None,
         }
     }
+}
 
+impl UserAddUpdate {
     fn validate(&mut self) -> bool {
-        let success = match ShortAddress::parse_str(&self.raw_mac) {
+        let success = match ShortAddress::parse_str(&self.data.raw_mac) {
             Ok(m) => {
-                self.user.mac_address = Some(m);
+                self.data.user.mac_address = Some(m);
                 true
             },
             Err(e) => {
-                self.error_messages.push(format!("failed to parse mac address: {}", e));
+                self.user_msg.error_messages.push(format!("failed to parse mac address: {}", e));
                 false
             }
         };
@@ -73,8 +71,11 @@ pub struct UserAddUpdate {
     fetch_task: Option<FetchTask>,
     get_fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
+    user_msg: UserMessage<Self>,
     user_type: WebUserType,
 }
+
+impl JsonResponseHandler for UserAddUpdate {}
 
 #[derive(Properties)]
 pub struct UserAddUpdateProps {
@@ -101,6 +102,7 @@ impl Component for UserAddUpdate {
             fetch_task: None,
             get_fetch_task: None,
             self_link: link,
+            user_msg: UserMessage::new(),
             user_type: props.user_type,
         };
         result.data.id = props.id;
@@ -179,10 +181,8 @@ impl Component for UserAddUpdate {
             },
 
             Msg::RequestAddUpdateUser => {
-                self.data.error_messages = Vec::new();
-                self.data.success_message = None;
-
-                let success = self.data.validate();
+                self.user_msg.reset();
+                let success = self.validate();
 
                 match self.data.id {
                     Some(id) if success => {
@@ -222,58 +222,46 @@ impl Component for UserAddUpdate {
                 );
             },
             Msg::ResponseGetUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.data.user = opt_user.unwrap_or(TrackedUser::new());
-                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
-                            self.data.emergency_user = opt_e_user;
-                        }
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to find user, reason: {}", e));
-                        }
+                self.handle_response(
+                    response,
+                    |s, (user, opt_e_user)| {
+                        s.data.user = user;
+                        s.data.raw_mac = s.data.user.mac_address.map_or(String::new(), |m| m.to_string());
+                        s.data.emergency_user = opt_e_user;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to find user, reason: {}", e));
                     }
-                } else {
-                    self.data.error_messages.push("failed to find user".to_string());
-                }
+                );
             },
             Msg::ResponseAddUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.data.success_message = Some("successfully added user".to_string());
-                            self.data.user = opt_user;
-                            self.data.emergency_user = opt_e_user;
+                self.handle_response(
+                    response,
+                    |s, (user, opt_e_user)| {
+                        s.user_msg.success_message = Some("successfully added user".to_string());
+                        s.data.user = user;
+                        s.data.emergency_user = opt_e_user;
 
-                            self.data.id = Some(self.data.user.id);
-                            self.data.raw_mac = self.data.user.mac_address.map_or(String::new(), |m| m.to_string());
-                        },
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to add user, reason: {}", e));
-                        }
+                        s.data.id = Some(s.data.user.id);
+                        s.data.raw_mac = s.data.user.mac_address.map_or(String::new(), |m| m.to_string());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to add user, reason: {}", e));
                     }
-                } else {
-                    self.data.error_messages.push("failed to add user".to_string());
-                }
+                );
             },
             Msg::ResponseUpdateUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok((opt_user, opt_e_user)) => {
-                            self.data.success_message = Some("successfully updated user".to_string());
-                            self.data.user = opt_user;
-                            self.data.emergency_user = opt_e_user;
-                        },
-                        Err(e) => {
-                            self.data.error_messages.push(format!("failed to update user, reason: {}", e));
-                        }
+                self.handle_response(
+                    response,
+                    |s, (user, opt_e_user)| {
+                        s.user_msg.success_message = Some("successfully updated user".to_string());
+                        s.data.user = user;
+                        s.data.emergency_user = opt_e_user;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to update user, reason: {}", e));
                     }
-                } else {
-                    self.data.error_messages.push("failed to update user".to_string());
-                }
+                );
             },
         }
         true
@@ -367,27 +355,9 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
-        let mut errors = self.data.error_messages.iter().map(|msg| {
-            html! {
-                <div
-                    class="alert alert-danger"
-                    role="alert"
-                >
-                    {msg}
-                </div>
-            }
-        });
-
         html! {
             <>
-                {
-                    match &self.data.success_message {
-                        Some(msg) => { format!("Success: {}", msg) },
-                        None => { String::new() },
-                    }
-                }
-                { if self.data.error_messages.len() > 0 { "Failure: " } else { "" } }
-                { for errors }
+                { self.user_msg.view() }
                 <div class="boxedForm">
                     <h2>{ title_name }</h2>
                     <table>

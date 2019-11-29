@@ -1,10 +1,9 @@
 use common::*;
-use crate::util;
-use crate::util::format_timestamp;
+use crate::util::*;
 use super::root;
 use super::value_button::ValueButton;
-use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
+use super::user_message::UserMessage;
 use yew::{ Callback, Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
 
 pub enum Msg {
@@ -13,8 +12,8 @@ pub enum Msg {
     RequestDeleteUser(i32),
     RequestGetUsers,
 
-    ResponseGetUsers(util::Response<Vec<TrackedUser>>),
-    ResponseDeleteUser(util::Response<Vec<()>>),
+    ResponseGetUsers(JsonResponse<Vec<TrackedUser>>),
+    ResponseDeleteUser(JsonResponse<Vec<()>>),
 }
 
 pub struct UserList {
@@ -23,7 +22,10 @@ pub struct UserList {
     fetch_task: Option<FetchTask>,
     list: Vec<TrackedUser>,
     self_link: ComponentLink<Self>,
+    user_msg: UserMessage<Self>,
 }
+
+impl JsonResponseHandler for UserList {}
 
 #[derive(Properties)]
 pub struct UserListProps {
@@ -38,11 +40,12 @@ impl Component for UserList {
     fn create(props: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetUsers);
         let result = UserList {
-            fetch_service: FetchService::new(),
-            list: Vec::new(),
-            fetch_task: None,
-            self_link: link,
             change_page: props.change_page,
+            fetch_service: FetchService::new(),
+            fetch_task: None,
+            list: Vec::new(),
+            self_link: link,
+            user_msg: UserMessage::new(),
         };
         result
     }
@@ -50,6 +53,7 @@ impl Component for UserList {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::RequestGetUsers => {
+                self.user_msg.reset();
                 self.fetch_task = get_request!(
                     self.fetch_service,
                     &format!("{}?include_contacts=false", users_url()),
@@ -58,6 +62,7 @@ impl Component for UserList {
                 );
             },
             Msg::RequestDeleteUser(id) => {
+                self.user_msg.reset();
                 self.fetch_task = delete_request!(
                     self.fetch_service,
                     &user_url(&id.to_string()),
@@ -66,31 +71,27 @@ impl Component for UserList {
                 );
             },
             Msg::ResponseGetUsers(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(mut users) => {
-                            users.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-                            self.list = users;
-                        }
-                        _ => { }
+                self.handle_response(
+                    response,
+                    |s, mut users| {
+                        users.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+                        s.list = users;
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to obtain user list, reason: {}", e));
                     }
-                } else {
-                    Log!("response - failed to obtain User list");
-                }
+                );
             },
             Msg::ResponseDeleteUser(response) => {
-                let (meta, Json(body)) = response.into_parts();
-                if meta.status.is_success() {
-                    match body {
-                        Ok(_list) => {
-                            Log!("successfully deleted User");
-                        }
-                        _ => { }
-                    }
-                } else {
-                    Log!("response - failed to delete User");
-                }
+                self.handle_response(
+                    response,
+                    |s, _| {
+                        s.user_msg.success_message = Some("successfully deleted user".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to delete user, reason: {}", e));
+                    },
+                );
                 self.self_link.send_self(Msg::RequestGetUsers);
             },
             Msg::ChangeRootPage(page) => {
@@ -140,6 +141,7 @@ impl Renderable<UserList> for UserList {
 
         html! {
             <>
+                { self.user_msg.view() }
                 <div class="d-flex justify-content-between">
                     <h2>{ "User List"}</h2>
                     <button

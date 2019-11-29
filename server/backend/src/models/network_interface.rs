@@ -5,6 +5,7 @@ use tokio_postgres::row::Row;
 use tokio_postgres::types::Type;
 use ipnet::Ipv4Net;
 use std::net::{ IpAddr, Ipv4Addr, };
+use crate::ak_error::AkError;
 
 // NOTE:
 // The rust std type IpAddr does not support subnet masks, but does support postgres
@@ -40,37 +41,40 @@ pub fn row_to_network_interface(row: &Row) -> NetworkInterface {
     obj
 }
 
-pub fn select_network_interfaces(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<NetworkInterface>), Error=tokio_postgres::Error> {
+pub fn select_network_interfaces(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<NetworkInterface>), Error=AkError> {
     // TODO paging
     client
         .prepare("
             SELECT *
             FROM system.network_interfaces
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[])
                 .collect()
                 .into_future()
+                .map_err(AkError::from)
                 .map(|rows| {
                     (client, rows.into_iter().map(|row| row_to_network_interface(&row)).collect())
                 })
         })
 }
 
-pub fn select_network_interface(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=tokio_postgres::Error> {
+pub fn select_network_interface(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=AkError> {
     client
         .prepare("
             SELECT *
             FROM system.network_interfaces
             WHERE n_id = $1::INTEGER
         ")
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -81,7 +85,7 @@ pub fn select_network_interface(mut client: tokio_postgres::Client, id: i32) -> 
         })
 }
 
-pub fn insert_network_interface(mut client: tokio_postgres::Client, iface: NetworkInterface) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=tokio_postgres::Error> {
+pub fn insert_network_interface(mut client: tokio_postgres::Client, iface: NetworkInterface) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=AkError> {
     client
         .prepare_typed("
             INSERT INTO system.network_interfaces (
@@ -102,6 +106,7 @@ pub fn insert_network_interface(mut client: tokio_postgres::Client, iface: Netwo
             Type::VARCHAR,
             Type::INT2,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let inet = format!("{}", iface.ip.addr());
             let mask = iface.ip.prefix_len() as i16;
@@ -115,8 +120,8 @@ pub fn insert_network_interface(mut client: tokio_postgres::Client, iface: Netwo
                     &iface.webserver_port,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -127,7 +132,7 @@ pub fn insert_network_interface(mut client: tokio_postgres::Client, iface: Netwo
         })
 }
 
-pub fn update_network_interface(mut client: tokio_postgres::Client, iface: NetworkInterface) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=tokio_postgres::Error> {
+pub fn update_network_interface(mut client: tokio_postgres::Client, iface: NetworkInterface) -> impl Future<Item=(tokio_postgres::Client, Option<NetworkInterface>), Error=AkError> {
     client
         .prepare_typed("
             UPDATE system.network_interfaces
@@ -150,6 +155,7 @@ pub fn update_network_interface(mut client: tokio_postgres::Client, iface: Netwo
             Type::INT2,
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             let inet = format!("{}", iface.ip.addr());
             let mask = iface.ip.prefix_len() as i16;
@@ -164,8 +170,8 @@ pub fn update_network_interface(mut client: tokio_postgres::Client, iface: Netwo
                     &iface.id,
                 ])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(row, _next)| {
                     match row {
@@ -176,7 +182,7 @@ pub fn update_network_interface(mut client: tokio_postgres::Client, iface: Netwo
         })
 }
 
-pub fn delete_network_interface(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=tokio_postgres::Error> {
+pub fn delete_network_interface(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=tokio_postgres::Client, Error=AkError> {
     client
         .prepare_typed("
             DELETE FROM system.network_interfaces
@@ -186,12 +192,13 @@ pub fn delete_network_interface(mut client: tokio_postgres::Client, id: i32) -> 
         ", &[
             Type::INT4,
         ])
+        .map_err(AkError::from)
         .and_then(move |statement| {
             client
                 .query(&statement, &[&id])
                 .into_future()
-                .map_err(|err| {
-                    err.0
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
                 })
                 .map(|(_row, _next)| {
                     client

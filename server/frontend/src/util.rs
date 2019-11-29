@@ -1,11 +1,13 @@
-use failure::Fallible;
-use yew::services::fetch::{ Response as FetchResponse, };
-use yew::format::Json;
 use chrono::offset::FixedOffset;
+use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
+use common::*;
+use failure::Fallible;
 use stdweb::web::Date;
-pub use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
+use yew::format::Json;
+use yew::services::fetch::{ Response as FetchResponse, };
 
-pub type Response<T> = FetchResponse<Json<Fallible<T>>>;
+pub type JsonResponse<T> = FetchResponse<Json<Fallible<Result<T, WebError>>>>;
+pub type BinResponse<T> = FetchResponse<Json<Fallible<T>>>;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum WebUserType {
@@ -19,7 +21,6 @@ pub fn format_timestamp<'a>(stamp: &DateTime<Utc>) -> DelayedFormat<StrftimeItem
     let zoned_stamp = stamp.with_timezone(&off);
     zoned_stamp.format("%c")
 }
-
 
 macro_rules! Log {
     ($($arg:tt)*) => (
@@ -158,4 +159,29 @@ macro_rules! delete_request {
             Err(_) => None,
         };
     };
+}
+
+pub trait JsonResponseHandler {
+    fn handle_response<T, S, F>(&mut self, response: JsonResponse<T>, success: S, failure: F)
+        where
+        S: Fn(&mut Self, T),
+        F: Fn(&mut Self, WebError),
+    {
+        let (_meta, Json(body)) = response.into_parts();
+        match body {
+            Ok(Ok(value)) => {
+                success(self, value)
+            },
+            Ok(Err(err)) => {
+                failure(self, err)
+            },
+            Err(err) => {
+                let user_err = WebError {
+                    t: AkErrorType::ConnectionError,
+                    reason: err.to_string(),
+                };
+                failure(self, user_err)
+            },
+        }
+    }
 }

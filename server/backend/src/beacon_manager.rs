@@ -15,14 +15,12 @@ use crate::data_processor::*;
 use crate::db_utils;
 use crate::models::network_interface;
 use crate::models::beacon;
-use std::io;
 use std::time::Duration;
 use std::collections::{ BTreeSet, BTreeMap, };
 use common::*;
 use std::net::{ IpAddr, };
 use chrono::{ DateTime, Duration as cDuration, };
-use actix::fut as afut;
-
+use crate::ak_error::AkError;
 
 // Problem: Requests to beacons do not create a request object, and so
 // we need to manually monitor when beacons do not respond within a given time frame.
@@ -95,6 +93,12 @@ pub struct BeaconManager {
     unknown_macs: BTreeSet<MacAddress8>,
 }
 
+impl BeaconManager {
+    pub fn is_emergency(&self) -> bool {
+        return self.state == BeaconState::Active;
+    }
+}
+
 impl Actor for BeaconManager {
     type Context = Context<Self>;
 }
@@ -118,7 +122,7 @@ pub enum BMCommand {
 }
 
 impl Message for BMCommand {
-    type Result = Result<common::SystemCommandResponse, io::Error>;
+    type Result = Result<bool, AkError>;
 }
 
 #[derive(Clone, Copy)]
@@ -154,20 +158,18 @@ impl BeaconManager {
             manager.ping_health(context, PING_INTERVAL);
 
             let fut = db_utils::default_connect()
+                .map_err(AkError::from)
                 .and_then(|client| {
                     beacon::select_beacons(client)
                 })
                 .into_actor(&manager)
-                .and_then(|(_client, beacons), actor, _context| {
+                .map(|(_client, beacons), actor, context| {
                     beacons.into_iter().for_each(|b| {
                         actor.beacons.insert(b.mac_address.clone(), BeaconStatus {
                             realtime: RealtimeBeacon::from(b),
                             retries: None,
                         });
                     });
-                    afut::result(Ok(()))
-                })
-                .map(|_, _actor, context| {
                     context.notify(BMCommand::Ping(None));
                 })
                 .map_err(|_err, _actor, _context| { });
@@ -258,6 +260,7 @@ impl BeaconManager {
             actor.beacons.iter().for_each(|(_mac, beacon)| {
                 let realtime = beacon.realtime.clone();
                 let fut = db_utils::default_connect()
+                    .map_err(AkError::from)
                     .and_then(|client| {
                         beacon::update_beacon_from_realtime(client, realtime)
                     })
@@ -317,13 +320,12 @@ impl BeaconManager {
 }
 
 impl Handler<BMCommand> for BeaconManager {
-    type Result = Result<common::SystemCommandResponse, io::Error>;
+    type Result = Result<bool, AkError>;
 
     fn handle(&mut self, msg: BMCommand, context: &mut Context<Self>) -> Self::Result {
         match msg {
             BMCommand::GetEmergency => { },
             BMCommand::ScanBeacons => {
-                println!("find beacons called!");
                 self.find_beacons(context);
             },
             BMCommand::StartEmergency(opt_mac) => {
@@ -421,7 +423,7 @@ impl Handler<BMCommand> for BeaconManager {
                 actor.check_health(context);
             }));
         }
-        Ok(common::SystemCommandResponse::new(self.state == BeaconState::Active))
+        Ok(self.is_emergency())
     }
 }
 
@@ -495,10 +497,10 @@ impl Handler<BMResponse> for BeaconManager {
 
 pub struct GetDiagnosticData;
 impl Message for GetDiagnosticData {
-    type Result = Result<common::DiagnosticData, io::Error>;
+    type Result = Result<common::DiagnosticData, AkError>;
 }
 impl Handler<GetDiagnosticData> for BeaconManager {
-    type Result = Result<common::DiagnosticData, io::Error>;
+    type Result = Result<common::DiagnosticData, AkError>;
 
     fn handle(&mut self, _msg: GetDiagnosticData, _context: &mut Context<Self>) -> Self::Result {
         let res = self.diagnostic_data.clone();
@@ -507,14 +509,14 @@ impl Handler<GetDiagnosticData> for BeaconManager {
     }
 }
 
-pub struct OutBeaconData { }
+pub struct OutBeaconData;
 
 impl Message for OutBeaconData {
-    type Result = Result<Vec<RealtimeBeacon>, io::Error>;
+    type Result = Result<Vec<RealtimeBeacon>, AkError>;
 }
 
 impl Handler<OutBeaconData> for BeaconManager {
-    type Result = Result<Vec<RealtimeBeacon>, io::Error>;
+    type Result = Result<Vec<RealtimeBeacon>, AkError>;
 
     fn handle (&mut self, _msg: OutBeaconData, _: &mut Context<Self>) -> Self::Result {
         Ok(self.beacons.iter().map(|(_mac, beacon)| beacon.realtime.clone()).collect())
