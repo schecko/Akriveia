@@ -1,14 +1,14 @@
 use common::*;
-use crate::canvas::{ Canvas, /*screen_space*/ };
+use crate::canvas::{ Canvas, };
 use crate::util::*;
 use std::time::Duration;
 use stdweb::web::{ Node, html_element::ImageElement, };
+use super::user_message::UserMessage;
 use super::value_button::{ ValueButton, DisplayButton, };
+use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalService, IntervalTask, };
 use yew::virtual_dom::vnode::VNode;
-use yew::prelude::*;
-use super::user_message::UserMessage;
 
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
@@ -318,7 +318,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <tr>
                     <td>{&user.addr}</td>
                     <td>{&user.name}</td>
-                    <td>{user.last_active}</td>
+                    <td>{format_timestamp(&user.last_active) }</td>
                     {
                         match self.user_type {
                             WebUserType::Admin => html! {

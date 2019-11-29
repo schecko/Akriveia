@@ -1,7 +1,10 @@
-use failure::Fallible;
-use yew::services::fetch::{ Response as FetchResponse, };
-use yew::format::Json;
+use chrono::offset::FixedOffset;
+use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
 use common::*;
+use failure::Fallible;
+use stdweb::web::Date;
+use yew::format::Json;
+use yew::services::fetch::{ Response as FetchResponse, };
 
 pub type JsonResponse<T> = FetchResponse<Json<Fallible<Result<T, WebError>>>>;
 pub type BinResponse<T> = FetchResponse<Json<Fallible<T>>>;
@@ -10,6 +13,13 @@ pub type BinResponse<T> = FetchResponse<Json<Fallible<T>>>;
 pub enum WebUserType {
     Admin,
     Responder,
+}
+
+pub fn format_timestamp<'a>(stamp: &DateTime<Utc>) -> DelayedFormat<StrftimeItems<'a>> {
+    let offset_minutes = Date::new().get_timezone_offset();
+    let off = FixedOffset::west(offset_minutes * 60);
+    let zoned_stamp = stamp.with_timezone(&off);
+    zoned_stamp.format("%c")
 }
 
 macro_rules! Log {
