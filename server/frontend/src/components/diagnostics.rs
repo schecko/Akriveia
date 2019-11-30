@@ -2,11 +2,11 @@ use common::*;
 use crate::util::*;
 use std::collections::{ VecDeque, BTreeSet };
 use std::time::Duration;
+use super::user_message::UserMessage;
 use super::value_button::ValueButton;
+use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::services::interval::{ IntervalTask, IntervalService, };
-use yew::prelude::*;
-use super::user_message::UserMessage;
 
 const DIAGNOSTIC_POLLING_RATE: Duration = Duration::from_millis(1000);
 const MAX_BUFFER_SIZE: usize = 0x50;
@@ -155,7 +155,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         <td>{ &row.beacon_mac }</td>
                         <td>{ &row.tag_mac }</td>
                         <td>{ &row.tag_distance }</td>
-                        <td>{ &row.timestamp }</td>
+                        <td>{ format_timestamp(&row.timestamp) }</td>
                     </tr>
                 }
             });
