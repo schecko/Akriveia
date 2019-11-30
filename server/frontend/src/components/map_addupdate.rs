@@ -4,7 +4,7 @@ use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use std::time::Duration;
 use stdweb::traits::*;
 use stdweb::web::event::{ ClickEvent, };
-use stdweb::web::{ Node, html_element::ImageElement, };
+use stdweb::web::{ Node, html_element::ImageElement, Date, };
 use super::root;
 use yew::IMouseEvent;
 use yew::prelude::*;
@@ -146,6 +146,21 @@ impl MapAddUpdate {
 
         success
     }
+
+    fn load_img(&mut self) {
+        if let Some(img) = &self.map_img {
+            // use the date to force reload
+            img.set_src(&format!("{}#{}", map_blueprint_url(&self.data.map.id.to_string()), Date::now()));
+        } else {
+            let img = ImageElement::new();
+            // use the date to force reload
+            img.set_src(&format!("{}#{}", map_blueprint_url(&self.data.map.id.to_string()), Date::now()));
+            self.map_img = Some(img);
+        };
+
+        let callback = self.self_link.send_back(|_| Msg::CheckImage);
+        self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
+    }
 }
 
 pub struct MapAddUpdate {
@@ -221,12 +236,12 @@ impl Component for MapAddUpdate {
                 self.change_page.emit(page);
             }
             Msg::CheckImage => {
-                // The is necessary to force a rerender when the image finally loads,
+                // This is necessary to force a rerender when the image finally loads,
                 // it would be nice to use an onload() callback, but that does not seem to
                 // work.
                 // once the map is loaded, we dont need to check it anymore.
                 if let Some(img) = &self.map_img {
-                    if img.complete() {
+                    if img.complete() && img.width() > 0 && img.height() > 0 {
                         self.interval_service_task = None;
                     }
                 }
@@ -411,7 +426,7 @@ impl Component for MapAddUpdate {
                         s.user_msg.success_message = Some("successfully updated map".to_owned());
                         s.data.map = map;
 
-                        if let Some(file) = &s.data.blueprint {
+                        if let Some(file) = &s.data.blueprint.take() {
                             s.binary_fetch_task = put_image!(
                                 s.fetch_service,
                                 &map_blueprint_url(&s.data.map.id.to_string()),
@@ -434,6 +449,7 @@ impl Component for MapAddUpdate {
                             s.data.raw_bounds[0] = s.data.map.bounds[0].to_string();
                             s.data.raw_bounds[1] = s.data.map.bounds[1].to_string();
                             s.data.raw_scale = s.data.map.scale.to_string();
+                            s.load_img();
                     },
                     |s, e| {
                         s.user_msg.error_messages.push(format!("failed to find map, reason: {}", e));
@@ -444,11 +460,7 @@ impl Component for MapAddUpdate {
                 let (meta, _body) = response.into_parts();
                 if meta.status.is_success() {
                     self.user_msg.success_message = Some("successfully updated image".to_owned());
-                    let img = ImageElement::new();
-                    img.set_src(&map_blueprint_url(&self.data.map.id.to_string()));
-                    let callback = self.self_link.send_back(|_| Msg::CheckImage);
-                    self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
-                    self.map_img = Some(img);
+                    self.load_img();
                 } else {
                     self.user_msg.error_messages.push("failed to find map".to_owned());
                 }
@@ -461,7 +473,7 @@ impl Component for MapAddUpdate {
                         s.data.map = map;
                         s.data.opt_id = Some(s.data.map.id);
 
-                        if let Some(file) = &s.data.blueprint {
+                        if let Some(file) = &s.data.blueprint.take() {
                             s.binary_fetch_task = put_image!(
                                 s.fetch_service,
                                 &map_blueprint_url(&s.data.map.id.to_string()),
@@ -561,9 +573,6 @@ impl MapAddUpdate {
                                 </tr>
                                 { for beacon_placement_rows }
                             </table>
-                            <div>
-                                { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                            </div>
                         </>
                     }
                 } else {
@@ -682,6 +691,9 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         </tr>
                     </table>
                     { self.render_beacon_placement() }
+                    <div>
+                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    </div>
                     <div class="formButtons">
                         {
                             match self.user_type {

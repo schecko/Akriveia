@@ -13,7 +13,7 @@ pub enum Msg {
     RequestGetMaps,
 
     ResponseGetMaps(JsonResponse<Vec<Map>>),
-    ResponseDeleteMap(JsonResponse<Vec<()>>),
+    ResponseDeleteMap(JsonResponse<()>),
 }
 
 pub struct MapList {
@@ -84,10 +84,10 @@ impl Component for MapList {
                 self.handle_response(
                     response,
                     |s, _| {
-                        s.user_msg.success_message = Some("successfully deleted user".to_owned());
+                        s.user_msg.success_message = Some("successfully deleted map".to_owned());
                     },
                     |s, e| {
-                        s.user_msg.error_messages.push(format!("failed to delete user, reason: {}", e));
+                        s.user_msg.error_messages.push(format!("failed to delete map, reason: {}", e));
                     },
                 );
                 // now that the map is deleted, get the updated list
