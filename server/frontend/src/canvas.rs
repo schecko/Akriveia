@@ -156,7 +156,7 @@ impl Canvas {
         self.context.restore();
     }
 
-    pub fn reset(&mut self, map: &Map, img: &Option<ImageElement>) {
+    pub fn reset(&mut self, map: &Map, img: &Option<ImageElement>, show_grid: bool) {
         self.canvas.set_width(map.bounds.x as u32);
         self.canvas.set_height(map.bounds.y as u32);
 
@@ -189,27 +189,29 @@ impl Canvas {
             Some(())
         });
 
-        self.context.save();
-        self.context.set_line_dash(vec![5.0, 15.0]);
-        // vertical gridlines
-        for i in (map.scale as u32..map.bounds.x as u32).step_by(map.scale as usize) {
-            let pos0 = screen_space(&map, i as f64, map.bounds.y as f64);
-            let pos1 = screen_space(&map, i as f64, 0.0);
-            self.context.begin_path();
-            self.context.move_to(pos0.x, pos0.y);
-            self.context.line_to(pos1.x, pos1.y);
-            self.context.stroke();
+        if show_grid {
+            self.context.save();
+            self.context.set_line_dash(vec![5.0, 15.0]);
+            // vertical gridlines
+            for i in (map.scale as u32..map.bounds.x as u32).step_by(map.scale as usize) {
+                let pos0 = screen_space(&map, i as f64, map.bounds.y as f64);
+                let pos1 = screen_space(&map, i as f64, 0.0);
+                self.context.begin_path();
+                self.context.move_to(pos0.x, pos0.y);
+                self.context.line_to(pos1.x, pos1.y);
+                self.context.stroke();
+            }
+            // horizontal gridlines
+            for i in (map.scale as u32..map.bounds.y as u32).step_by(map.scale as usize) {
+                let pos0 = screen_space(&map, map.bounds.x as f64, i as f64);
+                let pos1 = screen_space(&map, 0.0, i as f64);
+                self.context.begin_path();
+                self.context.move_to(pos0.x, pos0.y);
+                self.context.line_to(pos1.x, pos1.y);
+                self.context.stroke();
+            }
+            self.context.restore();
         }
-        // horizontal gridlines
-        for i in (map.scale as u32..map.bounds.y as u32).step_by(map.scale as usize) {
-            let pos0 = screen_space(&map, map.bounds.x as f64, i as f64);
-            let pos1 = screen_space(&map, 0.0, i as f64);
-            self.context.begin_path();
-            self.context.move_to(pos0.x, pos0.y);
-            self.context.line_to(pos1.x, pos1.y);
-            self.context.stroke();
-        }
-        self.context.restore();
 
         let text_adjustment = 10.0;
         // x axis

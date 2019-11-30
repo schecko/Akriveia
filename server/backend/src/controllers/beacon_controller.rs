@@ -125,8 +125,6 @@ pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web:
 
 // new beacon
 pub fn post_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=AkError> {
-    println!("post beacon");
-
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             beacon::insert_beacon(client, payload.0)

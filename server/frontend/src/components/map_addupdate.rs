@@ -21,7 +21,6 @@ pub enum Coord {
 
 pub enum Msg {
     AddAnotherMap,
-    ToggleAttachBeacon(i32),
     CanvasClick(ClickEvent),
     ChangeRootPage(root::Page),
     CheckImage,
@@ -33,7 +32,9 @@ pub enum Msg {
     InputNote(String),
     InputScale(String),
     ManualBeaconPlacement(usize, Coord, String),
+    ToggleAttachBeacon(i32),
     ToggleBeaconPlacement(i32),
+    ToggleGrid,
 
     RequestAddUpdateMap,
     RequestGetMap(i32),
@@ -165,6 +166,7 @@ pub struct MapAddUpdate {
     interval_service_task: Option<IntervalTask>,
     map_img: Option<ImageElement>,
     self_link: ComponentLink<Self>,
+    show_grid: bool,
     user_msg: UserMessage<Self>,
     user_type: WebUserType,
 
@@ -212,6 +214,7 @@ impl Component for MapAddUpdate {
             self_link: link,
             user_msg: UserMessage::new(),
             user_type: props.user_type,
+            show_grid: false,
 
             fetch_task_attached_beacons: None,
             fetch_task_beacon: None,
@@ -221,7 +224,7 @@ impl Component for MapAddUpdate {
 
         };
 
-        result.canvas.reset(&result.data.map, &result.map_img);
+        result.canvas.reset(&result.data.map, &result.map_img, result.show_grid);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons.iter().map(|(b, _d)| b).collect());
         result.data.opt_id = props.opt_id;
         result
@@ -230,6 +233,9 @@ impl Component for MapAddUpdate {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Ignore => {
+            },
+            Msg::ToggleGrid => {
+                self.show_grid = !self.show_grid;
             },
             Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
@@ -327,7 +333,7 @@ impl Component for MapAddUpdate {
                                 self.data.attached_beacons[index].1.raw_x = coords.x.to_string();
                                 self.data.attached_beacons[index].1.raw_y = coords.y.to_string();
                                 self.data.attached_beacons[index].0.coordinates = coords;
-                                self.canvas.reset(&self.data.map, &self.map_img);
+                                self.canvas.reset(&self.data.map, &self.map_img, self.show_grid);
                                 self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
                             },
                             _ => {
@@ -567,7 +573,7 @@ impl Component for MapAddUpdate {
             },
         }
 
-        self.canvas.reset(&self.data.map, &self.map_img);
+        self.canvas.reset(&self.data.map, &self.map_img, self.show_grid);
         self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
         true
     }
@@ -697,12 +703,24 @@ impl MapAddUpdate {
                             </table>
                             <div>
                                 { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                                <input
+                                    type="checkbox"
+                                    value=&self.show_grid
+                                    onclick=|_| Msg::ToggleGrid,
+                                >
+                                    { "Show Grid" }
+                                </input>
                             </div>
                         </>
                     }
                 } else {
                     html! {
-                        <p>{ "No Attached Beacons for this Map." }</p>
+                        <button
+                            class="btn btn-sm btn-warning mx-1",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                        >
+                            { "No beacons available, click here to add beacon" }
+                        </button>
                     }
                 }
             },

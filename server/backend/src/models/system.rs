@@ -49,7 +49,7 @@ const SCHEMA: [&str; 33] = [
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_last_active TIMESTAMPTZ NOT NULL,
         b_mac_address MACADDR8 UNIQUE,
-        b_map_id INTEGER REFERENCES runtime.maps(m_id),
+        b_map_id INTEGER REFERENCES runtime.maps(m_id) ON DELETE SET NULL,
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024),
         b_state INT2 NOT NULL DEFAULT 0
