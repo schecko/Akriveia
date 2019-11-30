@@ -233,13 +233,17 @@ impl Component for Status {
                     response,
                     |s, beacons| {
                         for b in beacons {
-                            if let Some(mid) = b.map_id {
-                                if !s.maps.contains_key(&mid) {
-                                    let mid = mid.clone();
-                                    s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                            // dont add any beacons that dont have floors, first responders dont
+                            // need to see beacons that dont have any use.
+                            if b.map_id.is_some() {
+                                if let Some(mid) = b.map_id {
+                                    if !s.maps.contains_key(&mid) {
+                                        let mid = mid.clone();
+                                        s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                    }
                                 }
+                                s.beacons.insert(b.id, b);
                             }
-                            s.beacons.insert(b.id, b);
                         }
                     },
                     |s, e| {
@@ -401,7 +405,7 @@ impl Status {
                 <tr>
                     <td>{ &beacon.name }</td>
                     <td>{ &beacon.state }</td>
-                    <td>{ &beacon.last_active }</td>
+                    <td>{ format_timestamp(&beacon.last_active) }</td>
                     <td>{ format!("{:.3},{:.3}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
                     <td>{ &map.name }</td>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
@@ -472,7 +476,7 @@ impl Status {
                     <td>{ &user.name }</td>
                     <td>{ format!("{:.3},{:.3}", &user.coordinates.x, &user.coordinates.y) }</td>
                     <td>{ &map.name }</td>
-                    <td>{ &user.last_active }</td>
+                    <td>{ format_timestamp(&user.last_active) }</td>
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>

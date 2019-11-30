@@ -13,7 +13,7 @@ pub enum Msg {
     RequestGetBeacons,
     RequestCommandBeacon(BeaconRequest),
 
-    ResponseGetBeacons(JsonResponse<Vec<(Beacon, Map)>>),
+    ResponseGetBeacons(JsonResponse<Vec<(Beacon, Option<Map>)>>),
     ResponseDeleteBeacon(JsonResponse<()>),
     ResponseCommandBeacon(JsonResponse<()>),
 }
@@ -21,7 +21,7 @@ pub struct BeaconList {
     change_page: Callback<root::Page>,
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
-    list: Vec<(Beacon, Map)>,
+    list: Vec<(Beacon, Option<Map>)>,
     self_link: ComponentLink<Self>,
     user_msg: UserMessage<Self>,
 }
@@ -129,12 +129,13 @@ impl Component for BeaconList {
 
 impl Renderable<BeaconList> for BeaconList {
     fn view(&self) -> Html<Self> {
-        let mut rows = self.list.iter().map(|(beacon, map)| {
+        let mut rows = self.list.iter().map(|(beacon, opt_map)| {
+            let map_name = opt_map.as_ref().map(|m| m.name.as_ref()).unwrap_or("");
             html! {
                 <tr>
                     <td>{ &beacon.mac_address.to_hex_string() }</td>
                     <td>{ format!("{},{}", &beacon.coordinates.x, &beacon.coordinates.y) }</td>
-                    <td>{ &map.name }</td>
+                    <td>{ map_name }</td>
                     <td>{ &beacon.name }</td>
                     <td>{ beacon.note.clone().unwrap_or(String::new()) }</td>
                     <td>

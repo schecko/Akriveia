@@ -7,7 +7,7 @@ extern crate ipnet;
 pub mod short_address;
 
 pub use chrono::offset::TimeZone;
-pub use chrono::{ DateTime, Utc, };
+pub use chrono::{ DateTime, Utc, format::DelayedFormat, format::StrftimeItems, };
 pub use eui48::MacAddress;
 pub use eui64::MacAddress8;
 pub use short_address::ShortAddress;

@@ -277,10 +277,6 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             Some(_id) => "Update Beacon",
             None => "Add Beacon",
         };
-        let chosen_floor_id = match self.data.beacon.map_id {
-            Some(id) => id,
-            None => -1,
-        };
         let add_another_button = match &self.data.id {
             Some(_) => {
                 html! {
@@ -303,7 +299,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             html! {
                 <option
                     onclick=|_| Msg::InputFloorName(Some(floor_id)),
-                    disabled={ floor_id == chosen_floor_id },
+                    selected={ Some(floor_id) == self.data.beacon.map_id },
                 >
                     { &floor.name }
                 </option>
@@ -334,7 +330,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                 <select class="formAlign">
                                     <option
                                         onclick=|_| Msg::InputFloorName(None),
-                                        disabled={ -1 == chosen_floor_id },
+                                        selected={ None == self.data.beacon.map_id },
                                     >
                                         { "None" }
                                     </option>
