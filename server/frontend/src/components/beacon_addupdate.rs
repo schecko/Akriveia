@@ -2,6 +2,7 @@ use common::*;
 use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
+use super::status::{ self };
 use yew::Callback;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
@@ -306,6 +307,28 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
             }
         });
 
+        let return_cancel = match self.user_type {
+            WebUserType::Admin => html! {
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-danger align",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),
+                    >
+                        { "Cancel" }
+                    </button>
+            },
+            WebUserType::Responder => html! {
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-danger align",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::Status(status::PageState::BeaconStatus)),
+                    >
+                        { "Cancel" }
+                    </button>
+            },
+        };
+
+
         let note = self.data.beacon.note.clone().unwrap_or(String::new());
 
         html! {
@@ -397,13 +420,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                                     WebUserType::Responder => html! { },
                                 }
                             }
-                            <button
-                                type="button",
-                                class="btn btn-lg btn-danger align",
-                                onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),
-                            >
-                                { "Cancel" }
-                            </button>
+                            { return_cancel }
                         </div>
                     </div>
                 </div>

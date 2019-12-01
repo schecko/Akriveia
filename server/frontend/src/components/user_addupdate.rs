@@ -2,6 +2,7 @@ use common::*;
 use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use super::root;
 use super::user_message::UserMessage;
+use super::status::{ self };
 use yew::Callback;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties};
@@ -355,6 +356,27 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
             },
         };
 
+        let return_cancel = match self.user_type {
+            WebUserType::Admin => html! {
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-danger align",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::UserList),
+                    >
+                        { "Cancel" }
+                    </button>
+            },
+            WebUserType::Responder => html! {
+                    <button
+                        type="button",
+                        class="btn btn-lg btn-danger align",
+                        onclick=|_| Msg::ChangeRootPage(root::Page::Status(status::PageState::UserStatus)),
+                    >
+                        { "Cancel" }
+                    </button>
+            },
+        };
+
         html! {
             <>
                 { self.user_msg.view() }
@@ -426,13 +448,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                                     WebUserType::Responder => html! { },
                                 }
                             }
-                            <button
-                                type="button",
-                                class="btn btn-lg btn-danger align",
-                                onclick=|_| Msg::ChangeRootPage(root::Page::UserList),
-                            >
-                                { "Cancel" }
-                            </button>
+                            { return_cancel }
                         </div>
                     </div>
                 </div>
