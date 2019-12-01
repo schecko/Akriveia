@@ -76,6 +76,8 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
             ""
         };
 
+        let space_between = if self.icon.is_empty() {""} else {" "};
+
         let cls = format!("btn {} btn-sm {} spacing", self.style, bold);
 
         html! {
@@ -87,6 +89,7 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
                     class={cls},
                 >
                     <i class={&self.icon} aria-hidden="true"></i>
+                    { space_between }
                     { self.display.as_ref().unwrap_or(&self.value.to_string()) }
                 </button>
             </>
@@ -166,6 +169,8 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
             ""
         };
 
+        let space_between = if self.icon.is_empty() {""} else {" "};
+
         let cls = format!("btn {} btn-sm {} spacing", self.style, bold);
         html! {
             <>
@@ -176,6 +181,7 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
                     class={cls},
                 >
                     <i class={ &self.icon } aria-hidden="true"></i>
+                    { space_between }
                     { &self.display }
                 </button>
             </>

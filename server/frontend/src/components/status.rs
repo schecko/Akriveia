@@ -383,7 +383,7 @@ impl Status {
                 WebUserType::Admin => html! {
                     <>
                         <DisplayButton<BeaconRequest>
-                            display=" Ping".to_owned(),
+                            display="Ping".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
@@ -391,7 +391,7 @@ impl Status {
                             style="btn-info",
                         />
                         <DisplayButton<BeaconRequest>
-                            display=" Reboot".to_owned(),
+                            display="Reboot".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
@@ -414,7 +414,7 @@ impl Status {
                     <td>{ beacon.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some(" Details".to_owned()),
+                            display=Some("Details".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
                             icon = "fa fa-book",
@@ -422,7 +422,7 @@ impl Status {
                             value={beacon.id},
                         />
                         <DisplayButton<Option<i32>>
-                            display=" Map".to_owned(),
+                            display="Map".to_owned(),
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
@@ -485,7 +485,7 @@ impl Status {
                     <td>{ &user.note.as_ref().unwrap_or(&String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some(" Details".to_string()),
+                            display=Some("Details".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::UserAddUpdate(Some(value))),
                             border=false,
                             icon = "fa fa-book",
@@ -493,7 +493,7 @@ impl Status {
                             value={user.id}
                         />
                         <DisplayButton<Option<i32>>
-                            display=" Map".to_string(),
+                            display="Map".to_string(),
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,

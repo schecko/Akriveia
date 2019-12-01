@@ -545,8 +545,7 @@ impl RootComponent {
                             }
                         },
                     >
-                        <i class="fa fa-address-book-o" aria-hidden="true"></i>
-                        { " Login" }
+                        { "Login" }
                     </button>
                     <a class="loginTypeHeader">{ "FIRST RESPONDER" }</a>
                 </>

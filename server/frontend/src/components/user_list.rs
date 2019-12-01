@@ -123,15 +123,15 @@ impl Renderable<UserList> for UserList {
                     <td>{ user.mobile_phone.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some(" Edit".to_string()),
+                            display=Some("Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::UserAddUpdate(Some(value))),
                             border=false,
-                            icon="fa fa-pencil",
+                            icon="fa fa-pencil-square-o",
                             style="btn-primary",
                             value={user.id}
                         />
                         <ValueButton<i32>
-                            display=Some(" Delete".to_string()),
+                            display=Some("Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteUser(value),
                             border=false,
                             icon="fa fa-trash",
@@ -149,7 +149,7 @@ impl Renderable<UserList> for UserList {
                 <div class="d-flex justify-content-between">
                     <h2>{ "User List"}</h2>
                     <button
-                        class="btn btn-outline-success logoutPlacement my-1",
+                        class="btn btn-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
                     >
                         {"Add User"}

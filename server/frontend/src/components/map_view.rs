@@ -356,7 +356,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                         value={user.addr.to_string()},
                                         icon="fa fa-map-marker",
                                         style={ if set_border {"btn-secondary"} else {"btn-outline-secondary"} },
-                                        display={" Show"},
+                                        display={"Show"},
                                     />
                                 </td>
                             },
@@ -375,12 +375,16 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     { for maps }
                 </div>
                 <div>
-                    { "Show Gridlines" }
-                    <input
-                        type="checkbox"
-                        value=&self.show_grid
-                        onclick=|_| Msg::ToggleGrid,
-                    />
+                    <div class="form-check">
+                        <input
+                            type="checkbox",
+                            class="form-check-input",
+                            id="gridlineCheck1",
+                            value=&self.show_grid,
+                            onclick=|_| Msg::ToggleGrid,
+                        />
+                        <label class="form-check-label" for="gridlineCheck1">{ "Show Gridlines" }</label>
+                    </div>
                 </div>
                 <div>
                     { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }

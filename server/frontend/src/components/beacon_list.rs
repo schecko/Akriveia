@@ -140,15 +140,15 @@ impl Renderable<BeaconList> for BeaconList {
                     <td>{ beacon.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some(" Edit".to_owned()),
+                            display=Some("Edit".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
-                            icon="fa fa-pencil",
+                            icon="fa fa-pencil-square-o",
                             style="btn-primary",
                             value={beacon.id}
                         />
                         <ValueButton<i32>
-                            display=Some(" Delete".to_owned()),
+                            display=Some("Delete".to_owned()),
                             on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
                             icon="fa fa-trash",
@@ -156,7 +156,7 @@ impl Renderable<BeaconList> for BeaconList {
                             value=beacon.id
                         />
                         <DisplayButton<BeaconRequest>
-                            display=" Ping".to_owned(),
+                            display="Ping".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
@@ -164,7 +164,7 @@ impl Renderable<BeaconList> for BeaconList {
                             style="btn-info",
                         />
                         <DisplayButton<BeaconRequest>
-                            display=" Reboot".to_owned(),
+                            display="Reboot".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
@@ -182,7 +182,7 @@ impl Renderable<BeaconList> for BeaconList {
                 <div class="d-flex justify-content-between">
                     <h2>{ "Beacon List"}</h2>
                     <button
-                        class="btn btn-outline-success logoutPlacement my-1",
+                        class="btn btn-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
                     >
                         {"Add Beacon"}

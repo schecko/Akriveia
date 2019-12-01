@@ -171,12 +171,12 @@ impl Renderable<Diagnostics> for Diagnostics {
                         { " Reset Data" }
                     </button>
                     { self.user_msg.view() }
+                    <div>
+                        <h2>{ "Diagnostics" }</h2>
+                        <tr>{ for beacon_selections }</tr>
+                    </div>
                     <table class="table table-striped">
                         <thead class="thead-dark">
-                            <div>
-                                <h2>{ "Diagnostics" }</h2>
-                                <tr>{ for beacon_selections }</tr>
-                            </div>
                             <tr>
                                 <th>{ "Beacon Mac" }</th>
                                 <th>{ "User Mac" }</th>

@@ -99,7 +99,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                             class="btn btn-lg btn-info ml-3 my-auto",
                             onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
                         >
-                            <i class="fa fa-recycle fa-fw" aria-hidden="true"></i>
+                            <i class="fa fa-power-off" aria-hidden="true"></i>
                             { " Reset Database" }
                         </button>
                     </div>
@@ -107,7 +107,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                     <div class="d-flex justify-content-start">
                         <button
                             class="btn btn-lg btn-secondary my-auto",
-                        ><i class="fa fa-laptop" aria-hidden="true"></i>
+                        ><i class="fa fa-wifi" aria-hidden="true"></i>
                             {" Set IP Address"}
                         </button>
                         <input
