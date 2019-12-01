@@ -36,6 +36,7 @@ pub fn beacon_command(_uid: Identity, state: AKData, payload: web::Json<common::
         BeaconRequest::EndEmergency(mac) => BMCommand::EndEmergency(mac),
         BeaconRequest::Ping(mac) => BMCommand::Ping(mac),
         BeaconRequest::Reboot(mac) => BMCommand::Reboot(mac),
+        BeaconRequest::SetIp(ip) => BMCommand::SetIp(ip),
     };
     s.beacon_manager
         .send(command)

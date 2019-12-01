@@ -110,6 +110,9 @@ impl Handler<BeaconCommand> for DummyUDP {
             BeaconCommand::Reboot(opt_ip) => {
                 self.reply(context, opt_ip, |ip, mac| BMResponse::Reboot(ip, mac));
             }
+            BeaconCommand::SetIp(_ip) => {
+                self.reply(context, None, |ip, mac| BMResponse::SetIp(ip, mac));
+            }
         }
 
         Ok(())
