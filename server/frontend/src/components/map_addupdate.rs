@@ -837,15 +837,13 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     </table>
                     { self.render_beacon_placement() }
                     <div>
-                        <label class="checkbox">
                         <input
                             type="checkbox",
+                            id = "gridlineCheck2"
                             value=&self.show_grid,
                             onclick=|_| Msg::ToggleGrid,
                         />
-                        { "Show Grid" }
-                        </label>
-                        <label class="checkbox">{ "Check this" }</label>
+                        <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
                     </div>
                     <div>
                         { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
