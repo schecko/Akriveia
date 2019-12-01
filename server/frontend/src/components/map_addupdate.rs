@@ -637,11 +637,11 @@ impl MapAddUpdate {
                             { "Save" }
                         </button>
                         <button
-                            class={ 
-                                if this_beacon_selected { 
+                            class={
+                                if this_beacon_selected {
                                     "btn btn-sm btn-secondary mx-1 selected" }
                             else {
-                             "btn btn-sm mx-1 btn-warning" 
+                            "btn btn-sm mx-1 btn-warning"
                             } 
                         },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),

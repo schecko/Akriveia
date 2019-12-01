@@ -163,7 +163,7 @@ impl Renderable<Diagnostics> for Diagnostics {
 
             html! {
                 <>
-                    <button 
+                    <button
                         type="button" class="btn btn-lg btn-warning"
                         onclick=|_| Msg::ClearBuffer,
                     >

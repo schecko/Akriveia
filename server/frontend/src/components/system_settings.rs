@@ -85,7 +85,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                 <div/>
                 <div class="boxedForm">
                     <h2>{ "System Settings" }</h2>
-                    
+
                     <div class="d-flex">
                         <button
                             class="btn btn-lg btn-info mr-3 my-auto",

@@ -11,7 +11,7 @@ pub struct ValueButton<T> {
     pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
-    pub style: String, 
+    pub style: String,
     pub icon: String,
 }
 
@@ -85,7 +85,7 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
                     disabled={self.disabled},
                     onclick=|_| Msg::Click,
                     class={cls},
-                > 
+                >
                     <i class={&self.icon} aria-hidden="true"></i>
                     { self.display.as_ref().unwrap_or(&self.value.to_string()) }
                 </button>
@@ -175,7 +175,7 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
                     onclick=|_| Msg::Click,
                     class={cls},
                 >
-                    <i class={ &self.icon } aria-hidden="true"></i>   
+                    <i class={ &self.icon } aria-hidden="true"></i>
                     { &self.display }
                 </button>
             </>
