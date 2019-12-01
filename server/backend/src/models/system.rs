@@ -45,11 +45,11 @@ const SCHEMA: [&str; 33] = [
     );",
     "CREATE TABLE runtime.beacons (
         b_id SERIAL PRIMARY KEY,
-        b_ip INET UNIQUE,
+        b_ip INET,
         b_coordinates DOUBLE PRECISION[2] NOT NULL,
         b_last_active TIMESTAMPTZ NOT NULL,
         b_mac_address MACADDR8 UNIQUE,
-        b_map_id INTEGER REFERENCES runtime.maps(m_id) NOT NULL,
+        b_map_id INTEGER REFERENCES runtime.maps(m_id) ON DELETE SET NULL,
         b_name VARCHAR(255) UNIQUE,
         b_note VARCHAR(1024),
         b_state INT2 NOT NULL DEFAULT 0

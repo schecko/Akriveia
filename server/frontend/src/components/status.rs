@@ -233,13 +233,17 @@ impl Component for Status {
                     response,
                     |s, beacons| {
                         for b in beacons {
-                            if let Some(mid) = b.map_id {
-                                if !s.maps.contains_key(&mid) {
-                                    let mid = mid.clone();
-                                    s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                            // dont add any beacons that dont have floors, first responders dont
+                            // need to see beacons that dont have any use.
+                            if b.map_id.is_some() {
+                                if let Some(mid) = b.map_id {
+                                    if !s.maps.contains_key(&mid) {
+                                        let mid = mid.clone();
+                                        s.self_link.send_back(move |_: ()| Msg::RequestGetMap(mid));
+                                    }
                                 }
+                                s.beacons.insert(b.id, b);
                             }
-                            s.beacons.insert(b.id, b);
                         }
                     },
                     |s, e| {

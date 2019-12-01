@@ -50,13 +50,13 @@ pub fn select_beacons(mut client: tokio_postgres::Client) -> impl Future<Item=(t
         })
 }
 
-pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<(Beacon, Map)>), Error=AkError> {
+pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<(Beacon, Option<Map>)>), Error=AkError> {
     // TODO paging
     client
         .prepare("
             SELECT *
-            FROM runtime.maps AS map, runtime.beacons AS beacon
-            WHERE map.m_id = beacon.b_map_id
+            FROM runtime.beacons AS beacon
+            LEFT JOIN runtime.maps AS map ON map.m_id = beacon.b_map_id
         ")
         .map_err(AkError::from)
         .and_then(move |statement| {
@@ -65,7 +65,7 @@ pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Futur
                 .collect()
                 .into_future()
                 .map_err(AkError::from)
-                .map(|rows| -> (tokio_postgres::Client, Vec<(common::Beacon, common::Map)>) {
+                .map(|rows| {
                     (
                         client,
                         rows
@@ -73,7 +73,9 @@ pub fn select_beacons_prefetch(mut client: tokio_postgres::Client) -> impl Futur
                             // this works because the row conversion functions only
                             // look for entries specific to the object they are
                             // converting for, and the keys are all unique.
-                            .map(|row| (row_to_beacon(&row), map::row_to_map(&row)))
+                            .map(|row| {
+                                 (row_to_beacon(&row), map::maybe_row_to_map(&row))
+                             })
                             .collect()
                     )
                 })
@@ -103,12 +105,25 @@ pub fn select_beacon(mut client: tokio_postgres::Client, id: i32) -> impl Future
         })
 }
 
-pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: i32) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
-    client
-        .prepare("
+pub fn select_beacons_for_map(mut client: tokio_postgres::Client, id: Option<i32>) -> impl Future<Item=(tokio_postgres::Client, Vec<Beacon>), Error=AkError> {
+    let query = if id.is_some() {
+        "
             SELECT * FROM runtime.beacons
-            WHERE b_map_id = $1::INTEGER
-        ")
+            WHERE b_map_id = $1
+        "
+    } else {
+        "
+            SELECT * FROM runtime.beacons
+            WHERE b_map_id IS NULL
+        "
+    };
+
+    client
+        .prepare_typed(
+            query
+        , &[
+            Type::INT4
+        ])
         .map_err(AkError::from)
         .and_then(move |statement| {
             client
@@ -554,7 +569,7 @@ mod tests {
                 insert_beacon(client, beacon)
             })
             .and_then(|(client, opt_beacon)| {
-                select_beacons_for_map(client, opt_beacon.unwrap().map_id.unwrap())
+                select_beacons_for_map(client, opt_beacon.unwrap().map_id)
             })
             .map(|(_client, _beacons)| {
             })

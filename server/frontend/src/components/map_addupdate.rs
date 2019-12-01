@@ -4,7 +4,7 @@ use crate::util::{ self, WebUserType, JsonResponseHandler, };
 use std::time::Duration;
 use stdweb::traits::*;
 use stdweb::web::event::{ ClickEvent, };
-use stdweb::web::{ Node, html_element::ImageElement, };
+use stdweb::web::{ Node, html_element::ImageElement, Date, };
 use super::root;
 use yew::IMouseEvent;
 use yew::prelude::*;
@@ -32,15 +32,20 @@ pub enum Msg {
     InputNote(String),
     InputScale(String),
     ManualBeaconPlacement(usize, Coord, String),
+    ToggleAttachBeacon(i32),
     ToggleBeaconPlacement(i32),
+    ToggleGrid,
 
     RequestAddUpdateMap,
     RequestGetMap(i32),
     RequestGetBeaconsForMap(i32),
+    RequestGetUnattachedBeacons,
     RequestPutBeacon(i32),
 
     ResponseAddMap(util::JsonResponse<Map>),
     ResponseGetBeaconsForMap(util::JsonResponse<Vec<Beacon>>),
+    ResponseGetUnattachedBeacons(util::JsonResponse<Vec<Beacon>>),
+    ResponseAttachBeacon(util::JsonResponse<Beacon>),
     ResponseGetMap(util::JsonResponse<Map>),
     ResponseUpdateMap(util::JsonResponse<Map>),
     ResponsePutBeacon(util::JsonResponse<Beacon>),
@@ -57,6 +62,7 @@ struct BeaconData {
 struct Data {
     pub map: Map,
     pub attached_beacons: Vec<(Beacon, BeaconData)>,
+    pub unattached_beacons: Vec<(Beacon, BeaconData)>,
     pub opt_id: Option<i32>,
     pub raw_bounds: [String; 2],
     pub raw_scale: String,
@@ -69,6 +75,7 @@ impl Data {
         Data {
             map: Map::new(),
             attached_beacons: Vec::new(),
+            unattached_beacons: Vec::new(),
             opt_id: None,
             raw_bounds: ["0".to_string(), "0".to_string()],
             raw_scale: "1".to_string(),
@@ -146,24 +153,43 @@ impl MapAddUpdate {
 
         success
     }
+
+    fn load_img(&mut self) {
+        if let Some(img) = &self.map_img {
+            // use the date to force reload
+            img.set_src(&format!("{}#{}", map_blueprint_url(&self.data.map.id.to_string()), Date::now()));
+        } else {
+            let img = ImageElement::new();
+            // use the date to force reload
+            img.set_src(&format!("{}#{}", map_blueprint_url(&self.data.map.id.to_string()), Date::now()));
+            self.map_img = Some(img);
+        };
+
+        let callback = self.self_link.send_back(|_| Msg::CheckImage);
+        self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
+    }
 }
 
 pub struct MapAddUpdate {
-    user_msg: UserMessage<Self>,
-    binary_fetch_task: Option<FetchTask>,
     canvas: Canvas,
     change_page: Callback<root::Page>,
     data: Data,
     fetch_service: FetchService,
-    fetch_task: Option<FetchTask>,
     file_reader: ReaderService,
     file_task: Option<ReaderTask>,
-    get_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
     interval_service_task: Option<IntervalTask>,
     map_img: Option<ImageElement>,
     self_link: ComponentLink<Self>,
+    show_grid: bool,
+    user_msg: UserMessage<Self>,
     user_type: WebUserType,
+
+    fetch_task_attached_beacons: Option<FetchTask>,
+    fetch_task_beacon: Option<FetchTask>,
+    fetch_task_binary: Option<FetchTask>,
+    fetch_task_map: Option<FetchTask>,
+    fetch_task_unattached_beacons: Option<FetchTask>,
 }
 
 impl JsonResponseHandler for MapAddUpdate {}
@@ -185,29 +211,35 @@ impl Component for MapAddUpdate {
         if let Some(id) = props.opt_id {
             link.send_self(Msg::RequestGetMap(id));
             link.send_self(Msg::RequestGetBeaconsForMap(id));
+            link.send_self(Msg::RequestGetUnattachedBeacons);
         }
         let data = Data::new();
 
         let click_callback = link.send_back(|event| Msg::CanvasClick(event));
         let mut result = MapAddUpdate {
-            user_msg: UserMessage::new(),
-            binary_fetch_task: None,
             canvas: Canvas::new("addupdate_canvas", click_callback),
             change_page: props.change_page,
             data,
             fetch_service: FetchService::new(),
-            fetch_task: None,
             file_reader: ReaderService::new(),
             file_task: None,
-            get_fetch_task: None,
             interval_service: IntervalService::new(),
             interval_service_task: None,
             map_img: None,
             self_link: link,
+            user_msg: UserMessage::new(),
             user_type: props.user_type,
+            show_grid: false,
+
+            fetch_task_attached_beacons: None,
+            fetch_task_beacon: None,
+            fetch_task_binary: None,
+            fetch_task_map: None,
+            fetch_task_unattached_beacons: None,
+
         };
 
-        result.canvas.reset(&result.data.map, &result.map_img);
+        result.canvas.reset(&result.data.map, &result.map_img, result.show_grid);
         result.canvas.draw_beacons(&result.data.map, &result.data.attached_beacons.iter().map(|(b, _d)| b).collect());
         result.data.opt_id = props.opt_id;
         result
@@ -217,16 +249,19 @@ impl Component for MapAddUpdate {
         match msg {
             Msg::Ignore => {
             },
+            Msg::ToggleGrid => {
+                self.show_grid = !self.show_grid;
+            },
             Msg::ChangeRootPage(page) => {
                 self.change_page.emit(page);
             }
             Msg::CheckImage => {
-                // The is necessary to force a rerender when the image finally loads,
+                // This is necessary to force a rerender when the image finally loads,
                 // it would be nice to use an onload() callback, but that does not seem to
                 // work.
                 // once the map is loaded, we dont need to check it anymore.
                 if let Some(img) = &self.map_img {
-                    if img.complete() {
+                    if img.complete() && img.width() > 0 && img.height() > 0 {
                         self.interval_service_task = None;
                     }
                 }
@@ -259,10 +294,34 @@ impl Component for MapAddUpdate {
                 match self.data.current_beacon {
                     Some(id) if beacon_id == id => {
                         self.data.current_beacon = None;
-                    }
+                    },
                     _ => {
                         self.data.current_beacon = Some(beacon_id);
                     },
+                }
+            },
+            Msg::ToggleAttachBeacon(beacon_id) => {
+                if self.data.map.id > 0 {
+                    match self.data.unattached_beacons.iter_mut().find(|(beacon, _bdata)| beacon.id == beacon_id)
+                        .or(self.data.attached_beacons.iter_mut().find(|(beacon, _bdata)| beacon.id == beacon_id))
+                    {
+                        Some((beacon, _bdata)) => {
+                            beacon.map_id = if beacon.map_id.is_some() {
+                                None
+                            } else {
+                                Some(self.data.map.id)
+                            };
+
+                            self.fetch_task_unattached_beacons = put_request!(
+                                self.fetch_service,
+                                &beacon_url(&beacon_id.to_string()),
+                                beacon,
+                                self.self_link,
+                                Msg::ResponseAttachBeacon
+                            );
+                        },
+                        _ => { },
+                    }
                 }
             },
             Msg::ManualBeaconPlacement(index, coord_type, value) => {
@@ -289,7 +348,7 @@ impl Component for MapAddUpdate {
                                 self.data.attached_beacons[index].1.raw_x = coords.x.to_string();
                                 self.data.attached_beacons[index].1.raw_y = coords.y.to_string();
                                 self.data.attached_beacons[index].0.coordinates = coords;
-                                self.canvas.reset(&self.data.map, &self.map_img);
+                                self.canvas.reset(&self.data.map, &self.map_img, self.show_grid);
                                 self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
                             },
                             _ => {
@@ -307,7 +366,7 @@ impl Component for MapAddUpdate {
                 match self.data.attached_beacons.iter().position(|(beacon, _bdata)| beacon.id == id) {
                     Some(index) => {
                         if self.validate_beacon(index, false) {
-                            self.fetch_task = put_request!(
+                            self.fetch_task_beacon = put_request!(
                                 self.fetch_service,
                                 &beacon_url(&id.to_string()),
                                 self.data.attached_beacons[index].0,
@@ -323,16 +382,25 @@ impl Component for MapAddUpdate {
             },
             Msg::RequestGetBeaconsForMap(id) => {
                 self.user_msg.error_messages = Vec::new();
-                self.fetch_task = get_request!(
+                self.fetch_task_attached_beacons = get_request!(
                     self.fetch_service,
                     &beacons_for_map_url(&id.to_string()),
                     self.self_link,
                     Msg::ResponseGetBeaconsForMap
                 );
             },
+            Msg::RequestGetUnattachedBeacons => {
+                self.user_msg.error_messages = Vec::new();
+                self.fetch_task_unattached_beacons = get_request!(
+                    self.fetch_service,
+                    &beacons_for_map_url("null"),
+                    self.self_link,
+                    Msg::ResponseGetUnattachedBeacons
+                );
+            },
             Msg::RequestGetMap(id) => {
                 self.user_msg.error_messages = Vec::new();
-                self.get_fetch_task = get_request!(
+                self.fetch_task_map = get_request!(
                     self.fetch_service,
                     &map_url(&id.to_string()),
                     self.self_link,
@@ -348,7 +416,7 @@ impl Component for MapAddUpdate {
                         //ensure the id does not mismatch.
                         self.data.map.id = id;
 
-                        self.fetch_task = put_request!(
+                        self.fetch_task_map = put_request!(
                             self.fetch_service,
                             &map_url(&self.data.map.id.to_string()),
                             self.data.map,
@@ -357,7 +425,7 @@ impl Component for MapAddUpdate {
                         );
                     },
                     None if success => {
-                        self.fetch_task = post_request!(
+                        self.fetch_task_map = post_request!(
                             self.fetch_service,
                             &map_url(""),
                             self.data.map,
@@ -389,6 +457,33 @@ impl Component for MapAddUpdate {
                     },
                 );
             },
+            Msg::ResponseAttachBeacon(response) => {
+                self.handle_response(
+                    response,
+                    |s, beacon| {
+                        let (source, sink) = if beacon.map_id.is_some() {
+                            (&mut s.data.unattached_beacons, &mut s.data.attached_beacons)
+                        } else {
+                            (&mut s.data.attached_beacons, &mut s.data.unattached_beacons)
+                        };
+                        match source.iter().position(|(b, _bdata)| b.id == beacon.id) {
+                            Some(index) => {
+                                s.user_msg.success_message = Some("successfully attached beacon".to_string());
+                                source.remove(index);
+                                let raw_x = beacon.coordinates.x.to_string();
+                                let raw_y = beacon.coordinates.y.to_string();
+                                sink.push((beacon, BeaconData { raw_x, raw_y }))
+                            },
+                            _ => {
+                                s.user_msg.error_messages.push("failed to attach beacon, reason: beacon is already attached".to_owned());
+                            },
+                        }
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to attach beacon, reason: {}", e));
+                    },
+                );
+            },
             Msg::ResponseGetBeaconsForMap(response) => {
                 self.handle_response(
                     response,
@@ -404,6 +499,21 @@ impl Component for MapAddUpdate {
                     },
                 );
             },
+            Msg::ResponseGetUnattachedBeacons(response) => {
+                self.handle_response(
+                    response,
+                    |s, beacons| {
+                        s.data.unattached_beacons = beacons.into_iter().map(|beacon| {
+                            let raw_x = beacon.coordinates.x.to_string();
+                            let raw_y = beacon.coordinates.x.to_string();
+                            (beacon, BeaconData { raw_x, raw_y })
+                        }).collect();
+                    },
+                    |s, error| {
+                        s.user_msg.error_messages.push(format!("failed to obtain available floors list, reason: {}", error.reason));
+                    },
+                );
+            },
             Msg::ResponseUpdateMap(response) => {
                 self.handle_response(
                     response,
@@ -411,8 +521,8 @@ impl Component for MapAddUpdate {
                         s.user_msg.success_message = Some("successfully updated map".to_owned());
                         s.data.map = map;
 
-                        if let Some(file) = &s.data.blueprint {
-                            s.binary_fetch_task = put_image!(
+                        if let Some(file) = &s.data.blueprint.take() {
+                            s.fetch_task_binary = put_image!(
                                 s.fetch_service,
                                 &map_blueprint_url(&s.data.map.id.to_string()),
                                 file.content.clone(),
@@ -434,6 +544,7 @@ impl Component for MapAddUpdate {
                             s.data.raw_bounds[0] = s.data.map.bounds[0].to_string();
                             s.data.raw_bounds[1] = s.data.map.bounds[1].to_string();
                             s.data.raw_scale = s.data.map.scale.to_string();
+                            s.load_img();
                     },
                     |s, e| {
                         s.user_msg.error_messages.push(format!("failed to find map, reason: {}", e));
@@ -444,11 +555,7 @@ impl Component for MapAddUpdate {
                 let (meta, _body) = response.into_parts();
                 if meta.status.is_success() {
                     self.user_msg.success_message = Some("successfully updated image".to_owned());
-                    let img = ImageElement::new();
-                    img.set_src(&map_blueprint_url(&self.data.map.id.to_string()));
-                    let callback = self.self_link.send_back(|_| Msg::CheckImage);
-                    self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
-                    self.map_img = Some(img);
+                    self.load_img();
                 } else {
                     self.user_msg.error_messages.push("failed to find map".to_owned());
                 }
@@ -461,8 +568,8 @@ impl Component for MapAddUpdate {
                         s.data.map = map;
                         s.data.opt_id = Some(s.data.map.id);
 
-                        if let Some(file) = &s.data.blueprint {
-                            s.binary_fetch_task = put_image!(
+                        if let Some(file) = &s.data.blueprint.take() {
+                            s.fetch_task_binary = put_image!(
                                 s.fetch_service,
                                 &map_blueprint_url(&s.data.map.id.to_string()),
                                 file.content.clone(),
@@ -478,7 +585,7 @@ impl Component for MapAddUpdate {
             },
         }
 
-        self.canvas.reset(&self.data.map, &self.map_img);
+        self.canvas.reset(&self.data.map, &self.map_img, self.show_grid);
         self.canvas.draw_beacons(&self.data.map, &self.data.attached_beacons.iter().map(|(b, _bdata)| b).collect());
         true
     }
@@ -530,11 +637,55 @@ impl MapAddUpdate {
                             { "Save" }
                         </button>
                         <button
-                            class={ if this_beacon_selected { "btn btn-sm btn-secondary mx-1 selected" }
-                            else { "btn btn-sm mx-1 btn-warning" } },
+                            class={ 
+                                if this_beacon_selected { 
+                                    "btn btn-sm btn-secondary mx-1 selected" }
+                            else {
+                             "btn btn-sm mx-1 btn-warning" 
+                            } 
+                        },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
                         >
                             { "Toggle Placement" }
+                        </button>
+                        <button
+                            class="btn btn-sm btn-warning mx-1",
+                            onclick=|_| Msg::ToggleAttachBeacon(beacon_id),
+                        >
+                            { "Detach" }
+                        </button>
+                    </td>
+                </tr>
+            }
+        });
+
+        let mut unattached_rows = self.data.unattached_beacons.iter().map(|(beacon, bdata)| {
+            let beacon_id = beacon.id;
+            html! {
+                <tr>
+                    <td class="formLabel">
+                        { &beacon.name }
+                    </td>
+                    <td>
+                        <input
+                            type="text",
+                            class="coordinates",
+                            value=&bdata.raw_x,
+                            disabled=true,
+                        />
+                        <input
+                            type="text",
+                            class="coordinates",
+                            value=&bdata.raw_y,
+                            disabled=true,
+                        />
+                    </td>
+                    <td>
+                        <button
+                            class="btn btn-sm btn-warning mx-1",
+                            onclick=|_| Msg::ToggleAttachBeacon(beacon_id),
+                        >
+                            { "Attach" }
                         </button>
                     </td>
                 </tr>
@@ -543,7 +694,7 @@ impl MapAddUpdate {
 
         match self.data.opt_id {
             Some(_) => {
-                if self.data.attached_beacons.len() > 0 {
+                if self.data.attached_beacons.len() > 0 || self.data.unattached_beacons.len() > 0 {
                     html! {
                         <>
                             <h3>{ "Beacon Placement" }</h3>
@@ -560,15 +711,18 @@ impl MapAddUpdate {
                                     </td>
                                 </tr>
                                 { for beacon_placement_rows }
+                                { for unattached_rows }
                             </table>
-                            <div>
-                                { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                            </div>
                         </>
                     }
                 } else {
                     html! {
-                        <p>{ "No Attached Beacons for this Map." }</p>
+                        <button
+                            class="btn btn-sm btn-warning mx-1",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                        >
+                            { "No beacons available, click here to add beacon" }
+                        </button>
                     }
                 }
             },
@@ -682,6 +836,17 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         </tr>
                     </table>
                     { self.render_beacon_placement() }
+                    <div>
+                        { "Show Grid" }
+                        <input
+                            type="checkbox"
+                            value=&self.show_grid
+                            onclick=|_| Msg::ToggleGrid,
+                        />
+                    </div>
+                    <div>
+                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    </div>
                     <div class="formButtons">
                         {
                             match self.user_type {

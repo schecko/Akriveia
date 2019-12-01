@@ -27,6 +27,28 @@ pub fn row_to_map(row: &Row) -> Map {
     entry
 }
 
+pub fn maybe_row_to_map(row: &Row) -> Option<Map> {
+    let mut found = false;
+    for (i, column) in row.columns().iter().enumerate() {
+        match column.name() {
+            "m_id" => {
+                found = true;
+                let id: Option<i32> = row.get(i);
+                if id.is_none() {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if found {
+        Some(row_to_map(row))
+    } else {
+        None
+    }
+}
+
 pub fn select_maps(mut client: tokio_postgres::Client) -> impl Future<Item=(tokio_postgres::Client, Vec<Map>), Error=AkError> {
     // TODO paging
     client
@@ -73,7 +95,7 @@ pub fn select_map_blueprint(mut client: tokio_postgres::Client, id: i32) -> impl
     client
         .prepare_typed("
             SELECT m_id, m_blueprint FROM runtime.maps
-            WHERE m_id = $1::INTEGER
+            WHERE m_id = $1
         ", &[
             Type::INT4,
         ])
