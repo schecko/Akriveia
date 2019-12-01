@@ -31,28 +31,23 @@ pub struct DataProcessor {
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
     users: BTreeMap<ShortAddress, Box<TagHistory>>,
-    beacons: BTreeMap<MacAddress8, RealtimeBeacon>,
 }
 
 impl DataProcessor {
     pub fn new() -> DataProcessor {
         DataProcessor {
-            beacons: BTreeMap::new(),
             users: BTreeMap::new(),
         }
     }
 
-    fn calc_trilaterate(beacons: &Vec<common::Beacon>, tag_data: &Vec<common::TagData>) -> na::Vector2<f64> {
-        if tag_data.len() < 3 {
+    fn calc_trilaterate(sorted_beacons: &Vec<common::Beacon>, sorted_data: &Vec<common::TagData>) -> na::Vector2<f64> {
+        if sorted_data.len() < 3 {
             panic!("not enough data points to trilaterate");
         }
-        if beacons.len() < 3 {
+        if sorted_beacons.len() < 3 {
             panic!("not enough beacons to trilaterate");
         }
 
-        let (sorted_beacons, sorted_data): (Vec<_>, Vec<_>) = beacons.iter().map(|b| {
-            (b, tag_data.iter().find(|t| t.beacon_mac == b.mac_address).unwrap())
-        }).unzip();
         assert!(sorted_beacons[0].mac_address == sorted_data[0].beacon_mac);
         assert!(sorted_beacons[1].mac_address == sorted_data[1].beacon_mac);
         assert!(sorted_beacons[2].mac_address == sorted_data[2].beacon_mac);
@@ -97,7 +92,6 @@ impl Handler<DPMessage> for DataProcessor {
     fn handle (&mut self, msg: DPMessage, _: &mut Context<Self>) -> Self::Result {
         match msg {
             DPMessage::ResetData => {
-                self.beacons.clear();
                 self.users.clear();
             },
         }
@@ -194,12 +188,13 @@ impl Handler<InLocationData> for DataProcessor {
         };
 
         let fut = prep_fut
-            .and_then(move |averages, actor, _context| {
+            .and_then(move |mut averages, actor, _context| {
                 // perform trilateration
                 let beacon_macs: Vec<MacAddress8> = averages
                     .iter()
                     .map(|tagdata| tagdata.beacon_mac)
                     .collect();
+                assert!(beacon_macs.len() >= 3);
 
                 let fut = db_utils::default_connect()
                     .map_err(AkError::from)
@@ -215,26 +210,55 @@ impl Handler<InLocationData> for DataProcessor {
                                 return afut::Either::B(afut::err(()));
                             }
                         }
-                        // perform trilateration calculation
+
+                        if beacons.len() < 3 {
+                            println!("data processor: beacons length is too short");
+                            // not enough beacons to trilaterate
+                            actor.users.clear();
+                            return afut::Either::B(afut::err(()));
+                        }
+
+                        if averages.len() < 3 {
+                            println!("data processor: averages length is too short");
+                            // not enough data points to trilaterate
+                            actor.users.clear();
+                            return afut::Either::B(afut::err(()));
+                        }
+
+                        let sorted_beacons = beacons;
+                        let mut sorted_data: Vec<TagData> = Vec::new();
                         let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
-                        let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
-                        let timestamp = averages.iter().fold(Utc.timestamp(0, 0), |max, tag_point| {
+
+                        sorted_beacons.iter().for_each(|beacon| {
+                            if let Some(index) = averages.iter().position(|t| t.beacon_mac == beacon.mac_address) {
+                                let data = averages.swap_remove(index);
+                                beacon_sources.push(BeaconTOFToUser {
+                                    name: beacon.name.clone(),
+                                    location: beacon.coordinates,
+                                    distance_to_tag: data.tag_distance,
+                                });
+
+                                sorted_data.push(data);
+                            }
+                        });
+
+                        if sorted_beacons.len() != sorted_data.len() || sorted_beacons.len() != beacon_sources.len() {
+                            println!("data processor: detected stale data");
+                            // likely using stale data.
+                            actor.users.clear();
+                            return afut::Either::B(afut::err(()));
+                        }
+
+                        // perform trilateration calculation
+                        let new_tag_location = Self::calc_trilaterate(&sorted_beacons, &sorted_data);
+                        let timestamp = sorted_data.iter().fold(Utc.timestamp(0, 0), |max, tag_point| {
                             if max < tag_point.timestamp {
                                 tag_point.timestamp
                             } else {
                                 max
                             }
                         });
-                        let map_id = beacons[0].map_id; // TODO HACK.
-
-                        averages.iter().for_each(|tag_data| {
-                            let beacon = beacons.iter().find(|beacon| beacon.mac_address == tag_data.beacon_mac).unwrap();
-                            beacon_sources.push(BeaconTOFToUser {
-                                name: beacon.name.clone(),
-                                location: beacon.coordinates,
-                                distance_to_tag: tag_data.tag_distance,
-                            });
-                        });
+                        let map_id = sorted_beacons[0].map_id; // TODO HACK.
 
                         // update the user information
                         let update_db_fut = match actor.users.get_mut(&tag_data_update.tag_mac) {
