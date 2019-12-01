@@ -184,21 +184,19 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
+                        <div class="container">
+                            <EmergencyButtons
+                                is_emergency={self.emergency},
+                                on_emergency=|_| Msg::RequestPostEmergency(true),
+                                on_end_emergency=|_| Msg::RequestPostEmergency(false),
+                            />
+                        </div>
                         <div class="container-fluid">
-                            <div class="container">
-                                <EmergencyButtons
-                                    is_emergency={self.emergency},
-                                    on_emergency=|_| Msg::RequestPostEmergency(true),
-                                    on_end_emergency=|_| Msg::RequestPostEmergency(false),
-                                />
-                            </div>
-                            <div class="page-wrapper-map-view">
-                                <MapViewComponent
-                                    emergency={self.emergency},
-                                    opt_id=opt_id,
-                                    user_type=self.user_type,
-                                />
-                            </div>
+                            <MapViewComponent
+                                emergency={self.emergency},
+                                opt_id=opt_id,
+                                user_type=self.user_type,
+                            />
                         </div>
                     </div>
                 }

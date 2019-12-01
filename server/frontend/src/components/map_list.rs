@@ -146,34 +146,36 @@ impl Renderable<MapList> for MapList {
         });
 
         html! {
-            <div class="content-wrapper">
-                <div class="boxedForm">
-                    <div class="d-flex justify-content-between">
-                        <h2>{ "Map List"}</h2>
-                        <button
-                            class="btn btn-success logoutPlacement my-1",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
-                        >
-                            {"Add Map"}
-                        </button>
+            <>
+                { self.user_msg.view() }
+                <div class="content-wrapper">
+                    <div class="boxedForm">
+                        <div class="d-flex justify-content-between">
+                            <h2>{ "Map List"}</h2>
+                            <button
+                                class="btn btn-success logoutPlacement my-1",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
+                            >
+                                {"Add Map"}
+                            </button>
+                        </div>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>{ "Name" }</th>
+                                    <th>{ "Bounds" }</th>
+                                    <th>{ "Scale" }</th>
+                                    <th>{ "Note" }</th>
+                                    <th>{ "Actions" }</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
                     </div>
-                    { self.user_msg.view() }
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>{ "Name" }</th>
-                                <th>{ "Bounds" }</th>
-                                <th>{ "Scale" }</th>
-                                <th>{ "Note" }</th>
-                                <th>{ "Actions" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for rows }
-                        </tbody>
-                    </table>
                 </div>
-            </div>
+            </>
         }
     }
 }

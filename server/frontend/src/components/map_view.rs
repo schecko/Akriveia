@@ -370,7 +370,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
         html! {
             <>
                 { self.user_msg.view() }
-                //<div class="content-wrapper">
+                <div class="page-wrapper-map-view">
                     <div class="boxedForm">
                         <div>
                             <h3>{ "View Map" }</h3>
@@ -410,7 +410,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                             </table>
                         </div>
                     </div>
-                //</div>
+                </div>
             </>
         }
     }
