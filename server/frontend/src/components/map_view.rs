@@ -304,6 +304,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     on_click=move |value: i32| Msg::ChooseMap(map_id),
                     border=map.id == current_map_id,
                     value={map.id},
+                    style={ if map.id==current_map_id {"btn-primary"} else {"btn-outline-primary"} },
                     display=Some(map_name),
                 />
             }
@@ -327,8 +328,9 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                         on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
                                         border=set_border,
                                         value={user.addr.to_string()},
-                                        display={"TOF"},
-                                        style="btn-secondary"
+                                        icon="fa fa-map-marker",
+                                        style={ if set_border {"btn-secondary"} else {"btn-outline-secondary"} },
+                                        display={" Show"},
                                     />
                                 </td>
                             },
@@ -359,7 +361,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                 {
                                     match self.user_type {
                                         WebUserType::Admin => html! {
-                                            <th>{ "Debug" }</th>
+                                            <th>{ "Intersection" }</th>
                                         },
                                         _ => html! {},
                                     }

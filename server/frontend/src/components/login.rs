@@ -199,8 +199,6 @@ impl Login {
                                 height="270"
                             />
                         </div>
-
-                        //TODO Add akriveia product name image
                         <div class="justify-content-center">
                             <input
                                 type="text",

@@ -117,21 +117,27 @@ impl Renderable<MapList> for MapList {
                     <td>{ map.note.clone().unwrap_or(String::new()) }</td>
                     <td>
                         <ValueButton<i32>
-                            display=Some("Edit".to_string()),
+                            display=Some(" Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::MapAddUpdate(Some(value))),
                             border=false,
-                            value=map.id
+                            icon="fa fa-pencil",
+                            style="btn-primary",
+                            value=map.id,
                         />
                         <ValueButton<i32>
-                            display=Some("Delete".to_string()),
+                            display=Some(" Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteMap(value),
                             border=false,
-                            value=map.id
+                            icon="fa fa-trash",
+                            style="btn-secondary",
+                            value=map.id,
                         />
                         <ValueButton<i32>
-                            display=Some("View".to_string()),
+                            display=Some(" View".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::MapView(Some(value))),
                             border=false,
+                            icon="fa fa-external-link",
+                            style="btn-warning",
                             value=map.id
                         />
                     </td>
@@ -144,7 +150,7 @@ impl Renderable<MapList> for MapList {
                 <div class="d-flex justify-content-between">
                     <h2>{ "Map List"}</h2>
                     <button
-                        class="btn btn-success logoutPlacement my-1",
+                        class="btn btn-outline-success logoutPlacement my-1",
                         onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
                     >
                         {"Add Map"}

@@ -293,7 +293,7 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
                 html! {
                     <button
                         type="button",
-                        class="btn btn-lg btn-warning",
+                        class="btn btn-lg btn-primary",
                         onclick=|_| Msg::AddAnotherBeacon,
                     >
                         { "Add Another" }

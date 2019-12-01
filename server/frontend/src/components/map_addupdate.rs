@@ -524,14 +524,14 @@ impl MapAddUpdate {
                     </td>
                     <td>
                         <button
-                            class="btn btn-sm btn-warning mx-1",
+                            class="btn btn-sm btn-success mx-1",
                             onclick=|_| Msg::RequestPutBeacon(beacon_id),
                         >
                             { "Save" }
                         </button>
                         <button
-                            class={ if this_beacon_selected { "btn btn-sm btn-success mx-1 selected" }
-                            else { "btn btn-sm mx-1 btn-primary" } },
+                            class={ if this_beacon_selected { "btn btn-sm btn-secondary mx-1 selected" }
+                            else { "btn btn-sm mx-1 btn-warning" } },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
                         >
                             { "Toggle Placement" }
@@ -591,7 +591,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                 html! {
                     <button
                         type="button",
-                        class="btn btn-lg btn-warning align",
+                        class="btn btn-lg btn-primary align",
                         onclick=|_| Msg::AddAnotherMap,
                     >
                         { "Add Another" }
