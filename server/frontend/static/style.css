@@ -86,7 +86,6 @@ table td.spacing {
 
 button.selected {
   font-weight:bold;
-  text-transform: uppercase;
   background-color:#8a8a8a !important;
 }
 

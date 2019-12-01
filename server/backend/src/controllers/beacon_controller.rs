@@ -86,22 +86,14 @@ pub fn get_beacon(uid: Identity, state: AKData, req: HttpRequest, params: web::Q
 }
 
 pub fn get_beacons_for_map(uid: Identity, state: AKData, req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
-    let id = req.match_info().get("id").unwrap_or("-1").parse::<i32>();
-    match id {
-        Ok(id) if id != -1 => {
-            Either::A(db_utils::connect_id(&uid, &state)
-                .and_then(move |client| {
-                    beacon::select_beacons_for_map(client, id)
-                })
-                .map(|(_client, beacons)| {
-                    HttpResponse::Ok().json(Ok::<_, AkError>(beacons))
-                })
-            )
-        },
-        _ => {
-            Either::B(err(AkError::not_found()))
-        }
-    }
+    let id = req.match_info().get("id").and_then(|value| value.parse::<i32>().ok());
+    db_utils::connect_id(&uid, &state)
+        .and_then(move |client| {
+            beacon::select_beacons_for_map(client, id)
+        })
+        .map(|(_client, beacons)| {
+            HttpResponse::Ok().json(Ok::<_, AkError>(beacons))
+        })
 }
 
 pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web::Query<GetParams>) -> impl Future<Item=HttpResponse, Error=AkError> {
@@ -133,8 +125,6 @@ pub fn get_beacons(uid: Identity, state: AKData, _req: HttpRequest, params: web:
 
 // new beacon
 pub fn post_beacon(uid: Identity, state: AKData, _req: HttpRequest, payload: web::Json<common::Beacon>) -> impl Future<Item=HttpResponse, Error=AkError> {
-    println!("post beacon");
-
     db_utils::connect_id(&uid, &state)
         .and_then(move |client| {
             beacon::insert_beacon(client, payload.0)

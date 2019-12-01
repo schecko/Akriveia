@@ -13,10 +13,11 @@ use yew::virtual_dom::vnode::VNode;
 const REALTIME_USER_POLL_RATE: Duration = Duration::from_millis(1000);
 
 pub enum Msg {
-    Ignore,
-    ViewDistance(ShortAddress),
-    ChooseMap(i32),
     CheckImage,
+    ChooseMap(i32),
+    Ignore,
+    ToggleGrid,
+    ViewDistance(ShortAddress),
 
     RequestGetBeaconsForMap(i32),
     RequestGetMap(i32),
@@ -51,6 +52,7 @@ pub struct MapViewComponent {
     show_distance: Option<ShortAddress>,
     user_msg: UserMessage<Self>,
     user_type: WebUserType,
+    show_grid: bool,
 }
 
 impl JsonResponseHandler for MapViewComponent {}
@@ -75,7 +77,7 @@ impl MapViewComponent {
 
     fn render(&mut self) {
         if let Some(map) = &self.current_map {
-            self.canvas.reset(map, &self.map_img);
+            self.canvas.reset(map, &self.map_img, self.show_grid);
 
             self.canvas.draw_users(map, &self.realtime_users, self.show_distance);
             if self.user_type == WebUserType::Admin {
@@ -138,6 +140,7 @@ impl Component for MapViewComponent {
             show_distance: None,
             user_msg: UserMessage::new(),
             user_type: props.user_type,
+            show_grid: false,
         };
 
         if props.emergency {
@@ -149,6 +152,9 @@ impl Component for MapViewComponent {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ToggleGrid => {
+                self.show_grid = !self.show_grid;
+            }
             Msg::CheckImage => {
                 // This is necessary to force a rerender when the image finally loads,
                 // it would be nice to use an onload() callback, but that does not seem to
@@ -365,6 +371,14 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                 <div>
                     <h3>{ "View Map" }</h3>
                     { for maps }
+                </div>
+                <div>
+                    { "Show Gridlines" }
+                    <input
+                        type="checkbox"
+                        value=&self.show_grid
+                        onclick=|_| Msg::ToggleGrid,
+                    />
                 </div>
                 <div>
                     { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }

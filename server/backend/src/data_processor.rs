@@ -31,7 +31,7 @@ pub struct DataProcessor {
     // scanning the entire tree for all entries will likely be a very common,
     // so hash is likely not a good choice.
     users: BTreeMap<ShortAddress, Box<TagHistory>>,
-    beacons: BTreeMap<MacAddress8, Beacon>,
+    beacons: BTreeMap<MacAddress8, RealtimeBeacon>,
 }
 
 impl DataProcessor {
@@ -209,6 +209,12 @@ impl Handler<InLocationData> for DataProcessor {
                     .into_actor(actor)
                     .map_err(|_e, _, _| {})
                     .and_then(move |(client, beacons), actor, _context| {
+                        for b in &beacons {
+                            if b.map_id.is_none() {
+                                // beacon is not attached to a map, trilateration is meaningless
+                                return afut::Either::B(afut::err(()));
+                            }
+                        }
                         // perform trilateration calculation
                         let mut beacon_sources: Vec<BeaconTOFToUser> = Vec::new();
                         let new_tag_location = Self::calc_trilaterate(&beacons, &averages);
