@@ -147,30 +147,32 @@ impl Renderable<MapList> for MapList {
 
         html! {
             <>
-                <div class="d-flex justify-content-between">
-                    <h2>{ "Map List"}</h2>
-                    <button
-                        class="btn btn-success logoutPlacement my-1",
-                        onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
-                    >
-                        {"Add Map"}
-                    </button>
+                <div class="boxedForm">
+                    <div class="d-flex justify-content-between">
+                        <h2>{ "Map List"}</h2>
+                        <button
+                            class="btn btn-success logoutPlacement my-1",
+                            onclick=|_| Msg::ChangeRootPage(root::Page::MapAddUpdate(None)),
+                        >
+                            {"Add Map"}
+                        </button>
+                    </div>
+                    { self.user_msg.view() }
+                    <table class="table table-striped">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>{ "Name" }</th>
+                                <th>{ "Bounds" }</th>
+                                <th>{ "Scale" }</th>
+                                <th>{ "Note" }</th>
+                                <th>{ "Actions" }</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for rows }
+                        </tbody>
+                    </table>
                 </div>
-                { self.user_msg.view() }
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>{ "Name" }</th>
-                            <th>{ "Bounds" }</th>
-                            <th>{ "Scale" }</th>
-                            <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
             </>
         }
     }

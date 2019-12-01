@@ -137,7 +137,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="d">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -154,7 +154,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="d">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -171,7 +171,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::Login(auto_action) => {
                 html! {
-                    <div class="container-fluid">
+                    <div class="container">
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
@@ -184,7 +184,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -203,7 +203,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <BeaconList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -215,7 +215,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <BeaconAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -229,7 +229,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <UserList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -241,7 +241,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <UserAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -255,7 +255,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <MapList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -267,7 +267,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <MapAddUpdate
                                 opt_id=opt_id,
                                 user_type=self.user_type,
@@ -281,7 +281,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div class="page-content-wrapper">
                         { self.navigation() }
-                        <div class="container-fluid">
+                        <div class="container">
                             <SystemSettings
                                 user_type=self.user_type,
                             />

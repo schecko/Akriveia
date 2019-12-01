@@ -438,24 +438,26 @@ impl Status {
 
         html! {
             <>
-                <h2>{ "Beacon Status" }</h2>
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>{ "Name" }</th>
-                            <th>{ "State" }</th>
-                            <th>{ "Last Active" }</th>
-                            <th>{ "Coordinates" }</th>
-                            <th>{ "Floor" }</th>
-                            <th>{ "Mac" }</th>
-                            <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
+                <div class="boxedForm">
+                    <h2>{ "Beacon Status" }</h2>
+                    <table class="table table-striped">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>{ "Name" }</th>
+                                <th>{ "State" }</th>
+                                <th>{ "Last Active" }</th>
+                                <th>{ "Coordinates" }</th>
+                                <th>{ "Floor" }</th>
+                                <th>{ "Mac" }</th>
+                                <th>{ "Note" }</th>
+                                <th>{ "Actions" }</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for rows }
+                        </tbody>
+                    </table>
+                </div>
             </>
         }
     }
@@ -508,22 +510,24 @@ impl Status {
 
         html! {
             <>
-                <h2>{ "User Status" }</h2>
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>{ "Name" }</th>
-                            <th>{ "Coordinates" }</th>
-                            <th>{ "Floor" }</th>
-                            <th>{ "Last Seen" }</th>
-                            <th>{ "Note" }</th>
-                            <th>{ "Actions" }</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
+                <div class="boxedForm">
+                    <h2>{ "User Status" }</h2>
+                    <table class="atble table-striped">
+                        <thead>
+                            <tr>
+                                <th>{ "Name" }</th>
+                                <th>{ "Coordinates" }</th>
+                                <th>{ "Floor" }</th>
+                                <th>{ "Last Seen" }</th>
+                                <th>{ "Note" }</th>
+                                <th>{ "Actions" }</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { for rows }
+                        </tbody>
+                    </table>
+                </div>
             </>
         }
     }
