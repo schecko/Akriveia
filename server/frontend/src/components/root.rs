@@ -411,7 +411,7 @@ impl RootComponent {
                         data-toggle="dropdown",
                         onclick=|_| Msg::ChangePage(Page::BeaconList),
                     >
-                            { "Beacons" }
+                        { "Beacons" }
                     </a>
                     <div class="dropdown-content">
                             <a

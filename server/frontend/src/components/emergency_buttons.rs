@@ -56,7 +56,6 @@ impl Component for EmergencyButtons {
 
 impl Renderable<EmergencyButtons> for EmergencyButtons {
     fn view(&self) -> Html<Self> {
-
         html! {
             <>
                 <button type="button" class="btn btn-lg btn-success e-buttons"
