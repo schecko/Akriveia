@@ -137,7 +137,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -154,7 +154,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -184,7 +184,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <EmergencyButtons
                                 is_emergency={self.emergency},
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
@@ -205,7 +205,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <BeaconList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -217,7 +217,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <BeaconAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -231,7 +231,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <UserList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -243,7 +243,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <UserAddUpdate
                                 id=id,
                                 user_type=self.user_type,
@@ -257,7 +257,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <MapList
                                 change_page=|page| Msg::ChangePage(page),
                             />
@@ -269,7 +269,7 @@ impl Renderable<RootComponent> for RootComponent {
                html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <MapAddUpdate
                                 opt_id=opt_id,
                                 user_type=self.user_type,
@@ -283,7 +283,7 @@ impl Renderable<RootComponent> for RootComponent {
                 html! {
                     <div>
                         { self.navigation() }
-                        <div class="container">
+                        <div class="container-fluid">
                             <SystemSettings
                                 user_type=self.user_type,
                             />

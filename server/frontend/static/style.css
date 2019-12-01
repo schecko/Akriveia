@@ -5,8 +5,6 @@
   margin-left:  auto;
   align-items: center;
   justify-content:center;
-  /* Sets the max width of page (Might change)*/
-  max-width: 1200px;
 }
 
 .page-wrapper-map-view {
@@ -15,7 +13,7 @@
   margin-left:  auto;
   align-items: center;
   justify-content:center;
-  /* Sets the max width of page (Might change)*/
+
   max-width: 100%;
 }
 
