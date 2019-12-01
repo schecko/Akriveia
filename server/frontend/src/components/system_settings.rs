@@ -82,39 +82,41 @@ impl Renderable<SystemSettings> for SystemSettings {
         html! {
             <>
                 { self.user_msg.view() }
-                <div/>
-                <div class="boxedForm">
-                    <h2>{ "System Settings" }</h2>
+                <div class="content-wrapper">
+                    <div/>
+                    <div class="boxedForm">
+                        <h2>{ "System Settings" }</h2>
 
-                    <div class="d-flex">
-                        <button
-                            class="btn btn-lg btn-info mr-3 my-auto",
-                            onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
-                        >
-                            <i class="fa fa-refresh" aria-hidden="true"></i>
-                            { " Restart Server" }
-                        </button>
-                        
-                        <button
-                            class="btn btn-lg btn-info ml-3 my-auto",
-                            onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
-                        >
-                            <i class="fa fa-power-off" aria-hidden="true"></i>
-                            { " Reset Database" }
-                        </button>
-                    </div>
+                        <div class="d-flex">
+                            <button
+                                class="btn btn-lg btn-info mr-3 my-auto",
+                                onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
+                            >
+                                <i class="fa fa-refresh" aria-hidden="true"></i>
+                                { " Restart Server" }
+                            </button>
+                            
+                            <button
+                                class="btn btn-lg btn-info ml-3 my-auto",
+                                onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
+                            >
+                                <i class="fa fa-power-off" aria-hidden="true"></i>
+                                { " Reset Database" }
+                            </button>
+                        </div>
 
-                    <div class="d-flex justify-content-start">
-                        <button
-                            class="btn btn-lg btn-secondary my-auto",
-                        ><i class="fa fa-wifi" aria-hidden="true"></i>
-                            {" Set IP Address"}
-                        </button>
-                        <input
-                            type="text",
-                            class="fixedLength",
-                            placeholder="IP address",
-                        />
+                        <div class="d-flex justify-content-start">
+                            <button
+                                class="btn btn-lg btn-secondary my-auto",
+                            ><i class="fa fa-wifi" aria-hidden="true"></i>
+                                {" Set IP Address"}
+                            </button>
+                            <input
+                                type="text",
+                                class="fixedLength",
+                                placeholder="IP address",
+                            />
+                        </div>
                     </div>
                 </div>
             </>

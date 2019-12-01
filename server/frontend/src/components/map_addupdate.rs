@@ -762,119 +762,119 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
         html! {
             <>
                 { self.user_msg.view() }
-                <div class="boxedForm">
-                    <h2>{ title_name }</h2>
-                    <table>
-                        <tr>
-                            <td class="formLabel">{"Name: " }</td>
-                            <td>
-                                <input
-                                    type="text",
-                                    value=&self.data.map.name,
-                                    oninput=|e| Msg::InputName(e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Dimensions(m): " }</td>
-                            <td>
-                                <input
-                                    class="coordinates",
-                                    type="text",
-                                    value=&self.data.raw_bounds[0],
-                                    oninput=|e| Msg::InputBound(0, e.value),
-                                />
-                                <input
-                                    class="coordinates",
-                                    type="text",
-                                    value=&self.data.raw_bounds[1],
-                                    oninput=|e| Msg::InputBound(1, e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Scale(px/m): " }</td>
-                            <td>
-                                <input
-                                    type="text",
-                                    value=&self.data.raw_scale,
-                                    oninput=|e| Msg::InputScale(e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Notes: " }</td>
-                            <td>
-                                <textarea
-                                    class="formAlign",
-                                    rows=5,
-                                    cols=38,
-                                    value=note,
-                                    placeholder="Add Important Information",
-                                    oninput=|e| Msg::InputNote(e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Blueprint: " }</td>
-                            <td>
-                                <input
-                                    type="file",
-                                    class="formAlign",
-                                    onchange=|value| {
-                                        if let ChangeData::Files(file_names) = value {
-                                            match file_names.iter().next() {
-                                                Some(file_name) => Msg::InputFile(file_name),
-                                                None => Msg::Ignore,
+                <div class="content-wrapper">
+                    <div class="boxedForm">
+                        <h2>{ title_name }</h2>
+                        <table>
+                            <tr>
+                                <td class="formLabel">{"Name: " }</td>
+                                <td>
+                                    <input
+                                        type="text",
+                                        value=&self.data.map.name,
+                                        oninput=|e| Msg::InputName(e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Dimensions(m): " }</td>
+                                <td>
+                                    <input
+                                        class="coordinates",
+                                        type="text",
+                                        value=&self.data.raw_bounds[0],
+                                        oninput=|e| Msg::InputBound(0, e.value),
+                                    />
+                                    <input
+                                        class="coordinates",
+                                        type="text",
+                                        value=&self.data.raw_bounds[1],
+                                        oninput=|e| Msg::InputBound(1, e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Scale(px/m): " }</td>
+                                <td>
+                                    <input
+                                        type="text",
+                                        value=&self.data.raw_scale,
+                                        oninput=|e| Msg::InputScale(e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Notes: " }</td>
+                                <td>
+                                    <textarea
+                                        class="formAlign",
+                                        rows=5,
+                                        cols=38,
+                                        value=note,
+                                        placeholder="Add Important Information",
+                                        oninput=|e| Msg::InputNote(e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Blueprint: " }</td>
+                                <td>
+                                    <input
+                                        type="file",
+                                        class="formAlign",
+                                        onchange=|value| {
+                                            if let ChangeData::Files(file_names) = value {
+                                                match file_names.iter().next() {
+                                                    Some(file_name) => Msg::InputFile(file_name),
+                                                    None => Msg::Ignore,
+                                                }
+                                            } else {
+                                                Msg::Ignore
                                             }
-                                        } else {
-                                            Msg::Ignore
-                                        }
+                                        },
+                                    />
+                                </td>
+                            </tr>
+                        </table>
+                        { self.render_beacon_placement() }
+                        <div>
+                            <input
+                                type="checkbox",
+                                id="gridlineCheck2"
+                                value=&self.show_grid,
+                                onclick=|_| Msg::ToggleGrid,
+                            />
+                            <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
+                        </div>
+                        <div>
+                            { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                        </div>
+                        <div class="formButtons">
+                            {
+                                match self.user_type {
+                                    WebUserType::Admin => html! {
+                                        <>
+                                            <button
+                                                type="button",
+                                                class="btn btn-lg btn-success align",
+                                                onclick=|_| Msg::RequestAddUpdateMap,
+                                            >
+                                                { title_name }
+                                            </button>
+                                            { add_another_map }
+                                        </>
                                     },
-                                />
-                            </td>
-                        </tr>
-                    </table>
-                    { self.render_beacon_placement() }
-                    <div>
-                        <label class="checkbox">
-                        <input
-                            type="checkbox",
-                            value=&self.show_grid,
-                            onclick=|_| Msg::ToggleGrid,
-                        />
-                        { "Show Grid" }
-                        </label>
-                        <label class="checkbox">{ "Check this" }</label>
-                    </div>
-                    <div>
-                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                    </div>
-                    <div class="formButtons">
-                        {
-                            match self.user_type {
-                                WebUserType::Admin => html! {
-                                    <>
-                                        <button
-                                            type="button",
-                                            class="btn btn-lg btn-success align",
-                                            onclick=|_| Msg::RequestAddUpdateMap,
-                                        >
-                                            { title_name }
-                                        </button>
-                                        { add_another_map }
-                                    </>
-                                },
-                                WebUserType::Responder => html! { },
+                                    WebUserType::Responder => html! { },
+                                }
                             }
-                        }
-                        <button
-                            type="button",
-                            class="btn btn-lg btn-danger align",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::MapList),
-                        >
-                                { "Cancel" }
-                        </button>
+                            <button
+                                type="button",
+                                class="btn btn-lg btn-danger align",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::MapList),
+                            >
+                                    { "Cancel" }
+                            </button>
+                        </div>
                     </div>
                 </div>
             </>

@@ -311,98 +311,100 @@ impl Renderable<BeaconAddUpdate> for BeaconAddUpdate {
         html! {
             <>
                 { self.user_msg.view() }
-                <div class="boxedForm">
-                    <h2>{ title_name }</h2>
-                    <table>
-                        <tr>
-                            <td class="formLabel">{ "Mac Address: " }</td>
-                            <td>
-                                <input
-                                    type="text",
-                                    value=&self.data.raw_mac,
-                                    oninput=|e| Msg::InputMacAddress(e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Assign to Map: " }</td>
-                            <td>
-                                <select class="formAlign">
-                                    <option
-                                        onclick=|_| Msg::InputFloorName(None),
-                                        selected={ None == self.data.beacon.map_id },
-                                    >
-                                        { "None" }
-                                    </option>
-                                    { for floor_options }
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Name: " }</td>
-                            <td>
-                                <input
-                                    type="text",
-                                    value=&self.data.beacon.name,
-                                    oninput=|e| Msg::InputName(e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Coordinates: " }</td>
-                            <td>
-                                <input
-                                    type="text",
-                                    class="coordinates",
-                                    value=&self.data.raw_coord0,
-                                    oninput=|e| Msg::InputCoordinate(0, e.value),
-                                />
-                                <input
-                                    type="text",
-                                    class="coordinates"
-                                    value=&self.data.raw_coord1,
-                                    oninput=|e| Msg::InputCoordinate(1, e.value),
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="formLabel">{ "Note: " }</td>
-                            <td>
-                                <textarea
-                                    class="formAlign",
-                                    rows=5,
-                                    cols=36,
-                                    value=note,
-                                    oninput=|e| Msg::InputNote(e.value),
-                                />
-                            </td>
-                        </tr>
-                    </table>
-                    <div class="formButtons">
-                        {
-                            match self.user_type {
-                                WebUserType::Admin => html! {
-                                    <>
-                                        <button
-                                            type="button",
-                                            class="btn btn-lg btn-success align",
-                                            onclick=|_| Msg::RequestAddUpdateBeacon,
+                <div class="content-wrapper">
+                    <div class="boxedForm">
+                        <h2>{ title_name }</h2>
+                        <table>
+                            <tr>
+                                <td class="formLabel">{ "Mac Address: " }</td>
+                                <td>
+                                    <input
+                                        type="text",
+                                        value=&self.data.raw_mac,
+                                        oninput=|e| Msg::InputMacAddress(e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Assign to Map: " }</td>
+                                <td>
+                                    <select class="formAlign">
+                                        <option
+                                            onclick=|_| Msg::InputFloorName(None),
+                                            selected={ None == self.data.beacon.map_id },
                                         >
-                                            { title_name }
-                                        </button>
-                                        { add_another_button }
-                                    </>
-                                },
-                                WebUserType::Responder => html! { },
+                                            { "None" }
+                                        </option>
+                                        { for floor_options }
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Name: " }</td>
+                                <td>
+                                    <input
+                                        type="text",
+                                        value=&self.data.beacon.name,
+                                        oninput=|e| Msg::InputName(e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Coordinates: " }</td>
+                                <td>
+                                    <input
+                                        type="text",
+                                        class="coordinates",
+                                        value=&self.data.raw_coord0,
+                                        oninput=|e| Msg::InputCoordinate(0, e.value),
+                                    />
+                                    <input
+                                        type="text",
+                                        class="coordinates"
+                                        value=&self.data.raw_coord1,
+                                        oninput=|e| Msg::InputCoordinate(1, e.value),
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="formLabel">{ "Note: " }</td>
+                                <td>
+                                    <textarea
+                                        class="formAlign",
+                                        rows=5,
+                                        cols=36,
+                                        value=note,
+                                        oninput=|e| Msg::InputNote(e.value),
+                                    />
+                                </td>
+                            </tr>
+                        </table>
+                        <div class="formButtons">
+                            {
+                                match self.user_type {
+                                    WebUserType::Admin => html! {
+                                        <>
+                                            <button
+                                                type="button",
+                                                class="btn btn-lg btn-success align",
+                                                onclick=|_| Msg::RequestAddUpdateBeacon,
+                                            >
+                                                { title_name }
+                                            </button>
+                                            { add_another_button }
+                                        </>
+                                    },
+                                    WebUserType::Responder => html! { },
+                                }
                             }
-                        }
-                        <button
-                            type="button",
-                            class="btn btn-lg btn-danger align",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),
-                        >
-                            { "Cancel" }
-                        </button>
+                            <button
+                                type="button",
+                                class="btn btn-lg btn-danger align",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::BeaconList),
+                            >
+                                { "Cancel" }
+                            </button>
+                        </div>
                     </div>
                 </div>
             </>

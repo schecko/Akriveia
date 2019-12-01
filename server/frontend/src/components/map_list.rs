@@ -146,7 +146,7 @@ impl Renderable<MapList> for MapList {
         });
 
         html! {
-            <>
+            <div class="content-wrapper">
                 <div class="boxedForm">
                     <div class="d-flex justify-content-between">
                         <h2>{ "Map List"}</h2>
@@ -159,7 +159,7 @@ impl Renderable<MapList> for MapList {
                     </div>
                     { self.user_msg.view() }
                     <table class="table table-striped">
-                        <thead class="thead-light">
+                        <thead>
                             <tr>
                                 <th>{ "Name" }</th>
                                 <th>{ "Bounds" }</th>
@@ -173,7 +173,7 @@ impl Renderable<MapList> for MapList {
                         </tbody>
                     </table>
                 </div>
-            </>
+            </div>
         }
     }
 }

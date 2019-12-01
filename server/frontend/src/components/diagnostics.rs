@@ -171,30 +171,38 @@ impl Renderable<Diagnostics> for Diagnostics {
                         { " Reset Data" }
                     </button>
                     { self.user_msg.view() }
-                    <div>
-                        <h2>{ "Diagnostics" }</h2>
-                        <tr>{ for beacon_selections }</tr>
+                    <div class="content-wrapper">
+                        <div class="boxedForm">
+                            <div>
+                                <h2>{ "Diagnostics" }</h2>
+                                <tr>{ for beacon_selections }</tr>
+                            </div>
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>{ "Beacon Mac" }</th>
+                                        <th>{ "User Mac" }</th>
+                                        <th>{ "Distance" }</th>
+                                        <th>{ "Timestamp" }</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    { for diagnostic_rows }
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <table class="table table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>{ "Beacon Mac" }</th>
-                                <th>{ "User Mac" }</th>
-                                <th>{ "Distance" }</th>
-                                <th>{ "Timestamp" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for diagnostic_rows }
-                        </tbody>
-                    </table>
                 </>
             }
         } else {
             html! {
                 <>
-                    <h2>{ "Diagnostics" }</h2>
-                    <h4>{ "No diagnostics yet..." }</h4>
+                    <div class="content-wrapper">
+                        <div class="boxedForm">
+                            <h2>{ "Diagnostics" }</h2>
+                            <h4>{ "No diagnostics yet..." }</h4>
+                        </div>
+                    </div>
                 </>
             }
         }

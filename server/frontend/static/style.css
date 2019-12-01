@@ -1,4 +1,24 @@
 /* STRUCTURE */
+.content-wrapper {
+  display:flex;
+  margin-right: auto; 
+  margin-left:  auto;
+  align-items: center;
+  justify-content:center;
+  /* Sets the max width of page (Might change)*/
+  max-width: 1200px;
+}
+
+.page-wrapper-map-view {
+  display:flex;
+  margin-right: auto; 
+  margin-left:  auto;
+  align-items: center;
+  justify-content:center;
+  /* Sets the max width of page (Might change)*/
+  max-width: 100%;
+}
+
 .wrapper {
   display: flex;
   align-items: center;
@@ -150,7 +170,7 @@ button.e-buttons:hover {
   border-radius: 6px;
   padding: 2px 8px;
   color:#ffffff !important;
-  background-color:#be0011;
+  background-color: rgba(190, 0, 16, 0.90);
 }
 
 nav div ul li a.navBarText:hover {
@@ -162,8 +182,9 @@ nav div ul li a.navBarText:hover {
 .dropdown-item:hover {
   border-radius:4px;
   border: 2px solid white;
-  background-color: #be0011;
-  color:#16181b;}
+  background-color: rgba(190, 0, 16, 0.90);
+  color:#16181b;
+}
 
 .navBarText:focus, .dropdown-item:focus{
   background-color: #007bff;
