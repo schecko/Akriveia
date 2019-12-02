@@ -639,8 +639,8 @@ impl MapAddUpdate {
                         <button
                             class={
                                 if this_beacon_selected {
-                                    "btn btn-sm btn-secondary mx-1 selected" }
-                                else {
+                                    "btn btn-sm btn-secondary mx-1 selected"
+                                } else {
                                     "btn btn-sm mx-1 btn-warning"
                                 }
                             },
@@ -717,12 +717,15 @@ impl MapAddUpdate {
                     }
                 } else {
                     html! {
-                        <button
-                            class="btn btn-lg btn-warning mx-1",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
-                        >
-                            { "No beacons available. Click to add beacon" }
-                        </button>
+                        <tr>
+                            <h4 class="mr-2">{"No Beacons Available."}</h4>
+                            <button
+                                class="btn btn-lg btn-warning mx-1",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                            >
+                                { "Click to add beacon." }
+                            </button>
+                        </tr>
                     }
                 }
             },

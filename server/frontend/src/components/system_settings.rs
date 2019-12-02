@@ -79,6 +79,8 @@ impl Component for SystemSettings {
 // The front-end layout in HTML
 impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
+        let space = {" "};
+
         html! {
             <>
                 { self.user_msg.view() }
@@ -92,7 +94,8 @@ impl Renderable<SystemSettings> for SystemSettings {
                             onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
                         >
                             <i class="fa fa-refresh" aria-hidden="true"></i>
-                            { " Restart Server" }
+                            { space }
+                            { "Restart Server" }
                         </button>
                         
                         <button
@@ -100,6 +103,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                             onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
                         >
                             <i class="fa fa-power-off" aria-hidden="true"></i>
+                            { space }
                             { " Reset Database" }
                         </button>
                     </div>
@@ -107,8 +111,10 @@ impl Renderable<SystemSettings> for SystemSettings {
                     <div class="d-flex justify-content-start">
                         <button
                             class="btn btn-lg btn-secondary my-auto",
-                        ><i class="fa fa-wifi" aria-hidden="true"></i>
-                            {" Set IP Address"}
+                        >
+                            <i class="fa fa-wifi" aria-hidden="true"></i>
+                            { space }
+                            {"Set IP Address"}
                         </button>
                         <input
                             type="text",
