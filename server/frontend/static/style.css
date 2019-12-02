@@ -374,5 +374,9 @@ input[type=password]:placeholder {
 }
 
 .restarting-notify {
-	align-items: center;
+  text-align: center;
+  display:inline-block;
+  margin-right: auto;
+  margin-left:  auto;
+  align-items: center;
 }

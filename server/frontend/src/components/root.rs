@@ -72,8 +72,7 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            //current_page: Page::Login(login::AutoAction::Login),
-            current_page: Page::Restarting,
+            current_page: Page::Login(login::AutoAction::Login),
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
@@ -157,7 +156,7 @@ impl Component for RootComponent {
                     response,
                     |s, _resp| {
                         s.interval_ping_task = None;
-                        //s.link.send_self(Msg::ChangePage(Page::Login(login::AutoAction::Login)));
+                        s.link.send_self(Msg::ChangePage(Page::Login(login::AutoAction::Login)));
                     },
                     |_s, _e| {
                         // this might happen if the server is down while we ping it, this is
@@ -334,10 +333,10 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::Restarting => {
                 html! {
-                    <div class="container-fluid">
-                        <div class="content-wrapper">
-                            <div class="boxedForm restarting-notify" style="display: inline-block; align: center;">
-                                <img src="/images/icon_780_720.png" width="256" height="256"/>
+                    <div class="content-wrapper">
+                        <div class="boxedForm">
+                            <div class="restarting-notify">
+                                <img src="/images/icon_780_720.png" width="256" height="256" style="margin:30px"/>
                                 <h2>{"Restarting Server"}</h2>
                                 <h4>{"You will be redirected to the main page momentarily..."}</h4>
                             </div>
