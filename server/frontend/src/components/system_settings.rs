@@ -132,39 +132,41 @@ impl Renderable<SystemSettings> for SystemSettings {
         html! {
             <>
                 { self.user_msg.view() }
-                <div/>
-                <div class="boxedForm">
-                    <h2>{ "System Settings" }</h2>
-                    <div class="d-flex">
-                        <DisplayButton<()>
-                            value=(),
-                            style="btn btn-lg btn-info mr-3 my-auto",
-                            on_click=|_| Msg::RequestRestart(SystemCommand::StartNormal),
-                            icon="fa fa-power-off",
-                            display="Restart Server",
-                        />
-                        <DisplayButton<()>
-                            value=(),
-                            style="btn btn-lg btn-info ml-3 my-auto",
-                            on_click=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
-                            icon="fa fa-power-off",
-                            display="Reset Database",
-                        />
-                    </div>
+                <div class="content-wrapper">
+                    <div/>
+                    <div class="boxedForm">
+                        <h2>{ "System Settings" }</h2>
+                        <div class="d-flex">
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-info mr-3 my-auto",
+                                on_click=|_| Msg::RequestRestart(SystemCommand::StartNormal),
+                                icon="fa fa-power-off",
+                                display="Restart Server",
+                            />
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-info ml-3 my-auto",
+                                on_click=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
+                                icon="fa fa-power-off",
+                                display="Reset Database",
+                            />
+                        </div>
 
-                    <div class="d-flex justify-content-start">
-                        <DisplayButton<()>
-                            value=(),
-                            style="btn btn-lg btn-secondary my-auto",
-                            on_click=|_| Msg::RequestSetIp,
-                            display="Set IP Address",
-                        />
-                        <input
-                            type="text",
-                            class="fixedLength",
-                            placeholder="IP address",
-                            oninput=|event| Msg::InputIp(event.value),
-                        />
+                        <div class="d-flex justify-content-start">
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-secondary my-auto",
+                                on_click=|_| Msg::RequestSetIp,
+                                display="Set IP Address",
+                            />
+                            <input
+                                type="text",
+                                class="fixedLength",
+                                placeholder="IP address",
+                                oninput=|event| Msg::InputIp(event.value),
+                            />
+                        </div>
                     </div>
                 </div>
             </>

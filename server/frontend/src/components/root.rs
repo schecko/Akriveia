@@ -135,7 +135,7 @@ impl Renderable<RootComponent> for RootComponent {
         match self.current_page {
             Page::Diagnostics => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <EmergencyButtons
@@ -152,7 +152,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::Status(state) => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <EmergencyButtons
@@ -171,7 +171,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::Login(auto_action) => {
                 html! {
-                    <div class="container-fluid">
+                    <div>
                         <Login
                             change_page=|page| Msg::ChangePage(page),
                             change_user_type=|user_type| Msg::ChangeWebUserType(user_type),
@@ -182,7 +182,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::MapView(opt_id) => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <EmergencyButtons
@@ -190,6 +190,8 @@ impl Renderable<RootComponent> for RootComponent {
                                 on_emergency=|_| Msg::RequestPostEmergency(true),
                                 on_end_emergency=|_| Msg::RequestPostEmergency(false),
                             />
+                        </div>
+                        <div class="container-fluid">
                             <MapViewComponent
                                 emergency={self.emergency},
                                 opt_id=opt_id,
@@ -201,7 +203,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::BeaconList => {
                html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <BeaconList
@@ -213,7 +215,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::BeaconAddUpdate(id) => {
                html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <BeaconAddUpdate
@@ -227,7 +229,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::UserList => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <UserList
@@ -239,7 +241,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::UserAddUpdate(id) => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <UserAddUpdate
@@ -253,7 +255,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::MapList => {
                html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <MapList
@@ -265,7 +267,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::MapAddUpdate(opt_id) => {
                html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <MapAddUpdate
@@ -279,7 +281,7 @@ impl Renderable<RootComponent> for RootComponent {
             },
             Page::SystemSettings => {
                 html! {
-                    <div class="page-content-wrapper">
+                    <div>
                         { self.navigation() }
                         <div class="container-fluid">
                             <SystemSettings

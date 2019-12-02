@@ -369,48 +369,50 @@ impl Renderable<MapViewComponent> for MapViewComponent {
         });
 
         html! {
-            <div>
+            <>
                 { self.user_msg.view() }
-                <div>
-                    <h3>{ "View Map" }</h3>
-                    { for maps }
-                </div>
-                <div>
-                    <div class="form-check">
-                        <input
-                            type="checkbox",
-                            class="form-check-input",
-                            id="gridlineCheck1",
-                            value=&self.show_grid,
-                            onclick=|_| Msg::ToggleGrid,
-                        />
-                        <label class="form-check-label" for="gridlineCheck1">{ "Show Gridlines" }</label>
-                    </div>
-                </div>
-                <div>
-                    { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
-                    { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                    <div class="tinyBoxForm align-top">
-                        <h4>{"User Status"}</h4>
-                        <table class="table table-small">
-                            <tr>
-                                <th>{"Address"}</th>
-                                <th>{"Name"}</th>
-                                <th>{"Last Seen"}</th>
-                                {
-                                    match self.user_type {
-                                        WebUserType::Admin => html! {
-                                            <th>{ "Intersection" }</th>
-                                        },
-                                        _ => html! {},
+                <div class="page-wrapper-map-view">
+                    <div class="boxedForm">
+                        <div>
+                            <h3>{ "View Map" }</h3>
+                            { for maps }
+                        </div>
+                        <div>
+                            <div class="form-check">
+                                <input
+                                    type="checkbox",
+                                    class="form-check-input",
+                                    id="gridlineCheck1",
+                                    value=&self.show_grid,
+                                    onclick=|_| Msg::ToggleGrid,
+                                />
+                                <label class="form-check-label" for="gridlineCheck1">{ "Show Gridlines" }</label>
+                            </div>
+                        </div>
+                        { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
+                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                        <div class="tinyBoxForm align-top">
+                            <h4>{"User Status"}</h4>
+                            <table class="table table-sm table-striped">
+                                <tr>
+                                    <th>{"Address"}</th>
+                                    <th>{"Name"}</th>
+                                    <th>{"Last Seen"}</th>
+                                    {
+                                        match self.user_type {
+                                            WebUserType::Admin => html! {
+                                                <th>{ "Intersection" }</th>
+                                            },
+                                            _ => html! {},
+                                        }
                                     }
-                                }
-                            </tr>
-                            { for realtime_users }
-                        </table>
+                                </tr>
+                                { for realtime_users }
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </>
         }
     }
 }

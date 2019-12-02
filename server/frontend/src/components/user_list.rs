@@ -146,32 +146,36 @@ impl Renderable<UserList> for UserList {
         html! {
             <>
                 { self.user_msg.view() }
-                <div class="d-flex justify-content-between">
-                    <h2>{ "User List"}</h2>
-                    <button
-                        class="btn btn-success logoutPlacement my-1",
-                        onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
-                    >
-                        {"Add User"}
-                    </button>
+                <div class="content-wrapper">
+                    <div class="boxedForm">
+                        <div class="d-flex justify-content-between">
+                            <h2>{ "User List"}</h2>
+                            <button
+                                class="btn btn-success logoutPlacement my-1",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::UserAddUpdate(None)),
+                            >
+                                {"Add User"}
+                            </button>
+                        </div>
+                        <table class="table table-striped">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>{ "Name"}</th>
+                                    <th>{ "Coordinates" }</th>
+                                    <th>{ "Mac" }</th>
+                                    <th>{ "Employee ID" }</th>
+                                    <th>{ "Last Active" }</th>
+                                    <th>{ "Work Phone" }</th>
+                                    <th>{ "Mobile Phone" }</th>
+                                    <th>{"Actions"}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                { for rows }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <table class="table table-striped">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>{ "Name"}</th>
-                            <th>{ "Coordinates" }</th>
-                            <th>{ "Mac" }</th>
-                            <th>{ "Employee ID" }</th>
-                            <th>{ "Last Active" }</th>
-                            <th>{ "Work Phone" }</th>
-                            <th>{ "Mobile Phone" }</th>
-                            <th>{"Actions"}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { for rows }
-                    </tbody>
-                </table>
             </>
         }
     }
