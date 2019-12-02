@@ -5,19 +5,30 @@ use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
 use stdweb::web;
 use super::user_message::UserMessage;
+use std::net::Ipv4Addr;
 
 pub enum Msg {
+    InputIp(String),
+
     RequestRestart(SystemCommand),
+    RequestSetIp,
+
     ResponseRestart(JsonResponse<()>),
+    ResponseSetIp(JsonResponse<()>),
 }
 
 pub struct SystemSettings {
     user_msg: UserMessage<Self>,
     fetch_service: FetchService,
-    fetch_task: Option<FetchTask>,
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
+    ip_raw: String,
+
+    fetch_task: Option<FetchTask>,
+    fetch_task_command: Option<FetchTask>,
 }
+
+impl JsonResponseHandler for SystemSettings {}
 
 #[derive(Properties)]
 pub struct SystemSettingsProps {
@@ -33,9 +44,12 @@ impl Component for SystemSettings {
         let result = SystemSettings {
             user_msg: UserMessage::new(),
             fetch_service: FetchService::new(),
-            fetch_task: None,
             self_link: link,
             user_type: props.user_type,
+            ip_raw: String::new(),
+
+            fetch_task: None,
+            fetch_task_command: None,
         };
         result
     }
@@ -58,6 +72,29 @@ impl Component for SystemSettings {
                     );
                 }
             },
+            Msg::InputIp(ip) => {
+                self.ip_raw = ip;
+            }
+            Msg::RequestSetIp => {
+                self.user_msg.reset();
+                let ret_ip: Result<Ipv4Addr, _> = self.ip_raw.parse();
+
+                match ret_ip {
+                    Ok(ip) => {
+                        self.fetch_task_command = post_request! (
+                            self.fetch_service,
+                            &beacon_command_url(),
+                            BeaconRequest::SetIp(ip),
+                            self.self_link,
+                            Msg::ResponseSetIp
+                        );
+                    },
+                    Err(e) => {
+                        self.user_msg.error_messages.push(format!("failed to send setip command, reason: {}", e));
+                    },
+                }
+
+            },
             Msg::ResponseRestart(response) => {
                 let (meta, Json(_body)) = response.into_parts();
                 if meta.status.is_success() {
@@ -65,6 +102,17 @@ impl Component for SystemSettings {
                 } else {
                     self.user_msg.error_messages.push("failed to send restart command".to_string());
                 }
+            },
+            Msg::ResponseSetIp(response) => {
+                self.handle_response(
+                    response,
+                    |s, _| {
+                        s.user_msg.success_message = Some("Successfully sent setip command".to_owned());
+                    },
+                    |s, e| {
+                        s.user_msg.error_messages.push(format!("failed to send setip, reason: {}", e));
+                    },
+                );
             },
         }
         true
@@ -111,15 +159,16 @@ impl Renderable<SystemSettings> for SystemSettings {
                     <div class="d-flex justify-content-start">
                         <button
                             class="btn btn-lg btn-secondary my-auto",
+                            onclick=|_| Msg::RequestSetIp,
                         >
-                            <i class="fa fa-wifi" aria-hidden="true"></i>
-                            { space }
+                                { space }
                             {"Set IP Address"}
                         </button>
                         <input
                             type="text",
                             class="fixedLength",
                             placeholder="IP address",
+                            oninput=|event| Msg::InputIp(event.value),
                         />
                     </div>
                 </div>

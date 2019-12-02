@@ -34,7 +34,7 @@ impl Actor for DummyUDP {
     type Context = Context<Self>;
 }
 
-struct GenTagData { }
+struct GenTagData;
 impl Message for GenTagData {
     type Result = Result<(), ()>;
 }
@@ -95,7 +95,7 @@ impl Handler<BeaconCommand> for DummyUDP {
         match msg {
             BeaconCommand::StartEmergency(opt_ip) => {
                 self.data_task = context.run_interval(MESSAGE_INTERVAL, |_actor, context| {
-                    context.notify(GenTagData{});
+                    context.notify(GenTagData);
                 });
 
                 self.reply(context, opt_ip, |ip, mac| BMResponse::Start(ip, mac));
@@ -109,6 +109,9 @@ impl Handler<BeaconCommand> for DummyUDP {
             },
             BeaconCommand::Reboot(opt_ip) => {
                 self.reply(context, opt_ip, |ip, mac| BMResponse::Reboot(ip, mac));
+            }
+            BeaconCommand::SetIp(_ip) => {
+                self.reply(context, None, |ip, mac| BMResponse::SetIp(ip, mac));
             }
         }
 
