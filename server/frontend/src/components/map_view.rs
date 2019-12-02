@@ -244,7 +244,8 @@ impl Component for MapViewComponent {
                 self.handle_response(
                     response,
                     |s, users| {
-                        s.realtime_users = users;
+                        let current_mid = s.current_map.as_ref().map(|m| m.id);
+                        s.realtime_users = users.into_iter().filter(|u| u.map_id == current_mid).collect();
                     },
                     |s, e| {
                         s.user_msg.error_messages.push(format!("failed to request realtime user data, reason: {}", e));
