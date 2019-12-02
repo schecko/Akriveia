@@ -161,7 +161,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                                 class="btn btn-lg btn-secondary my-auto",
                                 onclick=|_| Msg::RequestSetIp,
                             >
-                                    { space }
+                                { space }
                                 {"Set IP Address"}
                             </button>
                             <input

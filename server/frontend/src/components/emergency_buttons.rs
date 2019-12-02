@@ -66,14 +66,14 @@ impl Renderable<EmergencyButtons> for EmergencyButtons {
                         class={ if self.is_emergency {"fa fa-refresh fa-spin"} else {"fa fa-hourglass-start"} },
                         aria-hidden="true">
                     </i>
-                    { " Start Tracking" }
+                    { "Start Tracking" }
                 </button>
                 <button type="button" class="btn btn-lg btn-danger e-buttons"
                     onclick=|_| Msg::RequestEndEmergency,
                     disabled={!self.is_emergency},
                 >
                     <i class="fa fa-hourglass-end" aria-hidden="true"></i>
-                    { " End Tracking" }
+                    { "End Tracking" }
                 </button>
             </>
         }

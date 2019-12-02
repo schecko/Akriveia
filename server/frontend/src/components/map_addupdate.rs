@@ -770,7 +770,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                         <h2>{ title_name }</h2>
                         <table>
                             <tr>
-                                <td class="formLabel">{"Name: " }</td>
+                                <td class="formLabel mr-1">{"Name:" }</td>
                                 <td>
                                     <input
                                         type="text",
@@ -780,7 +780,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 </td>
                             </tr>
                             <tr>
-                                <td class="formLabel">{ "Dimensions(m): " }</td>
+                                <td class="formLabel mr-1">{ "Dimensions(m):" }</td>
                                 <td>
                                     <input
                                         class="coordinates",
@@ -797,7 +797,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 </td>
                             </tr>
                             <tr>
-                                <td class="formLabel">{ "Scale(px/m): " }</td>
+                                <td class="formLabel mr-1">{ "Scale(px/m):" }</td>
                                 <td>
                                     <input
                                         type="text",
@@ -807,7 +807,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 </td>
                             </tr>
                             <tr>
-                                <td class="formLabel">{ "Notes: " }</td>
+                                <td class="formLabel mr-1">{ "Notes:" }</td>
                                 <td>
                                     <textarea
                                         class="formAlign",
@@ -820,7 +820,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 </td>
                             </tr>
                             <tr>
-                                <td class="formLabel">{ "Blueprint: " }</td>
+                                <td class="formLabel mr-1">{ "Blueprint:" }</td>
                                 <td>
                                     <input
                                         type="file",
