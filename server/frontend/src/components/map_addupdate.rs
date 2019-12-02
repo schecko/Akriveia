@@ -723,7 +723,7 @@ impl MapAddUpdate {
                                 class="btn btn-lg btn-warning mx-1",
                                 onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
                             >
-                                { "Click to add beacon." }
+                                { "Click to add beacon" }
                             </button>
                         </tr>
                     }
