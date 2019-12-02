@@ -114,6 +114,7 @@ pub enum BeaconRequest {
     EndEmergency(Option<MacAddress8>),
     Ping(Option<MacAddress8>),
     Reboot(Option<MacAddress8>),
+    SetIp(Ipv4Addr),
 }
 
 impl Default for BeaconRequest {
