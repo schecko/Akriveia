@@ -214,6 +214,10 @@ fn webserver_main(start_command: SystemCommand, tx: IpcSender<WatcherCommand>, r
                 web::resource(&system_restart_url())
                     .route(web::post().to(system_controller::restart))
             )
+            .service(
+                web::resource(&system_ping_url())
+                    .route(web::get().to_async(system_controller::ping))
+            )
 
             // network
             .service(

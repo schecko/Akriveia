@@ -2,13 +2,16 @@ use common::*;
 use crate::util::*;
 use std::net::Ipv4Addr;
 use stdweb::web;
+use super::root;
 use super::user_message::UserMessage;
 use super::value_button::DisplayButton;
 use yew::format::Json;
+use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
 
 pub enum Msg {
+    ChangeRootPage(root::Page),
     InputIp(String),
 
     RequestRestart(SystemCommand),
@@ -24,6 +27,7 @@ pub struct SystemSettings {
     self_link: ComponentLink<Self>,
     user_type: WebUserType,
     ip_raw: String,
+    change_page: Callback<root::Page>,
 
     fetch_task: Option<FetchTask>,
     fetch_task_command: Option<FetchTask>,
@@ -35,6 +39,8 @@ impl JsonResponseHandler for SystemSettings {}
 pub struct SystemSettingsProps {
     #[props(required)]
     pub user_type: WebUserType,
+    #[props(required)]
+    pub change_page: Callback<root::Page>,
 }
 
 impl Component for SystemSettings {
@@ -43,11 +49,12 @@ impl Component for SystemSettings {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let result = SystemSettings {
-            user_msg: UserMessage::new(),
+            change_page: props.change_page,
             fetch_service: FetchService::new(),
-            self_link: link,
-            user_type: props.user_type,
             ip_raw: String::new(),
+            self_link: link,
+            user_msg: UserMessage::new(),
+            user_type: props.user_type,
 
             fetch_task: None,
             fetch_task_command: None,
@@ -57,6 +64,9 @@ impl Component for SystemSettings {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ChangeRootPage(page) => {
+                self.change_page.emit(page);
+            }
             Msg::RequestRestart(command) => {
                 let confirmed = match command {
                     SystemCommand::StartNormal => web::window().confirm("Are you sure you wish to restart?"),
@@ -100,6 +110,7 @@ impl Component for SystemSettings {
                 let (meta, Json(_body)) = response.into_parts();
                 if meta.status.is_success() {
                     self.user_msg.success_message = Some("successfully sent restart command".to_owned());
+                    self.self_link.send_self(Msg::ChangeRootPage(root::Page::Restarting));
                 } else {
                     self.user_msg.error_messages.push("failed to send restart command".to_string());
                 }
