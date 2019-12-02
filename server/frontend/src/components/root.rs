@@ -494,7 +494,7 @@ impl RootComponent {
                         role="button"
                         onclick=|_| Msg::ChangePage(Page::SystemSettings),
                     >
-                        { " System" }
+                        { "System" }
                     </a>
                     <div class="dropdown-content">
                         <a
