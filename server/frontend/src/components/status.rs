@@ -387,14 +387,16 @@ impl Status {
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
-                            style="btn-secondary",
+                            icon="fa fa-signal",
+                            style="btn btn-sm btn-info",
                         />
                         <DisplayButton<BeaconRequest>
                             display="Reboot".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
-                            style="btn-secondary",
+                            icon="fa fa-refresh",
+                            style="btn btn-sm btn-info",
                         />
                     </>
                 },
@@ -415,7 +417,9 @@ impl Status {
                             display=Some("Details".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
-                            value={beacon.id}
+                            icon = "fa fa-book",
+                            style="btn-primary",
+                            value={beacon.id},
                         />
                         <DisplayButton<Option<i32>>
                             display="Map".to_owned(),
@@ -423,7 +427,8 @@ impl Status {
                             border=false,
                             disabled=!valid_map,
                             value={beacon.map_id},
-                            style="btn-primary",
+                            icon = "fa fa-external-link",
+                            style="btn btn-sm btn-secondary",
                         />
                         { command_buttons }
                     </td>
@@ -483,6 +488,8 @@ impl Status {
                             display=Some("Details".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::UserAddUpdate(Some(value))),
                             border=false,
+                            icon = "fa fa-book",
+                            style="btn-primary",
                             value={user.id}
                         />
                         <DisplayButton<Option<i32>>
@@ -490,8 +497,9 @@ impl Status {
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
+                            style="btn btn-sm btn-secondary",
+                            icon = "fa fa-external-link",
                             value={user.map_id},
-                            style="btn-secondary",
                         />
                     </td>
                 </tr>

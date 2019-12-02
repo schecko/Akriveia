@@ -144,6 +144,7 @@ impl Renderable<Diagnostics> for Diagnostics {
                         on_click=|value: String| Msg::ToggleBeaconSelected(MacAddress8::parse_str(&value).unwrap()),
                         border=set_border,
                         value={b_mac.to_hex_string()}
+                        style= { if set_border {"btn-secondary"} else {"btn-outline-secondary"} },
                     />
                 }
             });
@@ -162,18 +163,20 @@ impl Renderable<Diagnostics> for Diagnostics {
 
             html! {
                 <>
-                    <button type="button" class="btn btn-warning"
+                    <button
+                        type="button" class="btn btn-lg btn-warning"
                         onclick=|_| Msg::ClearBuffer,
                     >
-                        { "Reset Data" }
+                        <i class="fa fa-recycle" aria-hidden="true"></i>
+                        { " Reset Data" }
                     </button>
                     { self.user_msg.view() }
+                    <div>
+                        <h2>{ "Diagnostics" }</h2>
+                        <tr>{ for beacon_selections }</tr>
+                    </div>
                     <table class="table table-striped">
                         <thead class="thead-dark">
-                            <div>
-                                <h2>{ "Diagnostics" }</h2>
-                                { for beacon_selections }
-                            </div>
                             <tr>
                                 <th>{ "Beacon Mac" }</th>
                                 <th>{ "User Mac" }</th>

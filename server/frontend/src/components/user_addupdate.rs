@@ -343,7 +343,7 @@ impl Renderable<UserAddUpdate> for UserAddUpdate {
                 html! {
                     <button
                         type="button",
-                        class="btn btn-lg btn-warning align",
+                        class="btn btn-lg btn-primary align",
                         onclick=|_| Msg::AddAnotherUser,
                     >
                         { "Add Another" }

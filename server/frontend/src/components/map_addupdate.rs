@@ -631,7 +631,7 @@ impl MapAddUpdate {
                     </td>
                     <td>
                         <button
-                            class="btn btn-sm btn-warning mx-1",
+                            class="btn btn-sm btn-success mx-1",
                             onclick=|_| Msg::RequestPutBeacon(beacon_id),
                         >
                             { "Save" }
@@ -639,9 +639,9 @@ impl MapAddUpdate {
                         <button
                             class={
                                 if this_beacon_selected {
-                                    "btn btn-sm btn-success mx-1 selected"
+                                    "btn btn-sm btn-secondary mx-1 selected"
                                 } else {
-                                    "btn btn-sm mx-1 btn-primary"
+                                    "btn btn-sm mx-1 btn-warning"
                                 }
                             },
                             onclick=|_| Msg::ToggleBeaconPlacement(beacon_id),
@@ -717,12 +717,15 @@ impl MapAddUpdate {
                     }
                 } else {
                     html! {
-                        <button
-                            class="btn btn-sm btn-warning mx-1",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
-                        >
-                            { "No beacons available, click here to add beacon" }
-                        </button>
+                        <div>
+                            <h4 class="mr-2">{"No Beacons Available"}</h4>
+                            <button
+                                class="btn btn-lg btn-warning mx-1",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                            >
+                                { "Add Beacon" }
+                            </button>
+                        </div>
                     }
                 }
             },
@@ -745,7 +748,7 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                 html! {
                     <button
                         type="button",
-                        class="btn btn-lg btn-warning align",
+                        class="btn btn-lg btn-primary align",
                         onclick=|_| Msg::AddAnotherMap,
                     >
                         { "Add Another" }
@@ -837,12 +840,13 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     </table>
                     { self.render_beacon_placement() }
                     <div>
-                        { "Show Grid" }
                         <input
-                            type="checkbox"
-                            value=&self.show_grid
+                            type="checkbox",
+                            id = "gridlineCheck2"
+                            value=&self.show_grid,
                             onclick=|_| Msg::ToggleGrid,
                         />
+                        <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
                     </div>
                     <div>
                         { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }

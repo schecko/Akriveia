@@ -35,7 +35,6 @@
 
 
 /* TABLES FORMATTING */
-
 table th {
 	font-size: 16px;
 }
@@ -109,6 +108,9 @@ a.active, a:disabled {
 .formAlign {
   margin-left:5px;
   text-align:top;
+}
+button.spacing {
+  margin-right:0.25rem;
 }
 
 button.align {
@@ -244,7 +246,6 @@ input.coordinates[type=text] {
 
 input.loginText[type=text] {
   width:70%;
-  font-size: 20px;
 }
 
 input.userText[type=text]{

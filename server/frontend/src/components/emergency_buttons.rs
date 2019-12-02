@@ -1,6 +1,6 @@
-
 use yew::prelude::*;
 use yew::Component;
+use super::value_button::DisplayButton;
 
 pub enum Msg {
     RequestEmergency,
@@ -57,20 +57,24 @@ impl Component for EmergencyButtons {
 impl Renderable<EmergencyButtons> for EmergencyButtons {
     fn view(&self) -> Html<Self> {
         html! {
-            <>
-                <button type="button" class="btn btn-lg btn-success e-buttons"
-                    onclick=|_| Msg::RequestEmergency,
+            <div>
+                <DisplayButton<()>
+                    value=(),
+                    style="btn btn-lg btn-success e-buttons"
+                    on_click=|_| Msg::RequestEmergency,
                     disabled={self.is_emergency},
-                >
-                    { "Start Tracking" }
-                </button>
-                <button type="button" class="btn btn-lg btn-danger e-buttons"
-                    onclick=|_| Msg::RequestEndEmergency,
+                    icon={ if self.is_emergency {"fa fa-refresh fa-spin"} else {"fa fa-hourglass-start"} },
+                    display="Start Tracking",
+                />
+                <DisplayButton<()>
+                    value=(),
+                    style="btn btn-lg btn-danger e-buttons"
+                    on_click=|_| Msg::RequestEndEmergency,
                     disabled={!self.is_emergency},
-                >
-                    { "End Tracking" }
-                </button>
-            </>
+                    icon="fa fa-hourglass-end",
+                    display="End Tracking",
+                />
+            </div>
         }
     }
 }

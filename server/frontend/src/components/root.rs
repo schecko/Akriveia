@@ -357,8 +357,6 @@ impl RootComponent {
             </>
         };
 
-
-
         let select_user = match self.user_type {
             WebUserType::Admin => html! {
                 <>
@@ -419,7 +417,8 @@ impl RootComponent {
                             <a
                                 class="dropdown-item navBarText",
                                 onclick=|_| Msg::ChangePage(Page::BeaconList),
-                                disabled={self.current_page == Page::BeaconList},>
+                                disabled={self.current_page == Page::BeaconList},
+                            >
                                 { "Beacon List" }
                             </a>
                             <a

@@ -126,13 +126,17 @@ impl Renderable<UserList> for UserList {
                             display=Some("Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::UserAddUpdate(Some(value))),
                             border=false,
+                            icon="fa fa-pencil-square-o",
+                            style="btn-primary",
                             value={user.id}
                         />
                         <ValueButton<i32>
                             display=Some("Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteUser(value),
                             border=false,
-                            value=user.id
+                            icon="fa fa-trash",
+                            style="btn-secondary",
+                            value=user.id,
                         />
                     </td>
                 </tr>

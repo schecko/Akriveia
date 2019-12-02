@@ -11,6 +11,8 @@ pub struct ValueButton<T> {
     pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
+    pub style: String,
+    pub icon: String,
 }
 
 #[derive(Properties)]
@@ -22,6 +24,8 @@ pub struct ValueButtonProps<T> {
     pub disabled: bool,
     pub border: bool,
     pub display: Option<String>,
+    pub icon: String,
+    pub style: String,
 }
 
 impl <T: 'static> Component for ValueButton<T>
@@ -37,6 +41,8 @@ impl <T: 'static> Component for ValueButton<T>
             disabled: props.disabled,
             border: props.border,
             display: props.display,
+            style: props.style,
+            icon: props.icon,
         }
     }
 
@@ -54,6 +60,8 @@ impl <T: 'static> Component for ValueButton<T>
         self.on_click = props.on_click;
         self.disabled = props.disabled;
         self.border = props.border;
+        self.icon = props.icon;
+        self.style = props.style;
         true
     }
 }
@@ -68,8 +76,9 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
             ""
         };
 
-        let style = "btn-primary";
-        let cls = format!("btn {} btn-sm {}", style, bold);
+        let space_between = if self.icon.is_empty() {""} else {" "};
+
+        let cls = format!("btn {} btn-sm {} spacing", self.style, bold);
 
         html! {
             <>
@@ -79,7 +88,9 @@ impl <T: 'static> Renderable<ValueButton<T>> for ValueButton<T>
                     onclick=|_| Msg::Click,
                     class={cls},
                 >
-                     { self.display.as_ref().unwrap_or(&self.value.to_string()) }
+                    <i class={&self.icon} aria-hidden="true"></i>
+                    { space_between }
+                    { self.display.as_ref().unwrap_or(&self.value.to_string()) }
                 </button>
             </>
         }
@@ -92,6 +103,7 @@ pub struct DisplayButton<T> {
     pub on_click: Callback<T>,
     pub disabled: bool,
     pub border: bool,
+    pub icon: String,
     pub style: String,
 }
 
@@ -104,6 +116,7 @@ pub struct DisplayButtonProps<T> {
     pub disabled: bool,
     pub border: bool,
     pub display: String,
+    pub icon: String,
     #[props(required)]
     pub style: String,
 }
@@ -121,6 +134,7 @@ impl <T: 'static> Component for DisplayButton<T>
             disabled: props.disabled,
             border: props.border,
             display: props.display,
+            icon: props.icon,
             style: props.style,
         }
     }
@@ -139,6 +153,7 @@ impl <T: 'static> Component for DisplayButton<T>
         self.on_click = props.on_click;
         self.disabled = props.disabled;
         self.border = props.border;
+        self.icon = props.icon;
         self.style = props.style;
         true
     }
@@ -154,7 +169,9 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
             ""
         };
 
-        let cls = format!("btn {} btn-sm {}", self.style, bold);
+        let space_between = if self.icon.is_empty() {""} else {" "};
+
+        let cls = format!("{} {} spacing", self.style, bold);
         html! {
             <>
                 <button
@@ -163,7 +180,9 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
                     onclick=|_| Msg::Click,
                     class={cls},
                 >
-                     { &self.display }
+                    <i class={ &self.icon } aria-hidden="true"></i>
+                    { space_between }
+                    { &self.display }
                 </button>
             </>
         }

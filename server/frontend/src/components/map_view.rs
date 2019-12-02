@@ -331,6 +331,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     on_click=move |value: i32| Msg::ChooseMap(map_id),
                     border=map.id == current_map_id,
                     value={map.id},
+                    style={ if map.id==current_map_id {"btn-primary"} else {"btn-outline-primary"} },
                     display=Some(map_name),
                 />
             }
@@ -354,8 +355,9 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                         on_click=|value: String| Msg::ViewDistance(ShortAddress::parse_str(&value).unwrap()),
                                         border=set_border,
                                         value={user.addr.to_string()},
-                                        display={"TOF"},
-                                        style="btn-secondary"
+                                        icon="fa fa-map-marker",
+                                        style={ if set_border {"btn btn-sm btn-secondary"} else {"btn btn-sm btn-outline-secondary"} },
+                                        display="Show",
                                     />
                                 </td>
                             },
@@ -374,12 +376,16 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                     { for maps }
                 </div>
                 <div>
-                    { "Show Gridlines" }
-                    <input
-                        type="checkbox"
-                        value=&self.show_grid
-                        onclick=|_| Msg::ToggleGrid,
-                    />
+                    <div class="form-check">
+                        <input
+                            type="checkbox",
+                            class="form-check-input",
+                            id="gridlineCheck1",
+                            value=&self.show_grid,
+                            onclick=|_| Msg::ToggleGrid,
+                        />
+                        <label class="form-check-label" for="gridlineCheck1">{ "Show Gridlines" }</label>
+                    </div>
                 </div>
                 <div>
                     { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }
@@ -394,7 +400,7 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                 {
                                     match self.user_type {
                                         WebUserType::Admin => html! {
-                                            <th>{ "Debug" }</th>
+                                            <th>{ "Intersection" }</th>
                                         },
                                         _ => html! {},
                                     }

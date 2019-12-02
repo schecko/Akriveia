@@ -120,18 +120,24 @@ impl Renderable<MapList> for MapList {
                             display=Some("Edit".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::MapAddUpdate(Some(value))),
                             border=false,
-                            value=map.id
+                            icon="fa fa-pencil-square-o",
+                            style="btn-primary",
+                            value=map.id,
                         />
                         <ValueButton<i32>
                             display=Some("Delete".to_string()),
                             on_click=|value: i32| Msg::RequestDeleteMap(value),
                             border=false,
-                            value=map.id
+                            icon="fa fa-trash",
+                            style="btn-secondary",
+                            value=map.id,
                         />
                         <ValueButton<i32>
                             display=Some("View".to_string()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::MapView(Some(value))),
                             border=false,
+                            icon="fa fa-external-link",
+                            style="btn-warning",
                             value=map.id
                         />
                     </td>

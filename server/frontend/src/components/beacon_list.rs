@@ -1,7 +1,7 @@
 use common::*;
 use crate::util::*;
 use super::root;
-use super::value_button::{ ValueButton, DisplayButton, };
+use super::value_button::{ ValueButton, DisplayButton };
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::prelude::*;
 use super::user_message::UserMessage;
@@ -143,12 +143,16 @@ impl Renderable<BeaconList> for BeaconList {
                             display=Some("Edit".to_owned()),
                             on_click=|value: i32| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(Some(value))),
                             border=false,
+                            icon="fa fa-pencil-square-o",
+                            style="btn-primary",
                             value={beacon.id}
                         />
                         <ValueButton<i32>
                             display=Some("Delete".to_owned()),
                             on_click=|value: i32| Msg::RequestDeleteBeacon(value),
                             border=false,
+                            icon="fa fa-trash",
+                            style="btn-secondary",
                             value=beacon.id
                         />
                         <DisplayButton<BeaconRequest>
@@ -156,14 +160,16 @@ impl Renderable<BeaconList> for BeaconList {
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
-                            style="btn-secondary",
+                            icon="fa fa-signal",
+                            style="btn btn-sm btn-info",
                         />
                         <DisplayButton<BeaconRequest>
                             display="Reboot".to_owned(),
                             on_click=|value| Msg::RequestCommandBeacon(value),
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
-                            style="btn-secondary",
+                            icon="fa fa-refresh",
+                            style="btn btn-sm btn-info",
                         />
                     </td>
                 </tr>
