@@ -152,7 +152,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                                 value=(),
                                 style="btn btn-lg btn-info mr-3 my-auto",
                                 on_click=|_| Msg::RequestRestart(SystemCommand::StartNormal),
-                                icon="fa fa-power-off",
+                                icon="fa fa-refresh",
                                 display="Restart Server",
                             />
                             <DisplayButton<()>
@@ -170,6 +170,7 @@ impl Renderable<SystemSettings> for SystemSettings {
                                 style="btn btn-lg btn-secondary my-auto",
                                 on_click=|_| Msg::RequestSetIp,
                                 display="Set IP Address",
+                                icon="fa fa-wifi",
                             />
                             <input
                                 type="text",
