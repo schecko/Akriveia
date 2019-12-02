@@ -69,6 +69,9 @@ pub fn system_diagnostics_url() -> String {
 pub fn system_restart_url() -> String {
     return String::from("/system/restart");
 }
+pub fn system_ping_url() -> String {
+    return String::from("/system/ping");
+}
 
 pub fn session_login_url() -> String {
     return String::from("/session/login");

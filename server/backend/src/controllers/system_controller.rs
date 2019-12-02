@@ -61,6 +61,10 @@ pub fn diagnostics(state: AKData, _req: HttpRequest) -> impl Future<Item=HttpRes
         }})
 }
 
+pub fn ping(_req: HttpRequest) -> impl Future<Item=HttpResponse, Error=AkError> {
+    ok(HttpResponse::Ok().json(Ok::<_, AkError>(())))
+}
+
 pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -> Result<HttpResponse, AkError> {
     if let Some(name) = id.identity() {
         if name == "admin" {

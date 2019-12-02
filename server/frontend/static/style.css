@@ -1,7 +1,7 @@
 /* STRUCTURE */
 .content-wrapper {
   display:flex;
-  margin-right: auto; 
+  margin-right: auto;
   margin-left:  auto;
   align-items: center;
   justify-content:center;
@@ -9,7 +9,7 @@
 
 .page-wrapper-map-view {
   display:flex;
-  margin-right: auto; 
+  margin-right: auto;
   margin-left:  auto;
   align-items: center;
   justify-content:center;
@@ -371,4 +371,8 @@ input[type=password]:placeholder {
 
 .dropdown:hover .dropdown-content{
   display:block;
+}
+
+.restarting-notify {
+	align-items: center;
 }

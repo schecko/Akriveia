@@ -1,7 +1,6 @@
-
-
 use common::*;
 use crate::util::*;
+use std::time::Duration;
 use super::beacon_addupdate::BeaconAddUpdate;
 use super::beacon_list::BeaconList;
 use super::diagnostics::Diagnostics;
@@ -16,7 +15,9 @@ use super::user_addupdate::UserAddUpdate;
 use super::user_list::UserList;
 use yew::prelude::*;
 use yew::services::fetch::{ FetchService, FetchTask, };
+use yew::services::interval::{ IntervalService, IntervalTask, };
 
+const POLL_RATE: Duration = Duration::from_millis(2000);
 
 #[derive(PartialEq)]
 pub enum Page {
@@ -31,6 +32,7 @@ pub enum Page {
     SystemSettings,
     UserAddUpdate(Option<i32>),
     UserList,
+    Restarting,
 }
 
 pub struct RootComponent {
@@ -40,6 +42,9 @@ pub struct RootComponent {
     fetch_service: FetchService,
     fetch_task: Option<FetchTask>,
     link: ComponentLink<RootComponent>,
+
+    interval_service: IntervalService,
+    interval_ping_task: Option<IntervalTask>,
 }
 
 impl JsonResponseHandler for RootComponent {}
@@ -52,10 +57,12 @@ pub enum Msg {
     // requests
     RequestPostEmergency(bool),
     RequestGetEmergency,
+    RequestGetPing,
 
     // responses
     ResponsePostEmergency(JsonResponse<bool>),
     ResponseGetEmergency(JsonResponse<bool>),
+    ResponseGetPing(JsonResponse<()>),
 }
 
 impl Component for RootComponent {
@@ -65,12 +72,15 @@ impl Component for RootComponent {
     fn create(_: Self::Properties, mut link: ComponentLink<Self>) -> Self {
         link.send_self(Msg::RequestGetEmergency);
         let root = RootComponent {
-            user_type: WebUserType::Responder,
-            current_page: Page::Login(login::AutoAction::Login),
+            //current_page: Page::Login(login::AutoAction::Login),
+            current_page: Page::Restarting,
             emergency: false,
             fetch_service: FetchService::new(),
             fetch_task: None,
+            interval_ping_task: None,
+            interval_service: IntervalService::new(),
             link: link,
+            user_type: WebUserType::Responder,
         };
         root
     }
@@ -79,6 +89,15 @@ impl Component for RootComponent {
         match msg {
             Msg::ChangePage(page) => {
                 self.current_page = page;
+                match self.current_page {
+                    Page::Restarting => {
+                        self.interval_ping_task = Some(
+                            self.interval_service.spawn(POLL_RATE, self.link.send_back(move |_| Msg::RequestGetPing))
+                        );
+                    },
+                    _ => {
+                    },
+                }
             },
             Msg::ChangeWebUserType(user_type) => {
                 self.user_type = user_type;
@@ -102,6 +121,14 @@ impl Component for RootComponent {
                     Msg::ResponseGetEmergency
                 );
             },
+            Msg::RequestGetPing => {
+                self.fetch_task = get_request!(
+                    self.fetch_service,
+                    &system_ping_url(),
+                    self.link,
+                    Msg::ResponseGetPing
+                );
+            },
             // responses
             Msg::ResponsePostEmergency(response) => {
                 self.handle_response(
@@ -122,6 +149,19 @@ impl Component for RootComponent {
                     },
                     |_s, e| {
                         Log!("response - failed to request emergency status, {}", e);
+                    },
+                );
+            },
+            Msg::ResponseGetPing(response) => {
+                self.handle_response(
+                    response,
+                    |s, _resp| {
+                        s.interval_ping_task = None;
+                        //s.link.send_self(Msg::ChangePage(Page::Login(login::AutoAction::Login)));
+                    },
+                    |_s, _e| {
+                        // this might happen if the server is down while we ping it, this is
+                        // totally fine
                     },
                 );
             },
@@ -286,7 +326,21 @@ impl Renderable<RootComponent> for RootComponent {
                         <div class="container-fluid">
                             <SystemSettings
                                 user_type=self.user_type,
+                                change_page=|page| Msg::ChangePage(page),
                             />
+                        </div>
+                    </div>
+                }
+            },
+            Page::Restarting => {
+                html! {
+                    <div class="container-fluid">
+                        <div class="content-wrapper">
+                            <div class="boxedForm restarting-notify" style="display: inline-block; align: center;">
+                                <img src="/images/icon_780_720.png" width="256" height="256"/>
+                                <h2>{"Restarting Server"}</h2>
+                                <h4>{"You will be redirected to the main page momentarily..."}</h4>
+                            </div>
                         </div>
                     </div>
                 }
