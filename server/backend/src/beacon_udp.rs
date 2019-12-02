@@ -58,7 +58,7 @@ impl StreamHandler<Frame, io::Error> for BeaconUDP {
                     .do_send(bm_response);
             },
             Err(e) => {
-                println!("failed to parse message from udp beacon: {}", e);
+                println!("failed to parse message from udp beacon: {}, {}", e, response);
             }
         }
     }

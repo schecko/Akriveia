@@ -443,65 +443,71 @@ impl Handler<BMResponse> for BeaconManager {
 
     fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
         match msg {
-            BMResponse::Start(_ip, mac) => {
+            BMResponse::Start(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Active;
                         beacon.realtime.last_active = Utc::now();
+                        beacon.realtime.ip = ip;
                     },
                     None => {
                         self.unknown_macs.insert(mac);
                     }
                 }
             }
-            BMResponse::End(_ip, mac) => {
+            BMResponse::End(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Idle;
                         beacon.realtime.last_active = Utc::now();
+                        beacon.realtime.ip = ip;
                     },
                     None => {
                         self.unknown_macs.insert(mac);
                     }
                 }
             },
-            BMResponse::Ping(_ip, mac) => {
+            BMResponse::Ping(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.last_active = Utc::now();
+                        beacon.realtime.ip = ip;
                     },
                     None => {
                         self.unknown_macs.insert(mac);
                     }
                 }
             },
-            BMResponse::Reboot(_ip, mac) => {
+            BMResponse::Reboot(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Rebooting;
                         beacon.realtime.last_active = Utc::now();
+                        beacon.realtime.ip = ip;
                     },
                     None => {
                         self.unknown_macs.insert(mac);
                     }
                 }
             },
-            BMResponse::SetIp(_ip, mac) => {
+            BMResponse::SetIp(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.last_active = Utc::now();
+                        beacon.realtime.ip = ip;
                     },
                     None => {
                         self.unknown_macs.insert(mac);
                     }
                 }
             },
-            BMResponse::TagData(_ip, tag_data) => {
+            BMResponse::TagData(ip, tag_data) => {
                 match self.beacons.get_mut(&tag_data.beacon_mac) {
                     Some(beacon) => {
                         if tag_data.tag_distance < 50.0 { // any distance over 50meter is garbage data
                             self.diagnostic_data.tag_data.push(tag_data.clone());
                             self.data_processor.do_send(InLocationData(tag_data));
+                            beacon.realtime.ip = ip;
                             beacon.realtime.last_active = Utc::now();
                         }
                     },
