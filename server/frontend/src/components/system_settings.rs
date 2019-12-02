@@ -1,11 +1,12 @@
 use common::*;
 use crate::util::*;
+use std::net::Ipv4Addr;
+use stdweb::web;
+use super::user_message::UserMessage;
+use super::value_button::DisplayButton;
 use yew::format::Json;
 use yew::services::fetch::{ FetchService, FetchTask, };
 use yew::{ Component, ComponentLink, Html, Renderable, ShouldRender, html, Properties, };
-use stdweb::web;
-use super::user_message::UserMessage;
-use std::net::Ipv4Addr;
 
 pub enum Msg {
     InputIp(String),
@@ -127,7 +128,6 @@ impl Component for SystemSettings {
 // The front-end layout in HTML
 impl Renderable<SystemSettings> for SystemSettings {
     fn view(&self) -> Html<Self> {
-        let space = {" "};
 
         html! {
             <>
@@ -137,33 +137,29 @@ impl Renderable<SystemSettings> for SystemSettings {
                     <div class="boxedForm">
                         <h2>{ "System Settings" }</h2>
                         <div class="d-flex">
-                            <button
-                                class="btn btn-lg btn-info mr-3 my-auto",
-                                onclick=|_| Msg::RequestRestart(SystemCommand::StartNormal),
-                            >
-                                <i class="fa fa-refresh" aria-hidden="true"></i>
-                                { space }
-                                { "Restart Server" }
-                            </button>
-                            
-                            <button
-                                class="btn btn-lg btn-info ml-3 my-auto",
-                                onclick=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
-                            >
-                                <i class="fa fa-power-off" aria-hidden="true"></i>
-                                { space }
-                                { " Reset Database" }
-                            </button>
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-info mr-3 my-auto",
+                                on_click=|_| Msg::RequestRestart(SystemCommand::StartNormal),
+                                icon="fa fa-power-off",
+                                display="Restart Server",
+                            />
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-info ml-3 my-auto",
+                                on_click=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
+                                icon="fa fa-power-off",
+                                display="Reset Database",
+                            />
                         </div>
 
                         <div class="d-flex justify-content-start">
-                            <button
-                                class="btn btn-lg btn-secondary my-auto",
-                                onclick=|_| Msg::RequestSetIp,
-                            >
-                                { space }
-                                {"Set IP Address"}
-                            </button>
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-secondary my-auto",
+                                on_click=|_| Msg::RequestSetIp,
+                                display="Set IP Address",
+                            />
                             <input
                                 type="text",
                                 class="fixedLength",

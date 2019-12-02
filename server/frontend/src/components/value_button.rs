@@ -171,7 +171,7 @@ impl <T: 'static> Renderable<DisplayButton<T>> for DisplayButton<T>
 
         let space_between = if self.icon.is_empty() {""} else {" "};
 
-        let cls = format!("btn {} btn-sm {} spacing", self.style, bold);
+        let cls = format!("{} {} spacing", self.style, bold);
         html! {
             <>
                 <button

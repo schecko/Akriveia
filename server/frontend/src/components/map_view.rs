@@ -356,8 +356,8 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                         border=set_border,
                                         value={user.addr.to_string()},
                                         icon="fa fa-map-marker",
-                                        style={ if set_border {"btn-secondary"} else {"btn-outline-secondary"} },
-                                        display={"Show"},
+                                        style={ if set_border {"btn btn-sm btn-secondary"} else {"btn btn-sm btn-outline-secondary"} },
+                                        display="Show",
                                     />
                                 </td>
                             },

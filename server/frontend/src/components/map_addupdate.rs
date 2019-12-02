@@ -717,15 +717,15 @@ impl MapAddUpdate {
                     }
                 } else {
                     html! {
-                        <tr>
-                            <h4 class="mr-2">{"No Beacons Available."}</h4>
+                        <div>
+                            <h4 class="mr-2">{"No Beacons Available"}</h4>
                             <button
                                 class="btn btn-lg btn-warning mx-1",
                                 onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
                             >
-                                { "Click to add beacon" }
+                                { "Add Beacon" }
                             </button>
-                        </tr>
+                        </div>
                     }
                 }
             },

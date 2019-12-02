@@ -161,7 +161,7 @@ impl Renderable<BeaconList> for BeaconList {
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
                             icon="fa fa-signal",
-                            style="btn-info",
+                            style="btn btn-sm btn-info",
                         />
                         <DisplayButton<BeaconRequest>
                             display="Reboot".to_owned(),
@@ -169,7 +169,7 @@ impl Renderable<BeaconList> for BeaconList {
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
                             icon="fa fa-refresh",
-                            style="btn-info",
+                            style="btn btn-sm btn-info",
                         />
                     </td>
                 </tr>

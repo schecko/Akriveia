@@ -388,7 +388,7 @@ impl Status {
                             border=false,
                             value=BeaconRequest::Ping(Some(beacon.mac_address)),
                             icon="fa fa-signal",
-                            style="btn-info",
+                            style="btn btn-sm btn-info",
                         />
                         <DisplayButton<BeaconRequest>
                             display="Reboot".to_owned(),
@@ -396,7 +396,7 @@ impl Status {
                             border=false,
                             value=BeaconRequest::Reboot(Some(beacon.mac_address)),
                             icon="fa fa-refresh",
-                            style="btn-info",
+                            style="btn btn-sm btn-info",
                         />
                     </>
                 },
@@ -428,7 +428,7 @@ impl Status {
                             disabled=!valid_map,
                             value={beacon.map_id},
                             icon = "fa fa-external-link",
-                            style="btn-secondary",
+                            style="btn btn-sm btn-secondary",
                         />
                         { command_buttons }
                     </td>
@@ -501,7 +501,7 @@ impl Status {
                             on_click=|opt_map_id: Option<i32>| Msg::ChangeRootPage(root::Page::MapView(opt_map_id)),
                             border=false,
                             disabled=!valid_map,
-                            style="btn-secondary",
+                            style="btn btn-sm btn-secondary",
                             icon = "fa fa-external-link",
                             value={user.map_id},
                         />
