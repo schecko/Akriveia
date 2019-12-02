@@ -18,7 +18,7 @@ use crate::models::beacon;
 use std::time::Duration;
 use std::collections::{ BTreeSet, BTreeMap, };
 use common::*;
-use std::net::{ IpAddr, };
+use std::net::{ IpAddr, Ipv4Addr, };
 use chrono::{ DateTime, Duration as cDuration, };
 use crate::ak_error::AkError;
 
@@ -109,6 +109,7 @@ pub enum BMResponse {
     Ping(IpAddr, MacAddress8),
     Reboot(IpAddr, MacAddress8),
     TagData(IpAddr, TagData),
+    SetIp(IpAddr, MacAddress8),
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +120,7 @@ pub enum BMCommand {
     EndEmergency(Option<MacAddress8>),
     Ping(Option<MacAddress8>),
     Reboot(Option<MacAddress8>),
+    SetIp(Ipv4Addr),
 }
 
 impl Message for BMCommand {
@@ -131,6 +133,7 @@ pub enum BeaconCommand {
     StartEmergency(Option<IpAddr>),
     Ping(Option<IpAddr>),
     Reboot(Option<IpAddr>),
+    SetIp(Ipv4Addr),
 }
 
 impl Message for BeaconCommand {
@@ -416,6 +419,14 @@ impl Handler<BMCommand> for BeaconManager {
                     });
                 }
             },
+            BMCommand::SetIp(ip) => {
+                self.mass_send(BeaconCommand::SetIp(ip));
+                self.beacons.iter_mut().for_each(|(_mac, beacon)| {
+                    if beacon.retries.is_none() {
+                        beacon.retries = Some(Retries::new());
+                    }
+                });
+            },
         }
 
         if self.request_health.is_none() {
@@ -468,6 +479,16 @@ impl Handler<BMResponse> for BeaconManager {
                 match self.beacons.get_mut(&mac) {
                     Some(beacon) => {
                         beacon.realtime.state = BeaconState::Rebooting;
+                        beacon.realtime.last_active = Utc::now();
+                    },
+                    None => {
+                        self.unknown_macs.insert(mac);
+                    }
+                }
+            },
+            BMResponse::SetIp(_ip, mac) => {
+                match self.beacons.get_mut(&mac) {
+                    Some(beacon) => {
                         beacon.realtime.last_active = Utc::now();
                     },
                     None => {

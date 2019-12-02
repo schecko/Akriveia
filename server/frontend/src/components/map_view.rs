@@ -41,7 +41,7 @@ pub struct MapViewComponent {
     get_fetch_task: Option<FetchTask>,
     get_many_fetch_task: Option<FetchTask>,
     interval_service: IntervalService,
-    interval_service_task: Option<IntervalTask>,
+    interval_service_task_user: Option<IntervalTask>,
     interval_service_task_beacon: Option<IntervalTask>,
     interval_service_task_blueprint: Option<IntervalTask>,
     legend_canvas: Canvas,
@@ -59,19 +59,19 @@ impl JsonResponseHandler for MapViewComponent {}
 
 impl MapViewComponent {
     fn start_service(&mut self) {
-        self.interval_service_task = Some(
-            self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(|_| Msg::RequestRealtimeUser))
-        );
         if let Some(map) = &self.current_map {
             let id = map.id;
             self.interval_service_task_beacon = Some(
                 self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(move |_| Msg::RequestGetBeaconsForMap(id)))
             );
         }
+        self.interval_service_task_user = Some(
+            self.interval_service.spawn(REALTIME_USER_POLL_RATE, self.self_link.send_back(|_| Msg::RequestRealtimeUser))
+        );
     }
 
     fn end_service(&mut self) {
-        self.interval_service_task = None;
+        self.interval_service_task_user = None;
         self.interval_service_task_beacon = None;
     }
 
@@ -92,7 +92,7 @@ impl MapViewComponent {
             let img = ImageElement::new();
             img.set_src(&format!("{}#{}", map_blueprint_url(&map.id.to_string()), Date::now()));
             let callback = self.self_link.send_back(|_| Msg::CheckImage);
-            self.interval_service_task = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
+            self.interval_service_task_blueprint = Some(self.interval_service.spawn(Duration::from_millis(100), callback));
             self.map_img = Some(img);
         }
     }
@@ -129,7 +129,7 @@ impl Component for MapViewComponent {
             get_fetch_task: None,
             get_many_fetch_task: None,
             interval_service: IntervalService::new(),
-            interval_service_task: None,
+            interval_service_task_user: None,
             interval_service_task_beacon: None,
             interval_service_task_blueprint: None,
             legend_canvas: Canvas::new("legend_canvas", click_callback),
@@ -305,6 +305,7 @@ impl Component for MapViewComponent {
         self.emergency = props.emergency;
 
         if self.emergency {
+            self.end_service();
             self.start_service();
         } else {
             self.end_service();

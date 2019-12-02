@@ -639,8 +639,8 @@ impl MapAddUpdate {
                         <button
                             class={
                                 if this_beacon_selected {
-                                    "btn btn-sm btn-secondary mx-1 selected" }
-                                else {
+                                    "btn btn-sm btn-secondary mx-1 selected"
+                                } else {
                                     "btn btn-sm mx-1 btn-warning"
                                 }
                             },
@@ -717,12 +717,15 @@ impl MapAddUpdate {
                     }
                 } else {
                     html! {
-                        <button
-                            class="btn btn-lg btn-warning mx-1",
-                            onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
-                        >
-                            { "No beacons available. Click to add beacon" }
-                        </button>
+                        <tr>
+                            <h4 class="mr-2">{"No Beacons Available."}</h4>
+                            <button
+                                class="btn btn-lg btn-warning mx-1",
+                                onclick=|_| Msg::ChangeRootPage(root::Page::BeaconAddUpdate(None)),
+                            >
+                                { "Click to add beacon." }
+                            </button>
+                        </tr>
                     }
                 }
             },
@@ -836,37 +839,37 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                                 </td>
                             </tr>
                         </table>
-                        { self.render_beacon_placement() }
-                        <div>
-                            <input
-                                type="checkbox",
-                                id="gridlineCheck2"
-                                value=&self.show_grid,
-                                onclick=|_| Msg::ToggleGrid,
-                            />
-                            <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
-                        </div>
-                        <div>
-                            { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
-                        </div>
-                        <div class="formButtons">
-                            {
-                                match self.user_type {
-                                    WebUserType::Admin => html! {
-                                        <>
-                                            <button
-                                                type="button",
-                                                class="btn btn-lg btn-success align",
-                                                onclick=|_| Msg::RequestAddUpdateMap,
-                                            >
-                                                { title_name }
-                                            </button>
-                                            { add_another_map }
-                                        </>
-                                    },
-                                    WebUserType::Responder => html! { },
-                                }
+                    { self.render_beacon_placement() }
+                    <div>
+                        <input
+                            type="checkbox",
+                            id = "gridlineCheck2"
+                            value=&self.show_grid,
+                            onclick=|_| Msg::ToggleGrid,
+                        />
+                        <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
+                    </div>
+                    <div>
+                        { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
+                    </div>
+                    <div class="formButtons">
+                        {
+                            match self.user_type {
+                                WebUserType::Admin => html! {
+                                    <>
+                                        <button
+                                            type="button",
+                                            class="btn btn-lg btn-success align",
+                                            onclick=|_| Msg::RequestAddUpdateMap,
+                                        >
+                                            { title_name }
+                                        </button>
+                                        { add_another_map }
+                                    </>
+                                },
+                                WebUserType::Responder => html! { },
                             }
+                        }
                             <button
                                 type="button",
                                 class="btn btn-lg btn-danger align",
