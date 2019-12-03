@@ -182,6 +182,31 @@ impl BeaconManager {
         })
     }
 
+    fn find_beacon(&mut self, context: &mut Context<Self>, mac: MacAddress8) {
+        let dup = mac.clone();
+        let fut = db_utils::default_connect()
+            .map_err(AkError::from)
+            .and_then(move |client| {
+                beacon::select_beacon_by_mac(client, dup)
+            })
+            .into_actor(self)
+            .map(move |(_client, beacon), actor, context| {
+                if let Some(b) = beacon {
+                    actor.beacons.insert(b.mac_address.clone(), BeaconStatus {
+                        realtime: RealtimeBeacon::from(b),
+                        retries: None,
+                    });
+                    context.notify(BMCommand::Ping(Some(mac)));
+                } else {
+                    actor.unknown_macs.insert(mac);
+                }
+            })
+            .map_err(move |_err, actor, _context| {
+                actor.unknown_macs.insert(mac);
+            });
+        context.spawn(fut);
+    }
+
     // this callback is executed only after a request is sent to verify that beacons have responded
     fn check_health(&mut self, context: &mut Context<Self>) {
         let manager_state = self.state;
@@ -441,7 +466,7 @@ impl Handler<BMCommand> for BeaconManager {
 impl Handler<BMResponse> for BeaconManager {
     type Result = Result<(), ()>;
 
-    fn handle(&mut self, msg: BMResponse, _context: &mut Context<Self>) -> Self::Result {
+    fn handle(&mut self, msg: BMResponse, context: &mut Context<Self>) -> Self::Result {
         match msg {
             BMResponse::Start(ip, mac) => {
                 match self.beacons.get_mut(&mac) {
@@ -451,7 +476,7 @@ impl Handler<BMResponse> for BeaconManager {
                         beacon.realtime.ip = ip;
                     },
                     None => {
-                        self.unknown_macs.insert(mac);
+                        self.find_beacon(context, mac);
                     }
                 }
             }
@@ -463,7 +488,7 @@ impl Handler<BMResponse> for BeaconManager {
                         beacon.realtime.ip = ip;
                     },
                     None => {
-                        self.unknown_macs.insert(mac);
+                        self.find_beacon(context, mac);
                     }
                 }
             },
@@ -474,7 +499,7 @@ impl Handler<BMResponse> for BeaconManager {
                         beacon.realtime.ip = ip;
                     },
                     None => {
-                        self.unknown_macs.insert(mac);
+                        self.find_beacon(context, mac);
                     }
                 }
             },
@@ -486,7 +511,7 @@ impl Handler<BMResponse> for BeaconManager {
                         beacon.realtime.ip = ip;
                     },
                     None => {
-                        self.unknown_macs.insert(mac);
+                        self.find_beacon(context, mac);
                     }
                 }
             },
@@ -497,7 +522,7 @@ impl Handler<BMResponse> for BeaconManager {
                         beacon.realtime.ip = ip;
                     },
                     None => {
-                        self.unknown_macs.insert(mac);
+                        self.find_beacon(context, mac);
                     }
                 }
             },

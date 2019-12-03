@@ -52,6 +52,7 @@ use std::sync::*;
 pub enum WatcherCommand {
     StartNormal,
     RebuildDB,
+    RebuildDemoDB,
 }
 
 pub struct AkriveiaState {
@@ -97,7 +98,12 @@ fn webserver_main(start_command: SystemCommand, tx: IpcSender<WatcherCommand>, r
     match start_command {
         SystemCommand::StartNormal => {},
         SystemCommand::RebuildDB => {
-            let create_db_fut = system::create_db();
+            let create_db_fut = system::create_db(false);
+            // intentionally block all further execution
+            tokio::run(create_db_fut);
+        },
+        SystemCommand::RebuildDemoDB => {
+            let create_db_fut = system::create_db(true);
             // intentionally block all further execution
             tokio::run(create_db_fut);
         },
@@ -276,6 +282,9 @@ fn watch(_tx: IpcSender<SystemCommand>, rx: IpcReceiver<WatcherCommand>) -> Syst
                     },
                     WatcherCommand::RebuildDB => {
                         return SystemCommand::RebuildDB;
+                    },
+                    WatcherCommand::RebuildDemoDB => {
+                        return SystemCommand::RebuildDemoDB;
                     },
                 }
             },

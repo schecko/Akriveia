@@ -412,6 +412,7 @@ impl LoginInfo {
 pub enum SystemCommand {
     StartNormal,
     RebuildDB,
+    RebuildDemoDB,
 }
 
 // MUST MATCH AkError

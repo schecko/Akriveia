@@ -68,9 +68,12 @@ impl Component for SystemSettings {
                 self.change_page.emit(page);
             }
             Msg::RequestRestart(command) => {
+                let reset_prompt = "Are you sure you wish to rebuild the database? This action will cause the server to restart and cannot be undone.";
+
                 let confirmed = match command {
                     SystemCommand::StartNormal => web::window().confirm("Are you sure you wish to restart?"),
-                    SystemCommand::RebuildDB => web::window().confirm("Are you sure you wish to rebuild the database? This action will cause the server to restart and cannot be undone."),
+                    SystemCommand::RebuildDB => web::window().confirm(reset_prompt),
+                    SystemCommand::RebuildDemoDB => web::window().confirm(reset_prompt),
                 };
 
                 if confirmed {
@@ -161,6 +164,13 @@ impl Renderable<SystemSettings> for SystemSettings {
                                 on_click=|_| Msg::RequestRestart(SystemCommand::RebuildDB),
                                 icon="fa fa-power-off",
                                 display="Reset Database",
+                            />
+                            <DisplayButton<()>
+                                value=(),
+                                style="btn btn-lg btn-info ml-3 my-auto",
+                                on_click=|_| Msg::RequestRestart(SystemCommand::RebuildDemoDB),
+                                icon="fa fa-power-off",
+                                display="Reset Database with Demo Data",
                             />
                         </div>
 
