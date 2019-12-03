@@ -19,7 +19,7 @@ const UNDO_SCHEMA: [&str; 4] = [
     "DROP ROLE ak_admin_role",
 ];
 
-const SCHEMA: [&str; 33] = [
+const SCHEMA: [&str; 26] = [
     "CREATE SCHEMA runtime",
     "CREATE SCHEMA system",
     "CREATE TABLE runtime.maps (
@@ -93,7 +93,10 @@ const SCHEMA: [&str; 33] = [
     "INSERT INTO system.network_interfaces(n_mac, n_beacon_port, n_webserver_port, n_mask, n_ip, n_name)
             VALUES('00:00:00:00:00:00', 9996, 8080, 24, '10.0.0.4', 'localhost')
     ",
-    // TODO remove after implementing frontend
+];
+
+
+const DEMO_DATA: [&str; 7] = [
     "INSERT INTO runtime.users(u_name, u_last_active, u_coordinates, u_mac_address)
             VALUES('test_user', 'epoch', ARRAY [ 0, 0 ], CAST(x'0000' as INT4)::INT2)
     ",
@@ -215,7 +218,7 @@ fn loop_db_commands(client: tokio_postgres::Client, commands: Vec<&str>, ignore_
     })
 }
 
-pub fn create_db() -> impl Future<Item=(), Error=()> {
+pub fn create_db(demo_data: bool) -> impl Future<Item=(), Error=()> {
     println!("creating db");
     ensure_ak()
         .and_then(|_| {
@@ -226,6 +229,13 @@ pub fn create_db() -> impl Future<Item=(), Error=()> {
         })
         .and_then(|client| {
             loop_db_commands(client, SCHEMA.to_vec(), false)
+        })
+        .and_then(move |client| {
+            if demo_data {
+                Either::A(loop_db_commands(client, DEMO_DATA.to_vec(), false))
+            } else {
+                Either::B(ok(client))
+            }
         })
         .map(|_| {
             println!("successfully recreated ak database");

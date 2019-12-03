@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn insert() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let user = TrackedUser::new();
 
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn update() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -405,7 +405,7 @@ mod tests {
     #[test]
     fn update_from_realtime() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -433,7 +433,7 @@ mod tests {
     #[test]
     fn select() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn select_by_short() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -482,7 +482,7 @@ mod tests {
     #[test]
     fn select_prefetch() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -513,7 +513,7 @@ mod tests {
     #[test]
     fn select_attached_user() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -550,7 +550,7 @@ mod tests {
     #[test]
     fn select_random() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -575,7 +575,7 @@ mod tests {
     #[test]
     fn select_many() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -599,7 +599,7 @@ mod tests {
     #[test]
     fn select_many_include_contacts() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();
@@ -637,7 +637,7 @@ mod tests {
     #[test]
     fn delete() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut user = TrackedUser::new();
         user.name = "user_0".to_string();

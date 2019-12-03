@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn insert() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut iface = NetworkInterface::new();
         iface.name = "hello_test".to_string();
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn delete() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut iface = NetworkInterface::new();
         iface.name = "hello_test".to_string();
@@ -260,7 +260,7 @@ mod tests {
     #[test]
     fn update() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut iface = NetworkInterface::new();
         iface.name = "hello_test".to_string();
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     fn select() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut iface = NetworkInterface::new();
         iface.name = "hello_test".to_string();
@@ -312,7 +312,7 @@ mod tests {
 #[test]
     fn select_many() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut iface = NetworkInterface::new();
         iface.name = "hello_test".to_string();

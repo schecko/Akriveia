@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn insert() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn update_blueprint() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();
@@ -320,7 +320,7 @@ mod tests {
     #[test]
     fn update() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();
@@ -347,7 +347,7 @@ mod tests {
     #[test]
     fn select() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();
@@ -371,7 +371,7 @@ mod tests {
     #[test]
     fn select_blueprint() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn select_many() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();
@@ -432,7 +432,7 @@ mod tests {
     #[test]
     fn delete() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut map = Map::new();
         map.name = "map_0".to_string();

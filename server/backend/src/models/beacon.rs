@@ -164,6 +164,31 @@ pub fn select_beacons_by_mac(mut client: tokio_postgres::Client, macs: Vec<MacAd
         })
 }
 
+pub fn select_beacon_by_mac(mut client: tokio_postgres::Client, mac: MacAddress8) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
+    client
+        .prepare_typed("
+            SELECT * FROM runtime.beacons
+            WHERE b_mac_address = $1
+        ", &[
+            Type::MACADDR8,
+        ])
+        .map_err(AkError::from)
+        .and_then(move |statement| {
+            client
+                .query(&statement, &[&mac])
+                .into_future()
+                .map_err(|(err, _next)| {
+                    AkError::from(err)
+                })
+                .map(|(row, _next)| {
+                    match row {
+                        Some(r) => (client, Some(row_to_beacon(&r))),
+                        _ => (client, None),
+                    }
+                })
+        })
+}
+
 pub fn select_beacon_by_ip(mut client: tokio_postgres::Client, ip: IpAddr) -> impl Future<Item=(tokio_postgres::Client, Option<Beacon>), Error=AkError> {
     client
         .prepare_typed("
@@ -393,7 +418,7 @@ mod tests {
     #[test]
     fn insert() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -421,7 +446,7 @@ mod tests {
     #[test]
     fn delete() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -452,7 +477,7 @@ mod tests {
     #[test]
     fn update() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -488,7 +513,7 @@ mod tests {
     #[test]
     fn update_from_realtime() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -523,7 +548,7 @@ mod tests {
     #[test]
     fn select() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -552,9 +577,42 @@ mod tests {
     }
 
     #[test]
+    fn select_mac() {
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
+
+        let map = Map::new();
+        let mac = MacAddress8::from_bytes(&[1, 0, 0, 0, 0, 0, 0, 0]).unwrap();
+
+        let mut beacon = Beacon::new();
+        beacon.name = "hello_test".to_string();
+        beacon.mac_address = mac;
+
+        let task = db_utils::default_connect()
+            .and_then(|client| {
+                // a beacon must point to a valid map
+                map::insert_map(client, map)
+            })
+            .and_then(|(client, map)| {
+                beacon.map_id = Some(map.unwrap().id);
+                insert_beacon(client, beacon)
+            })
+            .and_then(|(client, _opt_beacon)| {
+                select_beacon_by_mac(client, mac)
+            })
+            .map(|(_client, _beacon)| {
+            })
+            .map_err(|e| {
+                println!("db error {:?}", e);
+                panic!("failed to insert beacon");
+            });
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
     fn select_for_map() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let mut beacon = Beacon::new();
         beacon.name = "hello_test".to_string();
@@ -583,7 +641,7 @@ mod tests {
     #[test]
     fn select_prefetch() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -614,7 +672,7 @@ mod tests {
     #[test]
     fn select_many() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -645,7 +703,7 @@ mod tests {
     #[test]
     fn select_3_by_mac() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 
@@ -694,7 +752,7 @@ mod tests {
     #[test]
     fn select_many_prefetch() {
         let mut runtime = Runtime::new().unwrap();
-        runtime.block_on(crate::system::create_db()).unwrap();
+        runtime.block_on(crate::system::create_db(true)).unwrap();
 
         let map = Map::new();
 

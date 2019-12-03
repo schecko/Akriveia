@@ -72,6 +72,7 @@ pub fn restart(id: Identity, state: AKData, payload: web::Json<SystemCommand>) -
             let command = match payload.0 {
                 SystemCommand::StartNormal => WatcherCommand::StartNormal,
                 SystemCommand::RebuildDB => WatcherCommand::RebuildDB,
+                SystemCommand::RebuildDemoDB => WatcherCommand::RebuildDemoDB,
             };
             match s.tx.send(command) {
                 Ok(()) => {},
