@@ -383,11 +383,12 @@ impl Renderable<MapViewComponent> for MapViewComponent {
                                 <input
                                     type="checkbox",
                                     class="form-check-input",
-                                    id="gridlineCheck1",
+                                    id="grid1",
+                                    checked = self.show_grid,
                                     value=&self.show_grid,
                                     onclick=|_| Msg::ToggleGrid,
                                 />
-                                <label class="form-check-label" for="gridlineCheck1">{ "Show Gridlines" }</label>
+                                <label class="checkmark m-1" for="grid1">{ "Show Gridlines" }</label>
                             </div>
                         </div>
                         { VNode::VRef(Node::from(self.legend_canvas.canvas.to_owned()).to_owned()) }

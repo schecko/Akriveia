@@ -339,6 +339,7 @@ impl Renderable<RootComponent> for RootComponent {
                                 <img src="/images/icon_780_720.png" width="256" height="256" style="margin:30px"/>
                                 <h2>{"Restarting Server"}</h2>
                                 <h4>{"You will be redirected to the main page momentarily..."}</h4>
+                                <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
                             </div>
                         </div>
                     </div>
@@ -350,6 +351,7 @@ impl Renderable<RootComponent> for RootComponent {
 
 impl RootComponent {
     fn navigation(&self) -> Html<Self> {
+        let space = {" "};
         let view_map = html! {
             <>
                 <a
@@ -584,6 +586,8 @@ impl RootComponent {
                         },
                     >
                         { "Logout" }
+                        { space }
+                        <i class="fa fa-sign-out" aria-hidden="true"></i>
                     </button>
                     <a class="loginTypeHeader">{ "ADMIN" }</a>
                 </>
@@ -600,6 +604,8 @@ impl RootComponent {
                             }
                         },
                     >
+                        <i class="fa fa-sign-in" aria-hidden="true"></i>
+                        { space }
                         { "Login" }
                     </button>
                     <a class="loginTypeHeader">{ "FIRST RESPONDER" }</a>

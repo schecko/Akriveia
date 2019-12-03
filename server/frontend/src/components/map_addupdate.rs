@@ -843,11 +843,12 @@ impl Renderable<MapAddUpdate> for MapAddUpdate {
                     <div>
                         <input
                             type="checkbox",
-                            id = "gridlineCheck2"
+                            id = "grid2",
+                            checked = self.show_grid,
                             value=&self.show_grid,
                             onclick=|_| Msg::ToggleGrid,
                         />
-                        <label class="checkbox" for="gridlineCheck2">{ "Show Grid" }</label>
+                        <label class="checkbox m-1" for="grid2">{ "Show Grid" }</label>
                     </div>
                     <div>
                         { VNode::VRef(Node::from(self.canvas.canvas.to_owned()).to_owned()) }
